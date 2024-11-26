@@ -22,7 +22,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRETE_KEY')
+SECRETE_KEY = os.environ.get('SECRETE_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -76,7 +76,6 @@ WSGI_APPLICATION = 'dcfence.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
-print(os.environ.get('SUPABASE_PASSWORD'), os.environ.get('SUPABASE_HOST'))
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
