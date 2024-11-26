@@ -14,35 +14,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
 
-import logging
-
-# Configuración básica de logging
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
-    },
-}
-
-# Configurar el logger
-logger = logging.getLogger('django')
-
-# Verificación de las variables de entorno
-logger.debug("SUPABASE_HOST: %s", os.getenv("SUPABASE_HOST"))
-logger.debug("SUPABASE_PASSWORD: %s", os.getenv("SUPABASE_PASSWORD"))
-
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
