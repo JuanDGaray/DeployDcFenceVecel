@@ -1,0 +1,673 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+{% block title %}B.{{budget.id}} | {{ project.project_name }}{% endblock %}
+<div class="container d-flex flex-column justify-content-center ">
+<!-- navigation.html -->
+
+    <nav class="mb-4 d-flex justify-content-between">
+        <div>
+        <a href="{% url 'detail_project' project.id %}"><strong><i class="bi bi-back"></i> <span id="project-container" data-project-id="{{ project.id }}">{{project.id}} </span> - {{project.project_name}}</a>
+        / <span>budget N~{{budget.id}}</span></strong>
+        </div>      
+        <div>
+            status | <span class='tag rounded-4'>{{ budget.status }}</span>
+        </div>
+    </nav>
+    <div class="row">
+    <!-- Budget Card -->
+    <div class="col-md-12 mx-4" style="pointer-events: none; user-select: none;">
+
+        <div id="csrf-token" data-csrf="{{ csrf_token }}"></div>
+        <div id="productDetail-form">
+            <div class="container border m-0 px-0 rounded-4 overflow-hidden mb-4 shadow-sm">
+            <h1 class="card-header fs-4 text-center p-2 bg-company text-light">Project Details</h1>
+            <div class="d-flex justify-content-center card-body col-md-12 bg-company">
+                <div class="col-md-8 p-2 bg-light m-4 d-flex justify-content-between border rounded-2 px-4">
+                    <div class="p-2">
+                        <p class="text-center text-dark fs-6"><strong>Name</strong></p>
+                        <p class="text-center text-dark fs-6">{{ project.project_name }}</p>
+                    </div>
+                    <div class="p-2 bg-body-secondaryay">
+                        <p class="text-center text-dark fs-6"><strong>Job Address</strong></p>
+                        <p class="text-center text-dark fs-6">{{ project.customer.address }}</p>
+                    </div>
+                    <div class="p-2 bg-body-secondaryay">
+                        <p class="text-center text-dark fs-6"><strong>Contractor</strong></p>
+                        {% if project.customer.customer_type == "individual" %}
+                        <p class="text-center text-dark fs-6">{{ project.customer.first_name }} {{ project.customer.last_name }}</p>
+                        {% else %}
+                        <p class="text-center text-dark fs-6">{{ project.customer.company_name }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card p-2 bg-body-secondaryay m-4">
+                <p class="text-center text-dark fs-6"><strong>Quote N°:</strong>budget N~{{budget.id}}</p>
+                <p class="text-center text-dark fs-6"><strong>Quote Date:</strong> {{ budget.date_created|date:"d/m/Y" }}</p>
+                <p class="text-center text-dark fs-6"><strong>Valid Until:</strong> <input type="date"  name="date_valid" id="date_valid" value="{{ date_valid|date:'Y-m-d' }}"> </p>            
+                </div>
+            </div>
+            <h1 class="card-header fs-4 text-center p-2 bg-secondary text-light">Budget Details</h1>
+            <!-- Container Main Form -->
+            <div class="d-flex rounded-4 p-4"  style="width: 100%">
+                <div class="mx-auto"  style="width: 100%">
+                    <!-- Container Cost management -->
+                    <div class="bg-light bg-gradient border p-4 rounded-3 my-4 col-md-12" id="cost-management">
+                        <h5 class="text-center"><strong>Cost management</strong></h5>
+                        <!-- Budget Form -->
+                        <table class="table  table-bordered rounded-4 col-md-12" style="width: 100%">
+                            <tbody>
+                                <tr>
+                                    <td colspan="8" class="p-0 border">
+                                        <h2 class="card-header fs-6 py-1 rounded-4 text-secondary">A. Workshops</h2>
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tbody class="table-secondary">
+                                <tr class="p-0">
+                                    <th class="py-0">N</th>
+                                    <th colspan="2" class="py-0" style="width:40%;">Labor Description</th> <!-- Usamos porcentaje para hacerlo relativo -->
+                                    <th class="py-0" style="width:15%;">CostByDay</th>
+                                    <th class="py-0" style="width:10%;">Days</th>
+                                    <th class="py-0" style="width:15%;">Lead TIME</th>
+                                    <th class="py-0" colspan="2" style="width:20%;">Labor Cost</th>
+                                </tr>
+                            </tbody>
+                            <tbody id="labor-section" class="table-striped">
+                            </tbody>
+                            <tbody>
+                                <tr>
+                                    <td colspan="6" class="p-0">
+                                        <button type="button" id="add-labor-btn" class="btn btn-success add-btn">+ Add labor</button>
+                                    </td>
+                                    <td Colspan="2" class="p-0 table-secondary border-2">
+                                        <span class="money_simbol_input">$</span>
+                                        <input class="form-control-budget text-end" type="text" name="total_labor_cost" id="total_labor_cost" step="0.01" readonly disabled>
+                                    </td>
+                                </tr>
+                            </tbody> 
+                            <!-- Materials Form -->
+                            <tbody>
+                                <tr>
+                                    <td colspan="8" class="p-0 border">
+                                        <h2 class="card-header fs-6 py-1 rounded-4 text-secondary">B. Materials</h2>
+                                    </td>
+                                    
+                                </tr>
+                            </tbody>
+                            <tbody class="table-secondary">            
+                                <tr>
+                                    <th class="py-0">N</th>
+                                    <th colspan="2" class="py-0">Material Description</th>
+                                    <th class="py-0">QT</th>
+                                    <th class="py-0">Units Cost</th>
+                                    <th class="py-0" >Lead TIME</th>
+                                    <th colspan="2" class="py-0">Cost</th>
+                                </tr>
+                            </tbody>
+                            <tbody id="materials-section">
+                                <tr>
+                                    
+                                </tr>
+                            </tbody>
+                            <tbody>
+                                <tr>
+                                    <td colspan="6" class="p-0">
+                                        <button type="button" id="add-materials-btn"  class="btn btn-success add-btn">+ Add materials</button>
+                                    </td>
+                                    <td Colspan="2" class="p-0 table-secondary border-2">
+                                        <span class="money_simbol_input">$</span>
+                                        <input class="form-control-budget text-end" type="text" name="total_materials_cost" id="total_materials_cost" step="0.01" readonly disabled>
+                                    </td>
+                                </tr>
+                            </tbody>
+
+                            <!--  Contractor Owned Form -->
+                                <tbody>
+                                    <tr>
+                                        <td colspan="8" class="p-0 border">
+                                            <h2 class="card-header fs-6 py-1 rounded-4 text-secondary">C. Subcontractor</h2>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                                <tbody class="table-secondary">
+                                    <tr>
+                                        <th class="py-0">#</th>
+                                        <th colspan="4"class="py-0">Equipment description</th>
+                                        <th class="py-0">Lead Time</th>
+                                        <th  colspan="2" class="py-0">Cost</th>
+                                    </tr>
+                                </tbody>
+                                <tbody id="contractor-section">
+                                    
+                                        
+                                </tbody>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="6" class="p-0">
+                                            <button type="button" id="add-contractor-btn"  class="btn btn-success add-btn">+ Add Contractor</button>
+                                        </td>
+                                        <td Colspan="2" class="p-0 table-secondary border-2">
+                                            <span class="money_simbol_input">$</span>
+                                            <input class="form-control-budget text-end" type="text" name="total_contractor_cost" id="total_contractor_cost" step="0.01" readonly disabled>
+                                        </td>
+                                    </tr>
+                                    </tr>
+                                </tbody>                            
+                            <!--  Misc Form -->
+                            <tbody>
+                                <tr>
+                                    <td colspan="8" class="p-0 border">
+                                        <h2 class="card-header fs-6 py-1 rounded-4 text-secondary">D. Misc</h2>
+                                    </td>
+                                </tr>
+                            </tbody>
+                                <tbody class="table-secondary">
+                                    <tr>
+                                        <th class="py-0">#</th>
+                                        <th colspan="4" class="py-0">Description</th>
+                                        <th class="py-0">Lead Time</th>
+                                        <th  colspan="2" class="py-0">Cost</th>
+                                    </tr>
+                                </tbody>
+                                <tbody id="misc-section">
+                                    <tr>
+                                    </tr>
+                                </tbody>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="6" class="p-0">
+                                            <button type="button" id="add-misc-btn"  class="btn btn-success add-btn">+ Add misc</button>
+                                        </td>
+                                        <td Colspan="2" class="p-0 table-secondary border-2">
+                                            <span class="money_simbol_input">$</span>
+                                            <input class="form-control-budget text-end" type="text" name="total_misc_cost" id="total_misc_cost" step="0.01" readonly disabled>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            <!--  deducts_desc Form -->
+                                <tr>
+                                    <td colspan="8" class="p-0 border">
+                                        <h2 class="card-header fs-6 py-1 rounded-4 text-secondary">E. Deducts/Credits</h2>
+                                    </td>
+                                </tr>
+                            </tbody>                        
+                            <tbody class="table-secondary">
+                                    <tr>
+                                        <th class="py-0">#</th>
+                                        <th colspan="4" class="py-0" >Description</th>
+                                        <th class="py-0">Lead Time</th>
+                                        <th  colspan="2" class="py-0">Cost</th>
+                                    </tr>
+                                </tbody>
+                                <tbody id="deducts-section">
+                                    <tr>
+                                        
+                                    </tr>
+                                </tbody>
+                                <tbody>
+                                    <tr>
+                                        <td colspan="6" class="p-0">
+                                            <button type="button" id="add-deducts-btn"  class="btn btn-success add-btn">+ Add deducts</button>
+                                        </td>
+                                        <td Colspan="2" class="p-0 table-secondary border-2">
+                                            <span class="money_simbol_input">$</span>
+                                            <input class="form-control-budget text-end" type="text" name="total_contractor_cost" id="total_deducts_cost" step="0.01" readonly disabled>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            <!--  Total Section -->
+                            <tbody>
+                                <tr>
+                                    <td colspan="6" class="p-0">
+                                        <h2 class="section-header card-header fs-6 text-end p-2 m-0 ">F. Total cost without Deduct/Credits</h2>
+                                    </td> 
+                                    <td colspan="2">
+                                        <div class="input-group p-0">
+                                            <span class="money_simbol_input fs-6 ">$</span>
+                                            <input class="form-control-budget text-end fs-6" type="text" name="total_Cost" step="0.01" id="total_Cost" value="0" class=" text-center"  readonly disabled>
+                                        </div>
+                                    </td>                        
+                                </tr>
+                                <tr class="bg-secondary">
+                                    <td colspan="6" class="p-0 bg-secondary">
+                                        <h2 class="section-header card-header fs-5 text-end p-2 m-0 bg-secondary  text-light">G. Total Cost</h2>
+                                    </td> 
+                                    <td colspan="2" class="bg-dark">
+                                        <div class="input-group p-0">
+                                            <span class="money_simbol_input bg-secondary fs-5 text-light">$</span>
+                                            <input class="form-control-budget text-light text-end bg-secondary text-light fs-5" type="text" name="grand_Cost" step="0.01" id="grand_Cost" value="0" class="border-0 text-center bg-secondary text-light"  readonly disabled>
+                                        </div>
+                                    </td>                        
+                                </tr>
+                            </tbody>
+                            <!--  Profit Section -->
+                            {% comment %} <tbody>
+                                <tr>
+                                <td colspan="6">
+                                    <h2 class="section-header card-header fs-4 text-center py-2 m-0">
+                                        H. Overhead and Profit (
+                                        <input type="number" name="profit_percent" id="profit_percent" class="border-0 text-center no-stepper" value="29" style="width: 40px;">%)
+                                    </h2>                        </td>
+                                <td colspan="2">
+                                    <div class="input-group p-0">
+                                        <span class="money_simbol_input bg-secondary text-light">$</span>
+                                        <input class="form-control-budget text-end bg-secondary text-light" type="text" name="profit_value" step="0.01" id="profit_value" class="border-0 text-center bg-secondary text-light"  readonly disabled>
+                                    </div>
+                                </td>
+                                </tr>
+                            </tbody>
+                            <!--  GrandTotal Section -->
+                            <tbody>
+                                <tr>
+                                    <td colspan="6">
+                                        <h2 class="section-header card-header fs-4 text-center py-2 m-0">J. Grand Total</h2>
+                                    </td>
+                                    <td colspan="2">
+                                        <div class="input-group p-0">
+                                            <span class="money_simbol_input bg-dark text-light">$</span>
+                                            <input class="form-control-budget text-end bg-dark text-light" type="text" name="total_CostWithProfit" step="0.01" id="total_Cost" class="border-0 text-center bg-secondary text-light"  readonly disabled>
+                                        </div>                            
+                                    </td>
+                                </tr>
+                            </tbody> {% endcomment %}
+                        </table>
+                    </div>
+                    <!-- Profit management -->
+                    <div class="bg-light bg-gradient border p-4 mx-auto rounded-3 profitManagement">
+                        <h5 class="text-center"><strong>Profit management</strong></h5>
+                        <!-- Budget Form -->
+                        <table class="table  table-bordered rounded-4 " style="width: 100%">
+                            <tbody class="table-secondary">
+                                <tr class="p-0">
+                                    <th class="py-0">N</th>
+                                    <th colspan="4" class="py-0">Profit Description</th>
+                                    <th class="py-0" style="width:20%">Lead TIME</th>
+                                    <th class="py-0"  colspan="2" style="width:20%">Profit Value</th>
+                                </tr>
+                            </tbody>
+                            <tbody id="profit-section" class="table-striped">
+                                
+                            </tbody>
+                            <tbody>
+                                <tr>
+                                    <td colspan="8" class="p-0">
+                                        <button type="button" id="add-profit-btn" class="btn btn-success add-btn">+ Add profit</button>
+                                    </td>
+                                </tr>
+                            </tbody> 
+                            
+                            <!--  Total Section -->
+                            <tbody>
+                                <tr>
+                                    <td colspan="6" class="p-0 bg-secondary" >
+                                        <h2 class="section-header bg-secondary card-header fs-5 text-end p-2 m-0 text-light">F. Total profit</h2>
+                                    </td> 
+                                    <td colspan="2" class="bg-dark" style="width:50px">
+                                        <div class="input-group p-0">
+                                            <span class="money_simbol_input bg-secondary fs-5 text-light">$</span>
+                                            <input class="form-control-budget text-light text-end bg-secondary text-light fs-5" type="text" name="total_profit" value="0" step="0.01" id="total_profit" class="border-0 text-center bg-secondary text-light" readonly>
+                                        </div>
+                                    </td>                        
+                                </tr>
+                            </tbody>
+                            <!--  Profit Section -->
+                            {% comment %} <tbody>
+                                <tr>
+                                <td colspan="6">
+                                    <h2 class="section-header card-header fs-4 text-center py-2 m-0">
+                                        H. Overhead and Profit (
+                                        <input type="number" name="profit_percent" id="profit_percent" class="border-0 text-center no-stepper" value="29" style="width: 40px;">%)
+                                    </h2>                        </td>
+                                <td colspan="2">
+                                    <div class="input-group p-0">
+                                        <span class="money_simbol_input bg-secondary text-light">$</span>
+                                        <input class="form-control-budget text-end bg-secondary text-light" type="text" name="profit_value" step="0.01" id="profit_value" class="border-0 text-center bg-secondary text-light"  readonly disabled>
+                                    </div>
+                                </td>
+                                </tr>
+                            </tbody>
+                            <!--  GrandTotal Section -->
+                            <tbody>
+                                <tr>
+                                    <td colspan="6">
+                                        <h2 class="section-header card-header fs-4 text-center py-2 m-0">J. Grand Total</h2>
+                                    </td>
+                                    <td colspan="2">
+                                        <div class="input-group p-0">
+                                            <span class="money_simbol_input bg-dark text-light">$</span>
+                                            <input class="form-control-budget text-end bg-dark text-light" type="text" name="total_CostWithProfit" step="0.01" id="total_Cost" class="border-0 text-center bg-secondary text-light"  readonly disabled>
+                                        </div>                            
+                                    </td>
+                                </tr>
+                            </tbody> {% endcomment %}
+                        </table>
+                    </div>
+                </div>
+                <!-- Utils Form -->
+                <div class="d-flex flex-column col-md-3 card mx-4 border-0">
+                    <div class="card my-4">
+                        <h2 class="card-header fs-6 text-center py-1">Items</h2>
+                        <h2 class="fs-6 py-1 mx-2 text-center">
+                            <input  class="my-2 align-middle rounded-4 border-1 px-2" type="input" id="itemInput" placeholder="CLF gate" />                                
+                            <span class="btn btn-sm btn-primary m-0 w-5 h-5 border-0 rounded-4 " onclick="addItem()">+</span> 
+                        </h2>
+                        <div id="items_container" class="rounded-4 m-2 p-2 d-flex flex-wrap align-items-center gap-2">
+                        </div>
+                        
+                    </div>
+                    <div class="card my-4">
+                        <h2 class="card-header fs-6 text-center py-1">Utils</h2>
+                        <!-- Utils Form - Ft and Posts-->
+                        <h2 class="fs-6 py-1 mx-2">
+                            <input type="checkbox" id="cbox1" value="second_checkbox" onclick="toggleTable()" />                                
+                            <strong>Add total Ft & posts</strong> 
+                        </h2>
+                        <div id="table_ftandPost" style="width:90%; display:none" class="bg-light bg-gradient mx-auto p-2 rounded-3">
+                            <table class="table  table-bordered mx-auto my-2" >
+                                <thead class="table-secondary">
+                                    <tr class="p-0">
+                                        <th class="py-0 fs-6 text-center">Total Ft</th>
+                                        <th class="py-0 fs-6  text-center">Total Posts</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="table-striped">
+                                    <tr>
+                                        <td class="p-0"><input class="form-control-budget text-center" type="number" id="total-ft" name="total-ft" step="0" value="0"></td>
+                                        <td class="p-0"><input class="form-control-budget text-center" type="number" id="total-posts" name="total-posts" step="0" value="0"></td>                          
+                                    </tr>
+                                </tbody>
+                                
+                            </table>
+                            <h2 class="fs-6 py-1 mx-2">
+                                <input type="checkbox" id="Add-hole-check" value="second_checkbox"/>                                
+                                <strong>Add hole to items</strong> 
+                            </h2>
+                            <div class="d-block px-4 py-auto">
+                                <table id="add-hole-to-item" class="table-striped mx-auto my-2 bg-white">
+                                    <tr>
+                                        <td class="p-0 border text-center  px-2"">????</td>
+                                        <td class="p-0 border text-center">
+                                            <input class="form-control-budget text-end" type="number" name="QT" id="QT" step="0.01" value="0.96" style="width:80px">
+                                        </td>                          
+                                    </tr>
+                                    <tr>
+                                        <td class="p-0 border text-center  px-2">Cost</td>
+                                        <td class="p-0 border text-center">
+                                            $<input class="form-control-budget text-end" type="number" name="cost-???" id="cost-???" step="1" value="180" style="width:80px">
+                                        </td>                          
+                                    </tr>
+                                    <tr>
+                                        <td class="p-0 border text-center px-2">Cost per hole</td>
+                                        <td class="p-0 border text-center">
+                                            $<input class="form-control-budget text-end" type="number" name="cost-per-hole" id="cost-per-hole" step="1" value="3" style="width:80px">
+                                        </td>                          
+                                    </tr>
+                                </table>
+                            </div>   
+                            <h2 class="fs-6 py-1 mx-2">
+                                <input type="checkbox" id="add-utilities-per-FT" />                                
+                                <strong>Add utilities per FT</strong> 
+                            </h2>
+                            <div class="d-block px-4 py-auto">
+                                <table id="add-utilities-cost" class="table-striped mx-auto my-2 bg-white">
+                                    <tr>
+                                        <td class="p-0 border text-center  px-2"">Cost</td>
+                                        <td class="p-0 border text-center">
+                                            <input class="form-control-budget text-end" type="number" name="utilities-cost" id="utilities-cost" step="0.01" value="1.5" style="width:80px">
+                                        </td>                          
+                                    </tr>
+                                </table>
+                            </div>
+                            <h2 class="fs-6 py-1 mx-2">
+                                <input type="checkbox" id="add-removal-per-FT" value="add-removal-per-FT" onclick="" />                                
+                                <strong>Add cost of removal per FT</strong> 
+                            </h2>
+                            <div class="d-block px-4 py-auto">
+                                <table id="add-removal-cost" class="table-striped mx-auto my-2 bg-white">
+                                    <tr>
+                                        <td class="p-0 border text-center  px-2"">Cost</td>
+                                        <td class="p-0 border text-center">
+                                            <input class="form-control-budget text-end" type="number" name="removal-cost" id="removal-cost" step="0.01" value="1" style="width:80px">
+                                        </td>                          
+                                    </tr>
+                                </table>
+                            </div>     
+                        </div>
+
+                        <!-- Utils Form -  Modify unit cost CLF-->
+                        <h2 class="fs-6 py-1 mx-2">
+                            <input type="checkbox" id="cbox2" value="second_checkbox" onclick="toggleUnitCostCLF()" />                                
+                            <strong>Add unit cost per manufacturing items</strong> 
+                        </h2>
+                        <div id="table_UnitCostCLF" style="width:90%; display:none" class="bg-light bg-gradient mx-auto p-2 rounded-3">
+                            <table class="table  table-bordered mx-auto my-2" >
+                                <thead class="table-secondary">
+                                    <tr class="p-0">
+                                        <th class="py-0 fs-6 text-center">Item</th>
+                                        <th class="py-0 fs-6  text-center">Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="manufacturingItems" class="table-striped">
+                                    <tr>
+                                        <td class="p-0 text-center bg-gray">Gas</td>
+                                        <td class="p-0"><input class="form-control-budget text-center" type="number" name="Labor_gas" id="Labor_gas" step="0" value="15"></td>                          
+                                    </tr>
+                                    <tr>
+                                        <td class="p-0 text-center ">Water</td>
+                                        <td class="p-0"><input class="form-control-budget text-center" type="number" name="Labor_water" id="Labor_water" step="0" value="15"></td>                          
+                                    </tr>
+                                    <tr>
+                                        <td class="p-0 text-center ">Auxiliary</td>
+                                        <td class="p-0"><input class="form-control-budget text-center" type="number" name="Labor_Auxiliary" id="Labor_Auxiliary" step="0" value="130"></td>                          
+                                    </tr>
+                                    <tr>
+                                        <td class="p-0 text-center ">Installer</td>
+                                        <td class="p-0"><input class="form-control-budget text-center" type="number" name="Labor_Installer" id="Labor_Installer" step="0" value="200"></td>                          
+                                    </tr>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="bg-secondary">
+                                        <td class="p-0 text-center bg-secondary text-light">Total</td>
+                                        <td class="p-0 bg-secondary text-light"><input class="form-control-budget text-center text-light" type="number" name="Labor_Total"  id="Labor_Total" step="0" value="360" readonly></td>                          
+                                    </tr>
+                                </tfoot>
+                            </table>
+                            <div class="d-block px-4 py-auto">
+                                <table class="table-striped mx-auto my-2 bg-white">
+                                    <tr class=>
+                                        <th class="p-0 border text-center px-2">Item</td>                      
+                                        <th class="p-0 border text-center  px-2"">Days</th>                       
+                                    </tr>
+                                    <tbody id="cost_per_manufacturing" >
+
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                        </div> 
+
+                        
+                        <!-- table taller manufacturing-->
+                        <h2 class="fs-6 py-1 mx-2">
+                            <input type="checkbox" id="cboxMW" value="second_checkboxMW" onclick="toggleUnitCostMW()" />                                
+                            <strong>Add daily workshop manufacturing cost and profit</strong> 
+                        </h2>
+                        <div id="table_UnitCostMW" style="width:90%; display:none" class="bg-light bg-gradient mx-auto p-2 rounded-3">
+                            <table class="table  table-bordered mx-auto my-2" >
+                                <thead class="table-secondary">
+                                    <tr class="p-0">
+                                        <th class="py-0 fs-6 text-center">Item</th>
+                                        <th class="py-0 fs-6  text-center">Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="manufacturingItemsMW" class="table-striped">
+                                    <tr>
+                                        <td class="p-0 text-center bg-gray">Welder</td>
+                                        <td class="p-0"><input class="form-control-budget text-center" id='assistantCostByDay' type="number" name="Labor_gas" step="0" value="140" oninput="reloadDataManufacturingMWAll()""></td>        
+                                    <tr>
+                                        <td class="p-0 text-center ">Assistant</td>
+                                        <td class="p-0"><input class="form-control-budget text-center"  id='welderCostByDay' type="number" name="Labor_water" step="0" value="130" oninput="reloadDataManufacturingMWAll()"></td>                          
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div class="d-block py-auto">
+                                <table class="table-striped mx-auto my-2 bg-white">
+                                    <tr>
+                                        <th rowspan="2" class="p-0 border text-center px-4">Concept</th>
+                                        <th class="p-0 border text-center px-2" colspan="2">Qty</th>  
+                                        <th rowspan="2" class="p-0 border text-center px-2">Days</th>
+                                    </tr>
+                                    <tr>
+                                        <th class="p-0 border text-center px-2">WLD</th>
+                                        <th class="p-0 border text-center px-2">Asst</th>
+                                    </tr>
+                                    
+                                    <tbody id="cost_per_manufacturingMW" >
+
+                                    </tbody>
+                                </table>
+                            </div>
+                            <h2 class="fs-6 py-1 mx-2">
+                                <input type="checkbox" id="cboxMWadd" value="second_checkboxMW" onclick="activeRowProfitManufacturingMW(this)" />                                
+                                <strong>Add daily profit
+                                    $<input class="form-control-budget text-center bg-white" id='profitByDay' style='width:30%' type="number" name="profitByDay" step="0" value="140" oninput="reloadRowProfitManufacturingMW()">
+                                </strong> 
+                            </h2>
+                        </div> 
+                        
+                        
+
+                        <!-- Utils Form -  Modify Profit By Day-->
+                        <h2 class="fs-6 py-1 mx-2">
+                            <input type="checkbox" id="cbox3" value="second_checkbox" onclick="toggleProfitByDay()" />                                
+                            <strong>Add profit per day</strong> 
+                        </h2>
+                        <table class="table  table-bordered mx-auto my-2" id="table_ProfitByDay" style="width:90%; display:none">
+                            <thead class="table-secondary">
+                                <tr class="p-0">
+                                    <th class="py-0 fs-6 text-center">Days</th>
+                                    <th class="py-0 fs-6  text-center">Profit by day</th>
+                                </tr>
+                            </thead>
+                            <tbody class="table-striped">
+                                <tr>
+                                    <td class="p-0">
+                                        <input class="form-control-budget text-center" type="number" name="days-per-profit" id="days-per-profit" step="0" value="15">
+                                    </td>                          
+                                    <td class="p-0">
+                                        <input class="form-control-budget text-center" type="number" name="profit-value" id="profit-value" step="0" value="1000">
+                                    </td>                          
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="p-0">
+                                        <input class="text-center" type="checkbox" name="use-day-in-itemsManufacturing" id="use-day-in-itemsManufacturing">
+                                        <span>Use days and items to divide profits by billing.</span> 
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        
+                        <h2 class="fs-6 py-1 mx-2">
+                            <input type="checkbox" id="cbox4" value="second_checkbox" onclick="toggleAddLoans()" />                                
+                            <strong>Add loans to the project</strong> 
+                        </h2>
+                        <table class="table  table-bordered mx-auto my-2"  id="loans-to-the-project" style="width:90%; display:none">
+                            <tr>
+                                <td class="p-0 border text-center  px-2"">percentage</td>
+                                <td class="p-0 border text-center">
+                                    <input class="form-control-budget text-end" type="number" name="percentage-loans" id="percentage-loans" step="0.1" value="0.1" style="width:80px">
+                                </td>                          
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </div>
+                <section class="d-flex m-auto gap-2 justify-content-center align-items-top">
+                    <div class="card my-4 overflow" style="width:30%">
+                        <h2 class="card-header fs-6 text-center py-1">Cost per items</h2>
+                        <table id="cost_per_items" class="table table-bordered mx-auto" style="width:100%">
+                            <thead>
+                                <tr  class="table-secondary">
+                                    <th class="p-0 border text-center  px-2" style="width:70%">Items</th>
+                                    <th class="p-0 border text-center  px-2" style="width:30%"> Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody class="word-wrap word-break">
+                            </tbody>
+                            <tfoot>
+                                <th class="p-0 border text-center  px-2">
+                                </th>
+                                <th class="p-0 border px-2 bg-secondary text-light text-end" id="totalCostByItems">
+                                    $0.00
+                                </th>
+                            </tfoot>
+                        </table>     
+                    </div>
+
+                    <div class="card my-4" style="width:30%">
+                        <h2 class="card-header fs-6 text-center py-1">Utility per item</h2>
+                        <table id="profit_per_items" class="table table-bordered mx-auto">
+                            <thead>
+                                <tr  class="table-secondary">
+                                    <th class="p-0 border text-center  px-2" style="width:70%">Items</th>
+                                    <th class="p-0 border text-center  px-2" style="width:30%"> Utility</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                            <tfoot>
+                                <th class="p-0 border text-center  px-2">
+                                </th>
+                                <th class="p-0 border px-2 bg-secondary text-light text-end" id="totalProfitByItems">
+                                    $0.00
+                                </th>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <div class="card my-4" style="width:30%">
+                        <h2 class="card-header fs-6 text-center py-1">Selling price per item</h2>
+                        <table id="selling_price" class="table table-bordered mx-auto">
+                            <thead>
+                                <tr  class="table-secondary">
+                                    <th class="p-0 border text-center  px-2" style="width:70%">Items</th>
+                                    <th class="p-0 border text-center  px-2" style="width:30%"> Sale price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                            <tfoot>
+                                <th class="p-0 border text-center  px-2">
+                                </th>
+                                <th class="p-0 border px-2 bg-secondary text-light text-end" id="totalCostProfitByItems">
+                                    $0.00
+                                </th>
+                            </tfoot>
+                        </table>
+                    </div>
+                </section>
+                <div class="d-flex justify-content-end gap-4 m-4" >
+                    <button type="submit" name="action" value="save" class="btn btn-primary w-40" onclick="getCostManagementData(true,{{budget.id}})">
+                        <i class="bi bi-floppy-fill"></i>
+                        Modify</button>              
+                </div>
+    </div>
+</div>
+</div>
+</div>
+</div>
+<script src="{% static 'js/new_budgetScripts.js' %}"></script>
+<script src="{% static 'js/addDetailsBudget.js' %}"></script>
+<script>
+    const dataC = {{ data|safe }};
+    document.addEventListener("DOMContentLoaded", () => {
+        const removeLaborButtons = document.querySelectorAll(".remove_btn");
+        removeLaborButtons.forEach(button => {
+            button.style.display = "none";
+        });
+    });
+
+</script>
+
+{% endblock %}

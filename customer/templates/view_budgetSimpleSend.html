@@ -1,0 +1,434 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_head %}
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url("{% static 'img/logoPatron.png' %}");
+            background-repeat: repeat;
+        }
+        #main-container{
+            box-shadow: 0 0 2000px 50px #0000002e;
+            background: white;
+            padding: 30px 30px;
+            border-radius: 10px;
+        }
+        .header-blue {
+            background-color: #1a4784;
+            color: white;
+            padding: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .materials-box {
+            border: 1px solid #000;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .materials-header {
+            background-color: #1a4784;
+            color: white;
+            padding: 5px;
+            text-align: center;
+            margin: -10px -10px 10px -10px;
+        }
+        .scope-section {
+            background-color: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .imgSello{
+            position: absolute;
+            opacity: 0.5;
+            fill: none;
+            left: 35%;
+            width:250px;
+            user-select: none;
+            pointer-events: none;
+            
+        }
+
+        .logoView{
+            background-color: #1a4784;
+            width: 200px;
+            padding: 4px;
+            height: 140px;
+        }
+
+        .deleteScope{
+            position: relative;
+            opacity: 0;
+            left:48%
+        }
+        .deleteScope:hover{
+            opacity: 1;
+        }
+
+        .scope-title:hover .deleteScope {
+            display: inline-block; 
+            opacity: 0.5;
+        }
+
+        .infoContainer{
+            background-image: url("{% static 'img/logoPatron.png' %}");
+            background-repeat: none;
+            background-position: center;
+            box-shadow: inset 0px 0px 3px 0px black;
+        }
+
+        .bgTrans{
+            background-color:white;
+            border-radius:14px;
+            box-shadow: inset 0px 0px 3px 0px black;
+        }
+
+        .selectTerms{
+            position: relative;
+            margin:4px;
+            padding: 0px 12px;
+            font-size: 0.9rem;
+            opacity: 0;
+            
+        }
+        
+        .termsContainer:hover .selectTerms{
+            opacity: 1;
+        }
+
+        .form-control {
+            overflow: hidden;
+            resize: none;
+        }
+    </style>
+{% endblock %}
+{% block title %}Simple Invoice{% endblock %}
+{% block content %}
+<body>
+    <form id="invoice-form" method="POST" action="">
+        {% csrf_token %}
+    <div class="container mt-4" id='main-container'>
+        <div class="row align-items-center pb-2 border-bottom border-2 ">
+            <div class="col-6 d-flex justify-content-start rounded-2 ">
+                <img src="{% static 'img/LogoCompleteWhite.webp' %}" alt="DC FENCE Logo" class="img-fluid logoView rounded-2"">
+            </div>
+            <div class="col-6 d-flex justify-content-end border border-2 rounded-2 infoContainer p-3 px-4">
+                <div class="d-flex flex-column justify-content-center align-items-center text-center bgTrans px-2">
+                    <input 
+                        type="text" 
+                        id="tracking" 
+                        name="tracking" 
+                        value="{{ project.customer_id }}{{ budget.project.id }}{{ project.customer.first_name|default:''|slice:':1' }}" 
+                        class="form-control text-center fs-4 border-0 mt-1" 
+                        readonly>
+                    <h4>Tracking ID <span style='font-size: 1rem'> <i class="btn bi bi-copy p-1 rounded-2 text-sm d-real"></i></span></h4>
+                    <p class="m-0">You can view the status of your project at <a href='www.dcfence.org/traking'> <br> <b> www.dcfence.org/traking</b> <a></p>
+                </div>
+                <div class="d-flex flex-column ms-5 justify-content-center bgTrans p-2">
+                    <div class="d-flex align-items-center mb-1">
+                        <i class="bi bi-telephone-fill bg-primary p-1 rounded-2 text-light me-1"></i>
+                        <span>786-747-4766</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-1">
+                        <i class="bi bi-house-door-fill bg-primary p-1 rounded-2 text-light me-1"></i>
+                        <span>2498 W Third CT,</span>
+                    </div>
+                    <div class="d-flex align-items-center mb-1">
+                        <i class="bi bi-house-door-fill bg-primary p-1 rounded-2 text-light me-1"></i>
+                        <span>Hialeah FL 33010</span>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-envelope-fill bg-primary p-1 rounded-2 text-light me-1"></i>
+                        <a href="mailto:dcfence01@gmail.com" class="text-decoration-none text-dark">dcfence01@gmail.com</a>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+
+            <div class="header-blue rounded-2"">Project Detail</div>
+            <table class="table table-bordered ">
+                <tr>
+                    <td>Project Name:</td>
+                    <td>
+                        <input type="text"  name="project_name" value="{{ project.project_name }}" style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;"/>
+                    </td>
+                    <td>Quote No:</td>
+                    <td>{{project.customer_id}}-{{budget.project.id}}</td>
+                </tr>
+                <tr>
+                    <td>Contractor:</td>
+                    <td> 
+                        {% if project.customer.customer_type == "individual" %}
+                            <a href="{% url 'detail_customer' project.customer.id %}">
+                                <span class="status title_{{ project.customer.customer_type }} fs-6">
+                                {{ project.customer.first_name }} {{ project.customer.last_name }} <i class="bi bi-person-arms-up"></i>
+                                </span>
+                                </a> {% else %}
+                                <a href="{% url 'detail_customer' project.customer.id %}">
+                                <span class="status title_{{ project.customer.customer_type }} fs-6">{{ project.customer.company_name }} 
+                                <i class="bi bi-buildings-fill"></i> 
+                                </span> 
+                                </a>
+                            {% endif %}
+                    </td>
+                    <td>Quote Date:</td>
+                    <td>                        
+                        <input type="date" name="date_created" value="{{now|date:'Y-m-d' }}" style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Job Address:</td>
+                    <td>{{ project.customer.address}}</td>
+                    <td>Valid Until:</td>
+                    <td>
+                        <input type="date" name="valid_until" value="2024-08-21" style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" />
+                    </td>
+                </tr>
+            </table>
+            <div class="header-blue rounded-2"">Product Detail</div>
+            <div class="rounded-3">
+                <div class="scope-section">
+                    <h5 class="header-blue mb-3 bg-primary rounded-2">Scope of Work
+                    </h5>
+                    <div class="scope-container" id="scope-section">
+                        <ol id="scope-list">
+                            <div class="text-center scope-title">
+                                <textarea id="material6" name="scope-1" rows="3" cols="30" style="border: none; width: 100%; resize: none; padding-top: 10px; background: #fcfcfc00;" oninput="autoResize(this)" placeholder="Describe the work here..."></textarea>
+                        </ol>
+                        <div class="materials-box bg-white rounded-2">
+                            <div class="materials-header rounded-2">Materials shall be as follows:</div>
+                            <div class="text-center">
+                                <textarea id="material7" name="materials-1" rows="3" cols="30" style="border: none; width: 100%; resize: none; text-align: center; padding-top: 10px;" oninput="autoResize(this)" placeholder="Enter the materials here..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="add-materials" type="button"> + Add</button>
+                    <img src="{% static 'img/DcSello.webp' %}" alt="DC FENCE Logo" class="imgSello">
+                </div>
+            </div>
+            <div class="row justify-content-end">
+                <div class="col-md-6">
+                    <table class="table table-bordered">
+                        <tbody>
+                            <tr>
+                                <td>Subtotal</td>
+                                <td class="text-end">
+                                    <input style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" type="text" id="total-input" name="subtotal" class="form-control text-end p-0" value="{{ budget.total_value }}" oninput="updateGrandTotal()">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Tax</td>
+                                <td class="text-end">
+                                    <input style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" type="text" id="tax-input" name="tax" class="form-control text-end p-0" value="0" oninput="updateGrandTotal()">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Retention</td>
+                                <td class="text-end">
+                                    <input style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" type="text" id="retention-input" name="retention" class="form-control text-end p-0" value="0" oninput="updateGrandTotal()">
+                                </td>
+                            </tr>
+                            <tr class="table-active rounded-2">
+                                <td class="fw-bold">Grand Total</td>
+                                <td class="text-end fw-bold" id="grand-total"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                </div>
+            
+
+            <div class="mt-4">
+                <div class="header-blue rounded-2 text-center""><strong>Exclusions:</strong> Permit Fee and processing, Site survey, Electrical fence grounding</div>
+                
+
+                <div class="container">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label for="approvedBy" class="form-label m-0 text-sm">Approved By:</label>
+                            <input type="text" id="approvedBy"  name="approved_by"  class="form-control border-0 border-bottom p-0 text-strong" style="border-radius: 0;">
+                        </div>
+                    </div>
+                    <div class="row mt-1">
+                        <div class="col-md-4">
+                            <label for="printName" class="form-label m-0">Print Name:</label>
+                            <input type="text" id="printName" name="print_name" class="form-control border-0 border-bottom p-0" style="border-radius: 0;">
+                        </div>
+                    </div>
+                    <div class="row mt-1">
+                        <div class="col-md-4">
+                            <label for="signature" class="form-label m-0">Signature:</label>
+                            <input type="text" id="signature" name="signature" class="form-control border-0 border-bottom p-0"  style="border-radius: 0;">
+                        </div>
+                    </div>
+                </div>
+                
+            <div class="bg-company rounded-4 p-4 col-md-11 mx-auto mt-4 termsContainer">
+                <label for="termsInput" class='text-white pb-2 d-flex'><b>terms and conditions</b>
+                    <div class='selectTerms'>
+                        <select id="terms" name="terms" onchange="updateTerms()">
+                            <option value="general">General</option>
+                            <option value="50_percent_deposit">50% Deposit</option>
+                            <option value="temporal">Temporal</option>
+                        </select>
+                    </div></label>
+                <textarea id="termsInput" name="terms" class="form-control text-justify text-sm" rows="6" readonlym style='height:250px'> All quotes are valid for 15 days from the date of the quote. The person signing this quote as an agent of Customer warrants that Customer agrees to the terms and conditions stated herein. Customer and DC Fence Solutions Corp.  ("Seller") shall collectively be referred to as the "Parties". Upon Customer signing hereunder. Seller shall begin performing its work and Customer shall be obligated to pay for same at the cost stated herein as further amended by subsequent change orders. The customer shall provide the Seller with an equitable adjustment in time and cost for all setbacks to the project including demobilization and mobilization costs. The customer shall have 60 days to pay all invoices associated with this quote or subsequent change orders. Time is of the essence with respect to all payments. If the Customer fails to timely pay an invoice, the Customer shall be deemed to be in breach of the Parties' agreement. Customer shall be liable for all attorneys' fees and costs related to Seller's collection efforts against Customer arising from Customer's breach of the terms and conditions stated herein. Any Invoice that is not timely paid shall accumulate interest at 1.5% per month. The customer agrees to pay the Seller $600.00 per additional policy endorsement required for the project.            </textarea>
+                </div>
+        </div>
+        <div class="text-center">
+            <a href="" class="btn btn-lg btn-primary m-4 border border-4 px-4 border-white submitInvoice"><i class="bi bi-receipt p-2"></i>Make Invoice</a>
+        </div>
+    </form> 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.querySelector('.submitInvoice').addEventListener('click', function (e) {
+            e.preventDefault(); // Prevenir la navegación
+            const form = document.getElementById('invoice-form');
+            const formData = new FormData(form);
+        
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': form.querySelector('input[name="csrfmiddlewaretoken"]').value, // CSRF token de Django
+                },
+            })
+                .then(response => {
+                    if (response.ok) {
+                        alert('Invoice successfully created!');
+                    } else {
+                        alert('Error creating invoice.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+        });
+        
+        // Function to add a new scope container
+        document.getElementById("add-materials").addEventListener("click", function() {
+            // Generate unique ID for each new scope
+            const uniqueId = Date.now(); // Use timestamp as a unique ID
+
+            // HTML to be added dynamically
+            const htmlToAdd = `
+                <div class="scope-container" id="id-${uniqueId}">
+                    <ol id="scope-list">
+                        <div class="text-center scope-title">
+                            <textarea id="material6" name="scope-${uniqueId}" rows="3" cols="30" style="border: none; width: 100%; resize: none; padding-top: 10px; background: #fcfcfc00;" oninput="autoResize(this)" placeholder="Describe the work here..."></textarea>
+                            <button class="btn btn-danger btn-sm rounded-2 p-1 deleteScope" 
+                                role="button" title="Delete Budget">
+                                <i class="bi bi-trash" style="font-size: 15px;"></i>
+                            </button>
+                        </div>
+                    </ol>
+                    <div class="materials-box bg-white rounded-2">
+                        <div class="materials-header rounded-2">Materials shall be as follows:</div>
+                        <div class="text-center">
+                            <textarea id="material7" name="materials-${uniqueId}" rows="3" cols="30" style="border: none; width: 100%; resize: none; text-align: center; padding-top: 10px;" oninput="autoResize(this)" placeholder="Enter the materials here..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Append the new HTML content to the material container
+            const container = document.getElementById("scope-section");
+            const newDiv = createDivWithHtml(htmlToAdd);
+            container.appendChild(newDiv);
+        });
+
+        // Function to delete the scope when the delete button is clicked
+        document.addEventListener("click", function(event) {
+            if (event.target.closest(".deleteScope")) {
+                const scopeContainer = event.target.closest(".scope-container");
+                if (scopeContainer) {
+                    scopeContainer.remove(); // Remove the container
+                }
+            }
+        });
+
+        // Function to create a new div element with HTML content inside it
+        function createDivWithHtml(html) {
+            const div = document.createElement('div');
+            div.innerHTML = html;
+            return div;
+        }
+
+        // Auto-resize function for text areas
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';  // Reset the height
+            textarea.style.height = (textarea.scrollHeight) + 'px';  // Set to the scroll height
+        }
+        function formatCurrency(input) {
+            // Remove non-numeric characters (except the decimal point)
+            let value = input.value.replace(/[^0-9.]/g, '');
+            
+            // Convert the string to a number
+            let number = parseFloat(value);
+            
+            // Format the number as USD currency
+            if (!isNaN(number)) {
+                input.value = number.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            } else {
+                input.value = ''; // Clear input if not a valid number
+            }
+    
+            // Trigger the grand total update after formatting
+            updateGrandTotal();
+        }
+    
+        function updateGrandTotal() {
+            let subtotal = parseFloat(document.getElementById('total-input').value.replace(/[^0-9.-]+/g, ""));
+            let tax = parseFloat(document.getElementById('tax-input').value.replace(/[^0-9.-]+/g, ""));
+            let retention = parseFloat(document.getElementById('retention-input').value.replace(/[^0-9.-]+/g, ""));
+    
+            // Default to 0 if NaN
+            subtotal = isNaN(subtotal) ? 0 : subtotal;
+            tax = isNaN(tax) ? 0 : tax;
+            retention = isNaN(retention) ? 0 : retention;
+    
+            // Calculate Grand Total: Subtotal + Tax - Retention
+            let grandTotal = Math.round(subtotal + tax - retention);
+    
+            // Format Grand Total as currency
+            let formattedGrandTotal = Math.round(grandTotal).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    
+            // Update Grand Total in the table
+            document.getElementById('grand-total').textContent = formattedGrandTotal;
+        }
+    
+        // Initial call to set Grand Total on page load
+        window.onload = function() {
+            updateGrandTotal();
+        };
+
+        const termsText = {
+            "general": `All quotes are valid for 15 days from the date of the quote. The person signing this quote as an agent of Customer warrants that Customer agrees to the terms and conditions stated herein. Customer and DC Fence Solutions Corp.  ("Seller") shall collectively be referred to as the "Parties". Upon Customer signing hereunder. Seller shall begin performing its work and Customer shall be obligated to pay for same at the cost stated herein as further amended by subsequent change orders. The customer shall provide the Seller with an equitable adjustment in time and cost for all setbacks to the project including demobilization and mobilization costs. The customer shall have 60 days to pay all invoices associated with this quote or subsequent change orders. Time is of the essence with respect to all payments. If the Customer fails to timely pay an invoice, the Customer shall be deemed to be in breach of the Parties' agreement. Customer shall be liable for all attorneys' fees and costs related to Seller's collection efforts against Customer arising from Customer's breach of the terms and conditions stated herein. Any Invoice that is not timely paid shall accumulate interest at 1.5% per month. The customer agrees to pay the Seller $600.00 per additional policy endorsement required for the project.`,
+            "50_percent_deposit": `This document establishes the Terms and Conditions ("Terms") between DC Fence Solutions and the client. It clarifies key aspects of their agreement, including a mandatory 50% non-refundable deposit required before work begins, with the remaining balance due upon project completion. The client is responsible for clearly defining the project's scope, and any adjustments must be mutually agreed upon and may incur additional costs. DC Fence Solutions commits to the agreed timeline but will notify the client of any delays due to unforeseen circumstances. Prompt payment is crucial, as late payments may lead to a work pause, interest charges, legal fees, and a potential breach of contract. A $600 fee applies per additional required policy endorsement. These Terms, along with the quotation or agreement, form the full agreement. Any changes require written consent from both parties. By accepting the services, the client confirms their understanding and agreement to these conditions, promoting clear communication and accountability.`,
+            "temporal": `This agreement ("Agreement") is entered into between DC Fence Solutions ("Provider") and the Customer ("Customer") for the rental of temporary fencing. The Customer agrees to pay the Provider the rental fee specified in the invoice, with payment due immediately after installation and within 14 days of the invoice date. Late payments may incur a 5% late fee, and continued failure to pay may result in a construction lien against the property and the Provider’s unprotected assets. The parties agree to personal jurisdiction in Dade County, Florida. All articles are rented 'as-is,' and no retainage is to be withheld on the temporary fence materials. The Customer is responsible for obtaining and maintaining insurance coverage for the temporary fence during the rental period and must keep the fence in good condition. Any repairs needed due to damage during the rental period are the Customer's responsibility, with applicable damage rates as specified by the Provider. The temporary fence is to be used only for the agreed-upon purpose and must not be altered or modified without the Provider's prior written consent. The Customer is also responsible for obtaining any necessary permits for the installation of the temporary fence and ensuring compliance with local regulations. The Provider shall not be liable for any injuries, damages, or losses arising from the use of the temporary fence, except in cases of gross negligence or willful misconduct. By signing this agreement, the Customer agrees to the quantities, prices, terms, and conditions set forth and accepts these conditions.`
+        };
+
+        function updateTerms() {
+            const termsDropdown = document.getElementById("terms");
+            const selectedTerm = termsDropdown.value;
+
+            const termsInput = document.getElementById("termsInput");
+            termsInput.value = termsText[selectedTerm];
+
+            // Ajusta la altura del textarea al contenido
+            termsInput.style.height = 'auto'; // Reinicia el alto
+            termsInput.style.height = termsInput.scrollHeight + 'px'; // Ajusta al contenido
+        }
+
+        // Inicializa el contenido al cargar la página
+        document.addEventListener("DOMContentLoaded", () => {
+            updateTerms();
+        });
+
+
+
+
+        
+    </script>
+
+{% endblock %}

@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <!-- Mostrar advertencias si existen -->
+  {% if warning %}
+  <div class="alert alert-warning">
+    {{ warning }}
+  </div>
+  {% endif %}
+  
+  <h1>Edit Customer</h1>
+  
+  <form method="POST">
+    {% csrf_token %}
+    
+    <!-- First Name -->
+    <div class="form-group">
+      <label for="id_first_name">First Name</label>
+      <input type="text" class="form-control" id="id_first_name" name="first_name" value="{{ form.first_name.value }}">
+      {{ form.first_name.errors }}
+    </div>
+
+    <!-- Last Name -->
+    <div class="form-group">
+      <label for="id_last_name">Last Name</label>
+      <input type="text" class="form-control" id="id_last_name" name="last_name" value="{{ form.last_name.value }}">
+      {{ form.last_name.errors }}
+    </div>
+
+    <!-- Company Name (Only for Companies) -->
+    <div class="form-group">
+      <label for="id_company_name">Company Name</label>
+      <input type="text" class="form-control" id="id_company_name" name="company_name" value="{{ form.company_name.value }}">
+      {{ form.company_name.errors }}
+    </div>
+
+    <!-- Customer Type -->
+    <div class="form-group">
+      <label for="id_customer_type">Customer Type</label>
+      <select class="form-control" id="id_customer_type" name="customer_type">
+        <option value="individual" {% if form.customer_type.value == "individual" %}selected{% endif %}>Individual</option>
+        <option value="company" {% if form.customer_type.value == "company" %}selected{% endif %}>Company</option>
+      </select>
+      {{ form.customer_type.errors }}
+    </div>
+
+    <!-- Email -->
+    <div class="form-group">
+      <label for="id_email">Email</label>
+      <input type="email" class="form-control" id="id_email" name="email" value="{{ form.email.value }}">
+      {{ form.email.errors }}
+    </div>
+
+    <!-- Phone -->
+    <div class="form-group">
+      <label for="id_phone">Phone</label>
+      <input type="text" class="form-control" id="id_phone" name="phone" value="{{ form.phone.value }}">
+      {{ form.phone.errors }}
+    </div>
+
+    <!-- Address -->
+    <div class="form-group">
+      <label for="id_address">Address</label>
+      <textarea class="form-control" id="id_address" name="address">{{ form.address.value }}</textarea>
+      {{ form.address.errors }}
+    </div>
+
+    <!-- City -->
+    <div class="form-group">
+      <label for="id_city">City</label>
+      <input type="text" class="form-control" id="id_city" name="city" value="{{ form.city.value }}">
+      {{ form.city.errors }}
+    </div>
+
+    <!-- State -->
+    <div class="form-group">
+      <label for="id_state">State/Province</label>
+      <input type="text" class="form-control" id="id_state" name="state" value="{{ form.state.value }}">
+      {{ form.state.errors }}
+    </div>
+
+    <!-- ZIP Code -->
+    <div class="form-group">
+      <label for="id_zip_code">ZIP/Postal Code</label>
+      <input type="text" class="form-control" id="id_zip_code" name="zip_code" value="{{ form.zip_code.value }}">
+      {{ form.zip_code.errors }}
+    </div>
+
+    <!-- Country -->
+    <div class="form-group">
+      <label for="id_country">Country</label>
+      <input type="text" class="form-control" id="id_country" name="country" value="{{ form.country.value }}">
+      {{ form.country.errors }}
+    </div>
+
+    <!-- Sales Advisor -->
+    <div class="form-group">
+      <label for="id_sales_advisor">Sales Advisor</label>
+      <select class="form-control" id="id_sales_advisor" name="sales_advisor">
+        {% for user in form.sales_advisor.field.queryset %}
+        <option value="{{ user.id }}" {% if form.sales_advisor.value == user.id %}selected{% endif %}>
+          {{ user.get_full_name }}
+        </option>
+        {% endfor %}
+      </select>
+      {{ form.sales_advisor.errors }}
+    </div>
+
+    <!-- Active -->
+    <div class="form-group">
+      <label for="id_is_active">Active</label>
+      <input type="checkbox" id="id_is_active" name="is_active" {% if form.is_active.value %}checked{% endif %}>
+      {{ form.is_active.errors }}
+    </div>
+
+    <!-- Number of Projects -->
+    <div class="form-group">
+      <label for="id_number_of_projects">Number of Projects</label>
+      <input type="number" class="form-control" id="id_number_of_projects" name="number_of_projects" value="{{ form.number_of_projects.value }}">
+      {{ form.number_of_projects.errors }}
+    </div>
+
+    <!-- Submit Button -->
+    <div class="form-group">
+      <button type="submit" class="btn btn-primary">Update Customer</button>
+    </div>
+
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,297 @@
+{% extends "base.html"%} 
+{% load static %}
+{% block content%}
+<div class="container d-flex flex-column justify-content-center ">
+  <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
+    <div class="card-header d-flex justify-content-between  p-3 border-bottom bg-gray">
+      <h1 class="card-header fs-4"> Registered Customers 
+        <span class="fs-6 status-empty"> • {{total_clients}}</span> 
+      </h1>
+      <button class="btn bg-primary"  id="add-customer-btn">
+        <i class="bi bi-person-plus-fill text-light fs-6 "></i>
+      </button>
+    </div>
+    <div class="d-flex justify-content-center my-2 ">
+      <span class="btn btn-dark mx-2 my-auto bt-sm disabled fs.6">
+        <i class="bi bi-funnel-fill fs-6"></i>
+      </span>
+      <input type="text" name="name" id="searchInputName" class="form-control form-control-search form-filter me-2" placeholder="Name...">
+      <input type="text" name="company" id="searchInputCompany" class="form-control form-control-search form-filter  me-2" placeholder="Company...">
+      <select name="status" id="searchInputStatus" class="form-select  form-control-search form-filter me-2">
+        <option value="">Status...</option>
+        <option value="new">New</option>
+        <option value="contacted">Contacted</option>
+        <option value="quote_sent">Quote Sent</option>
+        <option value="in_negotiation">In Negotiation</option>
+        <option value="approved">Approved</option>
+        <option value="not_approved">Not Approved</option>
+        <option value="in_production">In Production</option>
+        <option value="pending_payment">Pending Payment</option>
+        <option value="inactive">Inactive</option>
+        <option value="cancelled">Cancelled</option>
+      </select>
+      <input type="text" name="email" id="searchInputEmail" class="form-control form-control-search form-filter me-2" placeholder="Email...">
+      <select name="seller" id="searchInputSeller" class="form-select form-control-search form-filter me-2">
+            <option value="" selected>Seller...</option>
+            {% for seller in sellers %}
+                <option value="{{ seller.username }}">{{ seller.username }}</option>
+            {% endfor %}
+      </select>      
+      <input type="date" name="date" id="searchInputDate" class="form-control form-control-search form-filter me-2">
+    </div>
+    <div class="card table-responsive rounded-0 border-0 ">
+      <table class="table">
+          <thead class="border-top">
+            <tr >
+              <th scope="col" class="bg-light">ID</th>
+              <th scope="col" class="bg-light">Costumer</th>
+              <th scope="col" class="bg-light">Type</th>
+              <th scope="col" class="bg-light">Status</th>
+              <th scope="col" class="bg-light">Email</th>
+              <th scope="col" class="bg-light">Phone</th>
+              <th scope="col" class="bg-light">Date</th>
+              <th scope="col" class="bg-light">Seller</th>
+          </tr>
+          </thead>
+          <tbody id="resultsTableBody">
+          {% if clients %}
+              {% for client in clients %}
+              
+              <tr>
+                  <td>{{ client.id }}</td>
+                  <td>
+                    
+                    {% if client.customer_type == "individual" %}
+                    <a href="{% url 'detail_customer' client.id %}">
+                    <span class="status title_{{ client.customer_type }} fs-6">
+                    {{ client.first_name }} {{ client.last_name }} <i class="bi bi-person-arms-up"></i>
+                    </span>
+                    </a> {% else %}
+                    <a href="{% url 'detail_customer' client.id %}">
+                    <span class="status title_{{ client.customer_type }} fs-6">{{ client.company_name }} 
+                      <i class="bi bi-buildings-fill"></i> 
+                    </span> 
+                  </a>
+                    {{ client.first_name }} {{ client.last_name }}
+                    
+                  </td>
+
+                  {% endif %}
+                  <td>
+                    <span class="status status_{{ client.customer_type }} m-0">
+                      {{ client.customer_type }}
+                    <span>
+                  </td>
+                  <td class="">
+                    <span class="status-empty status_{{ client.status }} m-0">
+                      <strong>•</strong> {{ client.status }}
+                    <span>
+                  </td>
+                  <td>{{ client.email }}</td>
+                  <td>{{ client.phone }}</td>
+                  <td>{{ client.date_created|date:"d/m/Y" }}</td>
+                  <td>{{ client.sales_advisor }}</td>
+              </tr>
+              {% endfor %}
+            {% else %}
+              <td class=>No customers found.</td>
+            {% endif %}
+          </tbody>
+
+      </table>
+      <div class="pagination text-center justify-content-center" id="pagination">
+        <ul class="pagination">
+            {% if clients.has_previous %}
+                <li class="page-item" >
+                    <a class="page-link" href="?page=1">
+                        <i class="bi bi-chevron-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item" >
+                    <a class="page-link" href="?page={{ clients.previous_page_number }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+            {% endif %}
+            
+            <li class="page-item " >
+                <span class="m-4">Page {{ clients.number }} of {{ clients.paginator.num_pages }}</span>
+            </li>
+            
+            {% if clients.has_next %}
+                <li class="page-item" >
+                    <a class="page-link" href="?page={{ clients.next_page_number }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                <li class="page-item" >
+                    <a class="page-link" href="?page={{ clients.paginator.num_pages }}">
+                        <i class="bi bi-chevron-double-right"></i>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </div>
+  </div>
+</div>
+  <div class="row">
+    <!-- Card para clientes registrados en la última semana -->
+    <div class="col-md-4  mt-5" >
+      <div class="card">
+        <div class="text-dark d-flex m-3">
+          <h1 class="fs-4 text-left ">Registered last week</h1>
+          <i class="bi bi-chevron-double-down text-danger fs-4 text-right"></i>
+        </div>
+        <div class="card-body">
+          <h5 class="card-title text-center">Clientes Nuevos</h5>
+          <p class="card-text">
+            <span class="display-4">{{ weekly_lients }}</span>
+          </p>
+        </div>
+        <div class="text-right m-2 text-muted">
+          Updated on: {{ today_date }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Card para clientes registrados en el último mes -->
+    <div class="col-md-4  mt-5">
+      <div class="card">
+        <div class="text-dark d-flex m-3">
+          <h1 class="fs-4 text-left  fs-4">Registered last month </h1>
+          <i class="bi bi-chevron-double-up text-success fs-4"></i>
+        </div>
+        <div class="card-body">
+          <h5 class="card-title text-center">Clientes Nuevos</h5>
+          <p class="card-text">
+            <span class="display-4">{{ monthly_clients }}</span>
+          </p>
+        </div>
+        <div class="text-right m-2 text-muted">
+          Updated on: {{ today_date }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Card para el histórico total de clientes -->
+    <div class="col-md-4  mt-5">
+      <div class="card">
+        <div class="">
+          <h1 class="fs-4 m-3 text-left">Total customer history</h1>
+        </div>
+        <div class="card-body">
+          <h5 class="card-title text-center">Clientes Totales</h5>
+          <p class="card-text">
+            <span class="display-4">{{ historical_clients }}</span>
+          </p>
+        </div>
+        <div class="text-right m-2 text-muted">
+          Updated on: {{ today_date }}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="container mt-5">
+    <h1 class="text-center mb-4 fs-2">Daily customer login history ({{request.user}})</h1>
+    <div class="card">
+        <div class="card-body">
+            <canvas id="historyChart" width="400" height="200"></canvas>
+        </div>
+    </div>
+</div>
+<div id="customer-form" class="offcanvas-form ">
+  <form action="/customers/" method="POST">
+    {% csrf_token %}
+    <div class="row">
+      <div class="offset-md-0 m-0 p-0" style="box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);">
+          <div class="card shadow-lg rounded-4" style="height: 100vh;">
+              <div class="m-0 text-dark rounded-4">
+                  <h4 class="card-header fs-4">Create New Customer
+                  <button type="button" id="close-form" class="btn-close float-end fs-6 m-1" aria-label="Close"></button>
+                  </h4>
+              </div>
+              <div class="card-body overflow-y" style="overflow-y: auto;">
+                  <div class="d-flex mb-3">
+                      <div class="me-3 flex-fill">
+                          <label for="id_first_name" class="form-label">First Name *</label>
+                          <input type="text" name="first_name" id="id_first_name" class="form-control form-control-sm" value="">
+                      </div>
+                      <div class="flex-fill">
+                          <label for="id_last_name" class="form-label">Last Name *</label>
+                          <input type="text" name="last_name" id="id_last_name" class="form-control form-control-sm" value="">
+                      </div>
+                  </div>
+                  <div class="d-flex mb-3">
+                      <div class="me-3 flex-fill">  
+                        <label for="id_customer_type" class="form-label">Customer Type</label>
+                        <select name="customer_type" id="id_customer_type" class="form-select form-select-sm">
+                            {% for choice in form.customer_type.field.choices %}
+                                <option value="{{ choice.0 }}" {% if form.customer_type.value == choice.0 %}selected{% endif %}>{{ choice.1 }}</option>
+                            {% endfor %}
+                        </select>
+                      </div>
+                      <div class="me-3 flex-fill">   
+                        <label for="id_company_name" class="form-label">Company Name</label>
+                        <input type="text" name="company_name" id="id_company_name" class="form-control form-control-sm" value="{{ company_name.value }}" disabled>
+                      </div>
+                  </div>
+                  
+                  <div class="mb-3">
+                     
+                  </div>
+  
+                  <div class="d-flex mb-3">
+                      <div class="me-3 flex-fill">
+                          <label for="id_email" class="form-label">Email *
+                          <span id="email-error" style="display:none; color:red; font-size:0.8rem;"> ⛔This email is already in use</span>
+                          </label>
+                          <input type="email" name="email" id="id_email" class="form-control form-control-sm" value="">
+                      </div>
+                      <div class="flex-fill">
+                          <label for="id_phone" class="form-label">Phone *</label>
+                          <input type="text" name="phone" id="id_phone" class="form-control form-control-sm" value="">
+                      </div>
+                  </div>
+  
+                  <div class="mb-3">
+                      <label for="id_address" class="form-label">Address</label>
+                      <textarea name="address" id="id_address" class="form-control form-control-sm"></textarea>
+                  </div>
+  
+                  <div class="d-flex mb-3">
+                      <div class="me-3 flex-fill">
+                          <label for="id_city" class="form-label">City</label>
+                          <input type="text" name="city" id="id_city" class="form-control form-control-sm" value="">
+                      </div>
+                      <div class="me-3 flex-fill">
+                          <label for="id_state" class="form-label">State/Province</label>
+                          <input type="text" name="state" id="id_state" class="form-control form-control-sm" value="Florida">
+                      </div>
+                      <div class="flex-fill">
+                          <label for="id_zip_code" class="form-label">ZIP/Postal Code</label>
+                          <input type="text" name="zip_code" id="id_zip_code" class="form-control form-control-sm" value="">
+                      </div>
+                  </div>
+  
+                  <div class="mb-auto">
+                      <label for="id_country" class="form-label">Country</label>
+                      <input type="text" name="country" id="id_country" class="form-control form-control-sm" value="EEUU">
+                  </div> 
+              </div>
+              <button type="submit" id="submit-btn" class="btn btn-primary w-50 justify-item-center m-4 mx-auto" disabled>Create</button>
+          </div>
+      </div>
+  </div>
+  
+  </form>
+<div>
+  {% if warning %}
+  <div class="alert alert-danger alert-dismissible fade show position-fixed bottom-0 end-0 m-3" role="alert">
+      {{ warning }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+  </div>
+  {% endif %}
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/search_viewScript.js' %}"></script>
+{% endblock %}

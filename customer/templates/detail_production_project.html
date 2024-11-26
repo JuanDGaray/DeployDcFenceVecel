@@ -1,0 +1,328 @@
+{% extends "base.html" %} 
+{% load static %}
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'css/stylesProducction.css' %}">
+{% endblock %}
+
+{% block content %}
+
+    <div class="container mt-4">
+        
+
+        <div class="card mb-3 p-0 overflow-hidden">
+            <div class="d-flex justify-content-between align-items-start p-0">
+                <div class="w-100">
+                    <h2 class="fw-bold bg-secondary m-0 p-2 text-light mb-4">{{ project.project_name }}
+                        <span class="badge bg-light text-dark fs-6" style="height: 30px;">{{ project.status }}</span>
+                    </h2>
+                    <div>
+                        <p class="text-dark px-4 fw-bold">Progress</p>
+                    </div>
+                    <div class="progress m-4 border border-2 border-success" style="height: 30px;">
+                        <div class="progress-bar bg-success fw-bold fs-4" role="progressbar" style="width: 65%;" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100">
+                            65% success
+                        </div>
+                    </div>
+                </div>
+            </div>
+                <!-- Modal para agregar evidencia -->
+            <div id="evidenceModal" class="modal">
+                <div class="modal-content">
+                    <span class="close" onclick="closeEvidenceModal()">&times;</span>
+                    <h2>Añadir evidencia</h2>
+                    <form id="evidenceForm">
+                        <label for="evidenceTitle">Título de la evidencia:</label>
+                        <input type="text" id="evidenceTitle" name="evidenceTitle" required>
+                        
+                        <label for="evidenceDescription">Descripción:</label>
+                        <textarea id="evidenceDescription" name="evidenceDescription" required></textarea>
+                        
+                        <button type="submit">Guardar</button>
+                    </form>
+                </div>
+            </div>
+            <div class="row mt-3">
+                <div class="card col-4 col-md-2 mx-4 mb-4">
+                    <p class="fw-semibold mb-0"> Etimated budget</p>
+                    <p class="text-end">{{project.formatted_estimated_cost}}</p>
+                </div>
+                <div class="card col-4 col-md-2 mx-4 mb-4">
+                    <p class="fw-semibold mb-0">Budget Spent</p>
+                    <p class="text-end">{{project.formatted_actual_cost}}</p>
+                </div>
+                <div class="card col-4 col-md-2 mx-4 mb-4">
+                    <p class="fw-semibold mb-0">Dates</p>
+                    <p class="text-end">{{project.start_date}} - {{project.end_date}}</p>
+                </div>
+                <div class="card col-4 col-md-2 mx-4 mb-4">
+                    <p class="fw-semibold mb-0">Manager</p>
+                    <p class="text-end">@{{project.sales_advisor}}</p>
+                </div>
+            </div>
+        </div>
+
+        <h2 class="text-center">Project timeline</h2>
+
+    <div class="card mb-3 p-0 overflow-hidden" id="gantt_here" style="width:100%; height:400px;"></div>
+
+        <div class="accordion accordion-flush" id="accordionFlushExample">
+            <div class="accordion-item">
+            <h2 class="accordion-header" id="headingOne">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
+                <i class="bi bi-folder me-2"></i> Project details
+                </button>
+            </h2>
+            <div id="flush-collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionFlushExample">
+                <div class="accordion-body">
+                Aquí puedes incluir la descripción detallada del proyecto, los objetivos principales y la información de contacto del equipo responsable.
+                </div>
+            </div>
+            </div>
+        
+            <div class="accordion-item">
+            <h2 class="accordion-header" id="headingTwo">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseTwo" aria-expanded="false" aria-controls="flush-collapseTwo">
+                <i class="bi bi-check2-circle me-2"></i> Task and phases
+                </button>
+            </h2>
+            <div id="flush-collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionFlushExample">
+                <div class="accordion-body">
+                Lista de tareas pendientes con sus fechas de vencimiento, asignadas a cada miembro del equipo y el estado actual de cada una.
+                </div>
+            </div>
+            </div>
+        
+            <div class="accordion-item">
+            <h2 class="accordion-header" id="headingThree">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseThree" aria-expanded="false" aria-controls="flush-collapseThree">
+                <i class="bi bi-file-earmark-text me-2"></i> Documentation
+                </button>
+            </h2>
+            <div id="flush-collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionFlushExample">
+                <div class="accordion-body">
+                Documentación relacionada con el proyecto, incluyendo manuales, especificaciones y pautas técnicas.
+                </div>
+            </div>
+            </div>
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingThree">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseFour" aria-expanded="false" aria-controls="flush-collapseFour">
+                    <i class="bi bi-file-earmark-text me-2"></i> Purchases, expenses and payments
+                    </button>
+                </h2>
+                <div id="flush-collapseFour" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionFlushExample">
+                    <div class="accordion-body">
+                    Documentación relacionada con el proyecto, incluyendo manuales, especificaciones y pautas técnicas.
+                    </div>
+                </div>
+                </div>
+        </div>
+
+    </div>
+
+
+    </div>
+
+    <!-- Carga de DHTMLX Gantt -->
+    <link rel="stylesheet" href="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.css">
+    <script src="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.js"></script>
+<script>
+    function parseCustomDate(dateStr) {
+        const months = {
+            "Jan.": 0,
+            "Feb.": 1,
+            "Mar.": 2,
+            "Apr.": 3,
+            "May.": 4,
+            "Jun.": 5,
+            "Jul.": 6,
+            "Aug.": 7,
+            "Sep.": 8,
+            "Oct.": 9,
+            "Nov.": 10,
+            "Dec.": 11
+        };
+
+        const parts = dateStr.split(' ');
+        const month = months[parts[0]];
+        const day = parseInt(parts[1], 10);
+        const year = parseInt(parts[2], 10);
+
+        return new Date(year, month, day);
+    }
+
+    gantt.plugins({
+		quick_info: true,
+        auto_scheduling: true,
+        marker: true
+	});
+
+    gantt.init("gantt_here"); 
+    gantt.templates.task_text = function (start, end, task) {
+        return "<span>" + task.text + "</span> " + 
+               "<button onclick='addEvidence(" + task.id + ")' class='evidence-btn'>" +
+               "<i class='bi bi-paperclip'></i></button>";
+    };
+    
+    function addEvidence(taskId) {
+        alert("Añadir evidencia para la tarea con ID: " + taskId);
+    }
+    
+    
+    gantt.config.min_date = parseCustomDate("{{ project.start_date }}");
+    const startDate =parseCustomDate('{{ project.start_date }}');
+    const endDateStr = "{{ project.end_date }}"; 
+    // Lógica para establecer la fecha máxima
+    const endDate = (endDateStr && endDateStr !== "None") ? parseCustomDate(endDateStr) : null;
+    const maxDate = endDate ? endDate : new Date(startDate.getTime() + 120 * 24 * 60 * 60 * 1000);
+
+    gantt.config.max_date = maxDate; // Establecer la fecha máxima
+
+    // Configuración de la escala de tiempo
+    gantt.config.scale_unit = "day"; // Cambiar a semanas
+    gantt.config.date_scale = "%d"; // Muestra el número de semana en el año
+    gantt.config.subscales = [
+        { unit: "month", step: 1, date: "%M" } // Muestra solo el nombre corto del mes
+    ];
+    
+	var dateToStr = gantt.date.date_to_str(gantt.config.task_date);
+    var today = new Date(); 
+	gantt.addMarker({
+		start_date: today,
+		css: "today",
+		text: "Today",
+		title: "Today: " + dateToStr(today)
+	});
+
+    var start = startDate;
+	gantt.addMarker({
+		start_date: start,
+		css: "status_line",
+		text: "Start project",
+		title: "Start project: " + dateToStr(start)
+	});
+    
+    gantt.parse({
+        data: [
+            {
+                id: 1, // ID único para la tarea
+                text: "Planning, budget and negotiation", // Nombre de la tarea
+                start_date: startDate, // Fecha de inicio
+                end_date: new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000), 
+                progress: 1, // Progreso de la tarea (0 a 1)
+            },
+
+            {
+                id: 2,
+                text: "Project delivery", // Nombre de la tarea
+                start_date: new Date(maxDate.getTime() - 2 * 24 * 60 * 60 * 1000), // Comienza 7 días antes de la fecha máxima
+                end_date: maxDate, // Finaliza en la fecha máxima
+                progress: 0, // Progreso de la tarea
+            }
+        ]
+    });
+    gantt.attachEvent("onLinkClick", function (id) {
+		var link = this.getLink(id),
+			src = this.getTask(link.source),
+			trg = this.getTask(link.target),
+			types = this.config.links;
+
+		var first = "", second = "";
+		switch (link.type) {
+			case types.finish_to_start:
+				first = "finish";
+				second = "start";
+				break;
+			case types.start_to_start:
+				first = "start";
+				second = "start";
+				break;
+			case types.finish_to_finish:
+				first = "finish";
+				second = "finish";
+				break;
+		}
+
+		gantt.message("Must " + first + " <b>" + src.text + "</b> to " + second + " <b>" + trg.text + "</b>");
+	});
+
+    gantt.templates.task_class = function (start, end, task) {
+        if (task.progress === 1) {
+            return "task-completed";
+        } else if (task.progress === 0) {
+            return "task-not-started";
+        }
+        return "task-in-progress";
+    };
+
+    
+    function openEvidenceModal() {
+        document.getElementById("evidenceModal").style.display = "block";
+    }
+    
+    function closeEvidenceModal() {
+        document.getElementById("evidenceModal").style.display = "none";
+    }
+    
+    // Cierra el modal si se hace clic fuera de él
+    window.onclick = function(event) {
+        var modal = document.getElementById("evidenceModal");
+        if (event.target === modal) {
+            modal.style.display = "none";
+        }
+    }
+    
+    // Puedes agregar un manejador de envío para el formulario si quieres procesar la evidencia
+    document.getElementById("").onsubmit = function(event) {
+        event.preventDefault(); // Evita el envío del formulario
+        closeEvidenceModal();
+        alert("Evidencia guardada exitosamente.");
+    };
+    function addEvidence(taskId) {
+        // Muestra el ID de la tarea en el modal
+        document.getElementById("taskIdDisplay").textContent = taskId;
+    
+        // Guarda el ID de la tarea en un atributo de datos para usarlo al guardar la evidencia
+        document.getElementById("evidenceForm").dataset.taskId = taskId;
+    
+        // Abre el modal
+        document.getElementById("evidenceModal").style.display = "block";
+    }
+    
+    function closeEvidenceModal() {
+        document.getElementById("evidenceModal").style.display = "none";
+    }
+    
+    // Cierra el modal si se hace clic fuera de él
+    window.onclick = function(event) {
+        var modal = document.getElementById("evidenceModal");
+        if (event.target === modal) {
+            modal.style.display = "none";
+        }
+    }
+    
+    // Manejador de envío del formulario
+    document.getElementById("evidenceForm").onsubmit = function(event) {
+        event.preventDefault(); // Evita el envío del formulario
+    
+        // Obtiene el ID de la tarea y los datos de la evidencia
+        var taskId = event.target.dataset.taskId;
+        var title = document.getElementById("evidenceTitle").value;
+        var description = document.getElementById("evidenceDescription").value;
+    
+        // Lógica para guardar la evidencia usando el taskId (personalízalo según tus necesidades)
+        console.log("Guardando evidencia para la tarea ID:", taskId);
+        console.log("Título:", title);
+        console.log("Descripción:", description);
+    
+        // Cierra el modal después de guardar
+        closeEvidenceModal();
+    
+        // Limpia el formulario
+        document.getElementById("evidenceForm").reset();
+    };
+    
+
+</script>
+
+{% endblock %}
