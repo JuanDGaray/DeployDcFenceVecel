@@ -74,23 +74,25 @@ TEMPLATES = [
 WSGI_APPLICATION = 'dcfence.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+# # Database
+# # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres.tlxqprpsepzdgnupyroa',
-        'HOST': os.environ.get("SUPABASE_HOST"),
-        'PASSWORD': os.environ.get("SUPABASE_PASSWORD"),
-        'PORT': '6543',
-        'OPTIONS': {
-            'sslmode': 'verify-full',
-            'sslrootcert': os.path.join(BASE_DIR, 'prod-ca-2021.crt'),
-        },
-    }
-}
+     'default': {
+         'ENGINE': 'django.db.backends.postgresql',
+         'NAME': 'postgres',
+         'USER': 'postgres.tlxqprpsepzdgnupyroa',
+         'HOST': os.environ.get("SUPABASE_HOST"),
+         'PASSWORD': os.environ.get("SUPABASE_PASSWORD"),
+         'PORT': '6543',
+         'OPTIONS': {
+             'sslmode': 'verify-full',
+             'sslrootcert': os.path.join(BASE_DIR, 'prod-ca-2021.crt'),
+         },
+     }
+ }
 
+
+LOGIN_URL = '/login/'
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -128,6 +130,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

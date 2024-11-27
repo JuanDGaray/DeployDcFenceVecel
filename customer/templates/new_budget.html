@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
 {% block content %}
-
 <div class="container d-flex flex-column justify-content-center ">
 <!-- navigation.html -->
     <nav class="mb-4">
@@ -642,6 +641,8 @@
       </div>
   </div>
 </div>
-<script src="{% static 'js/new_budgetScripts.js' %}"></script>
-
+<div id="loadingOverlay"  class="containerLoading d-none" >
+    <img src="{% static 'img/loading.gif' %}" alt="Cargando" class="img-fluid rounded-1" style="width: 100px; height: auto;">
+</div>
+<script src="{% static 'js/new_budgetScripts.js' %}"></script> 
 {% endblock %}

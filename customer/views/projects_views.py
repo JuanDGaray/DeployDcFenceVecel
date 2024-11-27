@@ -10,7 +10,7 @@ from ..form import CustomerForm, ProjectsForm  # Ensure the correct import for t
 from django.core.paginator import Paginator
 from django.utils.text import capfirst
 from decimal import Decimal
-from django.db.models import Sum
+from django.db.models import Sum, F
 from django.template.loader import render_to_string
 from django.http import HttpResponse, JsonResponse
 from datetime import date, timedelta
@@ -90,39 +90,53 @@ def projects(request):
                 'warning': f'Error: {e}'
             })
 
-
+@login_required
 def detail_project(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
+    
     budgets = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=True)
     invoices = InvoiceProjects.objects.filter(project_id=project_id)
-    print(invoices,  project.status)
-    if (len(invoices) <=0  or len(budgets)) <=0 and project.status not in ['new', 'cancelled', 'inactive', 'pending_payment', 'not_approved']:
+    
+    print(invoices, project.status)
+    
+    if (len(invoices) <= 0 or len(budgets) <= 0) and project.status not in ['new', 'cancelled', 'inactive', 'pending_payment', 'not_approved']:
         project.status = 'new'
         project.save()
     
     budgets_with_related = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=False)
 
-    # Prepare budgets dict with relevant data for the template
     budgets_dict = {}
     for budget in budgets_with_related:
-        related_id = budget.id_related_budget.id  # suponer que `id_related_budget` es un atributo accesible
+        related_id = budget.id_related_budget.id  # Suponiendo que `id_related_budget` es un atributo accesible
         if related_id not in budgets_dict:
             budgets_dict[related_id] = {'budget': [budget]}
         else:
             budgets_dict[related_id]['budget'].insert(0, budget)
 
-    
     status_choices = Project.STATUS_CHOICES
+    
     timeline_steps = get_timeline_steps(project)
 
+    if request.method == 'POST':
+        print(request.POST)
+        if 'status' in request.POST:
+            new_status = request.POST.get('status') 
+            invoice_id = request.POST.get('invoice_id')
+            invoice = get_object_or_404(InvoiceProjects, pk=invoice_id)
+            if new_status in dict(InvoiceProjects.STATUS_CHOICES).keys():
+                invoice.status = new_status
+                invoice.save()
+        return redirect('detail_project', project_id=project_id)
+
+    # Renderizar la plantilla
     return render(request, 'details_project.html', {
         'project': project,
         'budgets': budgets,
         'steps': timeline_steps,
         'budgets_dict': budgets_dict,
-        'invoices':invoices,
+        'invoices': invoices,
+        'status_choices': status_choices,  # Si necesitas mostrar las opciones de estado en la plantilla
     })
-
 
 @login_required    
 def new_budget(request, project_id):
@@ -261,22 +275,42 @@ def view_budgetSimple(request, project_id, budget_id):
 def delete_budget(request, project_id, budget_id):
     budget = get_object_or_404(BudgetEstimate, id=budget_id)
     budget.delete()
+    
     return redirect('detail_project', project_id=project_id)
 
-@login_required 
+@login_required
 def delete_invoice(request, project_id, invoice_id):
-    print('invoice', invoice_id)
-    invoice = get_object_or_404(InvoiceProjects, id=invoice_id)
-    budget = invoice.budget
-    invoice.delete()
-    percentage_of_budget = budget.total_percentage_invoiced
-    if percentage_of_budget >= 99:
-        budget.status = 'Complete'
-    elif percentage_of_budget == 0:
-        budget.status = 'New'
-    else:
-        budget.status = 'Billed'
-    budget.save()
+    """
+    Deletes an invoice and updates the related project's estimated cost 
+    and budget's status accordingly.
+
+    Args:
+        request: The HTTP request object.
+        project_id (int): The ID of the project to which the invoice belongs.
+        invoice_id (int): The ID of the invoice to delete.
+
+    Returns:
+        HttpResponseRedirect: Redirects to the project detail view after deletion.
+    """
+    with transaction.atomic():
+        invoice = get_object_or_404(InvoiceProjects, id=invoice_id)
+        budget = invoice.budget
+
+        project = get_object_or_404(Project, id=project_id)
+        project.estimated_cost = F('estimated_cost') - invoice.total_invoice
+        project.save(update_fields=['estimated_cost'])
+
+        invoice.delete()
+
+        percentage_of_budget = budget.total_percentage_invoiced
+        if percentage_of_budget >= 99:
+            budget.status = 'Complete'
+        elif percentage_of_budget == 0:
+            budget.status = 'New'
+        else:
+            budget.status = 'Billed'
+        budget.save(update_fields=['status'])
+
     return redirect('detail_project', project_id=project_id)
 
 
@@ -424,34 +458,37 @@ def save_budget_data_from_dict(dataBudget,data):
         print({'status': 'error', 'message': str(e)})
 
 
+from django.db import transaction
+
 def save_budget_simple(data, project, budget, dictScope, saleAdvisor):
-    invoice = InvoiceProjects.objects.create(
-    project = project,
-    budget = budget,
-    tracking_id =  data['tracking'],
-    invoiceInfo = dictScope,
-    date_created = data['date_created'],
-    project_name=data['project_name'],
-    due_date=data['valid_until'],
-    subtotal=data['subtotal'],
-    tax=data['tax'],
-    retention=data['retention'],
-    total_invoice= int(float(data['subtotal']) + float(data['tax']) - float(data['retention'])),
-    approved_by=data['approved_by'],
-    print_name=data['print_name'],
-    signature=data['signature'],
-    sales_advisor = saleAdvisor,
-    terms_conditions = data['terms'],
-    )
-    percentage_of_budget = budget.total_percentage_invoiced
-    if percentage_of_budget >= 99:
-        budget.status = 'Complete'
-    else:
-        budget.status = 'Billed'
-    budget.save()
-    if project.status in ['new']:
-        project.status = 'contacted'
-        project.save()
+    with transaction.atomic():
+        invoice = InvoiceProjects.objects.create(
+            project=project,
+            budget=budget,
+            tracking_id=data['tracking'],
+            invoiceInfo=dictScope,
+            date_created=data['date_created'],
+            project_name=data['project_name'],
+            due_date=data['valid_until'],
+            subtotal=data['subtotal'],
+            tax=data['tax'],
+            retention=data['retention'],
+            total_invoice=float(data['subtotal']) + float(data['tax']) - float(data['retention']),
+            approved_by=data['approved_by'],
+            print_name=data['print_name'],
+            signature=data['signature'],
+            sales_advisor=saleAdvisor,
+            terms_conditions=data['terms'],
+        )
+        percentage_of_budget = budget.total_percentage_invoiced
+        budget.status = 'Complete' if percentage_of_budget >= 99 else 'Billed'
+        budget.save(update_fields=['status'])
+        if project.status == 'new':
+            project.status = 'contacted'
+        project.estimated_cost = F('estimated_cost') + invoice.total_invoice
+        project.save(update_fields=['status', 'estimated_cost'])
+
+    
 def modify_old_budget(budget_id):
     budget = BudgetEstimate.objects.get(id=budget_id)
     budget.mark_as_obsolete()

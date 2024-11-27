@@ -12,19 +12,28 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css" rel="stylesheet" />
     <style>
         body {
-            background-image: url('{% static 'img/LogoSmLarge.png' %}'); /* Ruta del logo */
+            background-image: url('{% static 'img/logoPatron.png' %}'); /* Ruta del logo */
             background-repeat: repeat; /* Repite el logo en ambos ejes */
             background-size: cover; /* Ajusta el logo al tamaño de la pantalla */
             background-position: center; /* Centra el logo en la pantalla */            font-weight: 700; /* Peso del logo */
             text-align: center; /* Alinear el logo en el centro */
-            background-size: 20%;
             padding:0px;
-
         }
         div.blur-container {
             margin-top: 0;
-            box-shadow: 0 0 5000px 5000px rgba(200, 200, 200, 0.9);
+            box-shadow: 0 0 5000px 5000px rgb(255 255 255 / 85%);
         }
+
+        .containerLoading {
+            position: absolute;
+            width: 100vw;
+            background-color: #4747475c;
+            height: -webkit-fill-available;
+            top: 0px;
+            display: flex;
+            align-content: center;
+            align-items: center;
+            justify-content: center;}
 
     </style>
 </head>
@@ -58,5 +67,28 @@
             </div>
         </div>
         {% endblock %}
+        
     </body>
+    {% include "loading_component.html" %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.querySelector('.form-signin');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            
+            loadingOverlay.classList.add('d-none');
+            
+            form.addEventListener('submit', function (event) {
+                if (form.checkValidity()) {
+                    loadingOverlay.classList.remove('d-none');
+                } else {
+                    event.preventDefault();
+                }
+            });
+    
+
+            if (performance.navigation.type === performance.navigation.TYPE_BACK_FORWARD) {
+                loadingOverlay.classList.add('d-none'); // Ocultar el overlay si el navegador volvió atrás
+            }
+        });
+    </script>    
 </html>

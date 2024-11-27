@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.db.models import Sum
+from django.db.models import Sum,Q
 from django.db.models.functions import Coalesce
 from django.db.models import DecimalField
 
@@ -297,27 +297,7 @@ class Project(models.Model):
 
     def __str__(self):
         return self.project_name
-    
 
-    def update_estimated_cost(self):
-        total_estimated_cost = self.budget_categories.aggregate(
-            total=Coalesce(Sum('projected_cost'), 0, output_field=DecimalField())
-        )['total']
-        self.estimated_cost = total_estimated_cost
-        self.save()
-
-    def update_actual_cost(self):
-        total_actual_cost = self.budget_categories.aggregate(
-            total=Coalesce(Sum('actual_cost'), 0, output_field=DecimalField())
-        )['total']
-        self.actual_cost = total_actual_cost
-        self.save()
-        
-    def formatted_estimated_cost(self):
-        return "${:,.2f}".format(self.estimated_cost) if self.estimated_cost is not None else "$0.00"
-
-    def formatted_actual_cost(self):
-        return "${:,.2f}".format(self.actual_cost) if self.actual_cost is not None else "$0.00"
 
 
 from django.db import models
@@ -368,8 +348,3 @@ class InvoiceProjects(models.Model):
         if self.budget and self.budget.total_value > 0:
             return int((self.total_invoice / math.floor(self.budget.total_value)) * 100)
         return 0
-
-
-@receiver(post_save, sender=BudgetEstimate)
-def update_project_estimated_cost(sender, instance, **kwargs):
-    instance.project.update_estimated_cost()

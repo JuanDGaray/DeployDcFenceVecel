@@ -95,5 +95,5 @@ def closeSession(request):
     logout(request)  # Logs out the user
     return redirect("home")  # Redirects to the homepage
 
-def custom_404(request, exception):
+def custom_404_view(request, exception):
     return render(request, '404.html', status=404)

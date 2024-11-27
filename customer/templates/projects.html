@@ -82,19 +82,19 @@
                     {{ client.first_name }} {{ client.last_name }}
                     
                   </td></td>
-                  <td>{{ project.formatted_estimated_cost }}</td>
-                  {% if project.formatted_estimated_cost > project.formatted_actual_cost or project.formatted_actual_cost == "$0.00" %}
+                  <td>{{ project.estimated_cost }}</td>
+                  {% if project.estimated_cost > project.actual_cost or project.actual_cost == 0 %}
                     <td> 
                     <span class="status title_budgetUp">
                       <i class="bi bi-graph-up-arrow fs-6"></i>
-                    {{ project.formatted_actual_cost }}
+                    {{ project.actual_cost }}
                     <span>
                     </td>
                     {% else %}  
                     <td> 
                       <span class="status title_budgetDown">
                         <i class="bi bi-graph-down-arrow fs-6"></i>
-                      {{ project.formatted_actual_cost }}
+                      {{ project.actual_cost }}
                       <span>
                       </td>
                     </td>

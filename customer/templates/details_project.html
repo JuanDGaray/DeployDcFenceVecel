@@ -121,25 +121,30 @@
                     </td>
                     <td style="width:80px">
                       <div class="d-inline-flex gap-2 ">
-                        <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
-                        href="{% url 'edit_budget' project.id budget.latest_version.id %}" 
+                        <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 {% if budget.status == 'Complete' or budget.status == 'Billed' %}disabled{% endif %}" 
+                        href="{% url 'edit_budget' project.id budget.id %}" 
                         role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit">
                         <i class="bi bi-pencil-square" style="font-size: 15px;"></i>
                         </a>
                         <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
-                        href="{% url 'view_budget' project.id budget.latest_version.id %}" 
+                        href="{% url 'view_budget' project.id budget.id %}" 
                         role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Print">
                         <i class="bi bi-printer-fill" style="font-size: 15px;"></i>
                         </a>
-                        <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
-                        href="{% url 'view_budgetSimple' project.id budget.latest_version.id %}" 
+                        <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 {% if budget.status == 'Complete'%}disabled{% endif %}" 
+                        href="{% url 'view_budgetSimple' project.id budget.id %}"
                         role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Make invoice">
                         <i class="bi bi-receipt" style="font-size: 15px;"></i>
                         </a>
                         <!-- Botón para Eliminar -->
-                        <a class="btn btn-danger btn-sm rounded-2 p-1" 
-                            href="{% url 'delete_budget' project.id budget.latest_version.id %}" 
-                            role="button" title="Delete Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Delete">
+                        <a class="btn btn-danger btn-sm rounded-2 p-1 
+                          {% if budget.status == 'Complete' or budget.status == 'Billed' %}disabled{% endif %}" 
+                          href="{% url 'delete_budget' project.id budget.id %}"                         
+                          role="button" title="Delete Budget" 
+                          data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" 
+                          data-bs-custom-class="custom-tooltip" 
+                          data-bs-title="Delete">
                             <i class="bi bi-trash" style="font-size: 15px;"></i>
                         </a>
                       </div>
@@ -231,7 +236,7 @@
                   </td>
                   <td style="width:80px">
                     <div class="d-inline-flex gap-2 ">
-                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
+                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 {% if budget.status == 'Complete' or budget.status == 'Billed' %}disabled{% endif %}" 
                       href="{% url 'edit_budget' project.id budget.id %}" 
                       role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit">
                       <i class="bi bi-pencil-square" style="font-size: 15px;"></i>
@@ -241,17 +246,23 @@
                       role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Print">
                       <i class="bi bi-printer-fill" style="font-size: 15px;"></i>
                       </a>
-                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
+                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 {% if budget.status == 'Complete'%}disabled{% endif %}" 
                       href="{% url 'view_budgetSimple' project.id budget.id %}"
                       role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Make invoice">
                       <i class="bi bi-receipt" style="font-size: 15px;"></i>
                       </a>
                       <!-- Botón para Eliminar -->
-                      <a class="btn btn-danger btn-sm rounded-2 p-1" 
-                          href="{% url 'delete_budget' project.id budget.id %}" 
-                          role="button" title="Delete Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Delete">
+                      <a class="btn btn-danger btn-sm rounded-2 p-1 
+                        {% if budget.status == 'Complete' or budget.status == 'Billed' %}disabled{% endif %}" 
+                        href="{% url 'delete_budget' project.id budget.id %}"                         
+                        role="button" title="Delete Budget" 
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="bottom" 
+                        data-bs-custom-class="custom-tooltip" 
+                        data-bs-title="Delete">
                           <i class="bi bi-trash" style="font-size: 15px;"></i>
                       </a>
+            
                     </div>
                   </td>
                 </tr>
@@ -301,13 +312,17 @@
                 <td>{{ invoice.tracking_id }}</td>
                 <td>{{ invoice.sales_advisor.username }}</td>
                 <td> 
-                  <select name="status" class="status status-empty status_{{invoice.status}}" onchange="this.form.submit()">
-                    {% for value, label in invoice.STATUS_CHOICES %}
-                    <option value="{{ value }}" {% if invoice.status == value %}selected{% endif %}>
-                      {{ label }}
-                    </option>
-                    {% endfor %}
-                  </select>
+                  <form method="post" class='m-0'>
+                    {% csrf_token %}
+                    <input type="hidden" name="invoice_id" value="{{ invoice.id }}" style='display:none'>
+                    <select name="status" class="status status-empty status_{{ invoice.status }}" onchange="this.form.submit()">
+                      {% for value, label in invoice.STATUS_CHOICES %}
+                        <option value="{{ value }}" {% if invoice.status == value %}selected{% endif %}>
+                          {{ label }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </form>
                 </td>
                 <td>{{ invoice.total_invoice | currency_usd }} ({{ invoice.percentage_of_budget }}%)</td>
                 <td style='width:80px'>
@@ -367,9 +382,9 @@
                   <td>{{ invoice.amount }}</td>
                 </tr>
                 {% empty %}
-                <tr>
-                  <td colspan="4">No invoices found for this project.</td>
-                </tr>
+                  <tr>
+                    <td colspan="4">No invoices found for this project.</td>
+                  </tr>
                 {% endfor %}
               </tbody>
             </table>
@@ -379,4 +394,6 @@
       
     </div>
 </div>
+{% include "loading_component.html" %} 
+
 {% endblock %}

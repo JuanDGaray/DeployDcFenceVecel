@@ -10,6 +10,7 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400;700&display=swap">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css" rel="stylesheet" />
+
     {% block extra_head %}
     {% endblock %}
   </head>
@@ -20,7 +21,7 @@
               <ul class="nav nav-pills nav-flush flex-sm-column flex-row flex-nowrap text-center align-items-center p-0">
                 <li>
                     <a href="/" class="nav-link ">
-                        <img src="{% static 'img/logoPngsm.png' %}" alt="Logo" class="img-fluid rounded-1" style="width: 32px; height: auto;">
+                        <img src="{% static 'img/LogoSmLarge.png' %}" alt="Logo" class="img-fluid rounded-1" style="width: 32px; height: auto;">
                     </a>
                 </li>
                 <li>
@@ -81,14 +82,14 @@
     </div>
     
         <div class="col-sm p-3 min-vh-100">
+            
           {% block content %}
 
           {% endblock %}
         </div>
     </div>
-</div>
+    </div>
 </body>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{% static 'js/baseScripts.js' %}"></script>
-</body>
 </html>

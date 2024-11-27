@@ -2255,7 +2255,9 @@ function getCostManagementData(modify=false, budgetID = null) {
             body: JSON.stringify(data),
         })
         .then(() => {
+            const loadingOverlay = document.getElementById('loadingOverlay');
             window.location.href = `/projects/${projectId}/`;
+            loadingOverlay.classList.add('d-none');
         })
         .catch((error) => {
             console.error('Error:', error);
@@ -2282,8 +2284,13 @@ function getCostManagementData(modify=false, budgetID = null) {
 // Escuchar el evento 'click' en el botón de guardar
 document.getElementById('save-btn').addEventListener('click', function(event) {
     event.preventDefault();
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    loadingOverlay.classList.remove('d-none');  // Remueve la clase d-none para mostrar el overlay
+
+    // Llama a la función para manejar los datos
     getCostManagementData();
 });
+
 
 document.querySelectorAll('[data-bs-toggle="collapse"]').forEach((toggle) => {
     console.log('Se activo')

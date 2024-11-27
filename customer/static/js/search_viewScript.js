@@ -6,55 +6,55 @@ document.addEventListener('DOMContentLoaded', function () {
     // Función para activar/desactivar el campo 'Company Name'
     function toggleCompanyNameField() {
         console.log("cambio")
-      if (customerType.value === 'company' || customerType.value === 'contractor') {
+    if (customerType.value === 'company' || customerType.value === 'contractor') {
         companyName.disabled = false;
-      } else {
+    } else {
         companyName.disabled = true;
         companyName.value = '';
-      }
+    }
     }
 
     const requiredFields = document.querySelectorAll('#id_first_name, #id_last_name, #id_email, #id_phone');
     const submitBtn = document.getElementById('submit-btn');
 
     function checkFormCompletion() {
-      let allFieldsFilled = true;
+    let allFieldsFilled = true;
 
-      requiredFields.forEach(function(field) {
+    requiredFields.forEach(function(field) {
         if (field.value.trim() === '') {
-          allFieldsFilled = false; 
+        allFieldsFilled = false; 
         }
-      });
+    });
 
-      submitBtn.disabled = !allFieldsFilled;
-      document.getElementById('id_email').addEventListener('input', function() {
+    submitBtn.disabled = !allFieldsFilled;
+    document.getElementById('id_email').addEventListener('input', function() {
         const emailInput = this.value;
         const emailError = document.getElementById('email-error');
     
         if (emailInput.trim() !== '') {
-          fetch(`/check-email/?email=${emailInput}`)
+        fetch(`/check-email/?email=${emailInput}`)
             .then(response => response.json())
             .then(data => {
-              if (data.exists) { 
+            if (data.exists) { 
                 emailError.style.display = 'inline';  // Muestra el mensaje de error
-              } else {
+            } else {
                 emailError.style.display = 'none';   // Oculta el mensaje de error
-              }
-              window.location.reload();
+            }
+            window.location.reload();
             })
             .catch(error => {
-              console.error('Error checking email:', error);
+            console.error('Error checking email:', error);
             });
         } else {
-          emailError.style.display = 'none';
+        emailError.style.display = 'none';
         }
-      });
+    });
 
     }
 
     // Escuchar cambios en los campos requeridos
     requiredFields.forEach(function(field) {
-      field.addEventListener('input', checkFormCompletion);
+    field.addEventListener('input', checkFormCompletion);
     });
 
 
@@ -62,22 +62,22 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
-     // Restaurar la posición de desplazamiento
-     const savedScrollTop = localStorage.getItem('scrollTop');
-     if (savedScrollTop) {
-         window.scrollTo(0, savedScrollTop);
-         localStorage.removeItem('scrollTop');
-     }
- 
-     // Guardar la posición de desplazamiento antes de cambiar de página
-     const saveScrollPosition = () => {
-         localStorage.setItem('scrollTop', window.scrollY);
-     };
- 
-     // Guardar la posición de desplazamiento cuando se hace clic en enlaces de paginación
-     document.querySelectorAll('.page-link').forEach(link => {
-         link.addEventListener('click', saveScrollPosition);
-     });
+    // Restaurar la posición de desplazamiento
+    const savedScrollTop = localStorage.getItem('scrollTop');
+    if (savedScrollTop) {
+        window.scrollTo(0, savedScrollTop);
+        localStorage.removeItem('scrollTop');
+    }
+
+    // Guardar la posición de desplazamiento antes de cambiar de página
+    const saveScrollPosition = () => {
+        localStorage.setItem('scrollTop', window.scrollY);
+    };
+
+    // Guardar la posición de desplazamiento cuando se hace clic en enlaces de paginación
+    document.querySelectorAll('.page-link').forEach(link => {
+        link.addEventListener('click', saveScrollPosition);
+    });
     const addButton = document.getElementById("add-customer-btn");
     const closeForm = document.getElementById("close-form");
     const customerForm = document.getElementById("customer-form");

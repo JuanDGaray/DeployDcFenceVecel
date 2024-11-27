@@ -104,6 +104,7 @@
 {% block title %}Simple Invoice{% endblock %}
 {% block content %}
 <body>
+    <a href="{% url 'detail_project' project.id %}"><strong><i class="bi bi-back"></i> <span id="project-container" data-project-id="{{ project.id }}">{{project.id}} </span> - {{project.project_name}}</a>
     <form id="invoice-form" method="POST" action="">
         {% csrf_token %}
     <div class="container mt-4" id='main-container'>
@@ -285,6 +286,7 @@
             e.preventDefault(); // Prevenir la navegación
             const form = document.getElementById('invoice-form');
             const formData = new FormData(form);
+            const projectId = document.getElementById('project-container').dataset.projectId;
         
             fetch(form.action, {
                 method: 'POST',
@@ -295,7 +297,7 @@
             })
                 .then(response => {
                     if (response.ok) {
-                        alert('Invoice successfully created!');
+                        window.location.href = `/projects/${projectId}/`;
                     } else {
                         alert('Error creating invoice.');
                     }
@@ -304,7 +306,6 @@
                     console.error('Error:', error);
                 });
         });
-        
         // Function to add a new scope container
         document.getElementById("add-materials").addEventListener("click", function() {
             // Generate unique ID for each new scope
