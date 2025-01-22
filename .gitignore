@@ -164,7 +164,7 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 db.sqlite3
-
+dcfence-web-django-1a4b921d8976.json
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

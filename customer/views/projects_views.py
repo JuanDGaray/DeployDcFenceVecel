@@ -1,28 +1,110 @@
-from re import I
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from ..models import (Customer, Project, User,
                       BudgetEstimate, BudgetEstimateMaterialData, BudgetEstimateDeductsData,
                       BudgetEstimateLaborData, BudgetEstimateContractorData,
-                      BudgetEstimateMiscData, BudgetEstimateProfitData, BudgetEstimateUtil, InvoiceProjects)
-
+                      BudgetEstimateMiscData, BudgetEstimateProfitData, BudgetEstimateUtil, InvoiceProjects, ProposalProjects, ProjectBudgetXLSX)
+from django.db.models import Max
 from ..form import CustomerForm, ProjectsForm  # Ensure the correct import for the form
 from django.core.paginator import Paginator
 from django.utils.text import capfirst
 from decimal import Decimal
 from django.db.models import Sum, F
 from django.template.loader import render_to_string
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, request
 from datetime import date, timedelta
 from django.utils import timezone
 import json
 import math
+from django.db import transaction
+from django.conf import settings
+import os
+from ..utils import create_folders_by_projects, delete_folders_by_projects, new_aia5_xlxs_template
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
+from datetime import datetime
 
+def aiaInvoice10(request,project_id, invoice_id):
+    project = get_object_or_404(Project, pk=project_id)
+    proposal = get_object_or_404(ProposalProjects, id=invoice_id)
+
+    if request.method == 'GET':
+        return render(request, 'AIA10.html', {
+            'project': project,
+            'proposal':proposal,
+            'today': timezone.now().date(),},)
+    elif request.method == 'POST':
+        data = json.loads(request.body)
+        saleAdvisor = request.user
+        save_invoice(data, project, proposal.budget , proposal, saleAdvisor)
+        print(data)
+        return HttpResponse(status=200)
+    
+    
+def aiaInvoice5(request,project_id, invoice_id):
+    project = get_object_or_404(Project, pk=project_id)
+    proposal = get_object_or_404(ProposalProjects, id=invoice_id)
+
+    if request.method == 'GET':
+        return render(request, 'AIA5.html', {
+            'project': project,
+            'proposal':proposal,
+            'today': timezone.now().date(),},)
+    elif request.method == 'POST':
+        data = json.loads(request.body)
+        saleAdvisor = request.user
+        save_invoice(data, project, proposal.budget , proposal, saleAdvisor)
+        print(data)
+        return HttpResponse(status=200)
+    
+    
+def MdcpInvoice(request,project_id, invoice_id):
+    project = get_object_or_404(Project, pk=project_id)
+    proposal = get_object_or_404(ProposalProjects, id=invoice_id)
+    next_invoice_id = (InvoiceProjects.objects.aggregate(Max('id'))['id__max'] or 0) + 1
+
+    if request.method == 'GET':
+        return render(request, 'MDCPInvoice.html', {
+            'project': project,
+            'proposal':proposal,
+            'today': timezone.now().date(),
+            'next_invoice_id': next_invoice_id,})
+        
+    elif request.method == 'POST':
+        data = json.loads(request.body)
+        saleAdvisor = request.user
+        save_invoice(data, project, proposal.budget , proposal, saleAdvisor)
+        return HttpResponse(status=200)
+    
+def BroadInvoice10(request,project_id, invoice_id):
+    project = get_object_or_404(Project, pk=project_id)
+    proposal = get_object_or_404(ProposalProjects, id=invoice_id)
+    next_invoice_id = (InvoiceProjects.objects.aggregate(Max('id'))['id__max'] or 0) + 1
+
+
+    if request.method == 'GET':
+        return render(request, 'BrodInvoice.html', {
+            'project': project,
+            'proposal':proposal,
+            'today': timezone.now().date(),
+            'next_invoice_id': next_invoice_id,})
+    elif request.method == 'POST':
+        return HttpResponse(status=200)
+
+def changePaidInvoice(request,project_id, invoice_id):
+    project = get_object_or_404(Project, pk=project_id)
+    invoice = get_object_or_404(InvoiceProjects, id=invoice_id)
+    if request.method == 'POST':
+        print(request.body)
+        data = json.loads(request.body)
+        invoice.total_paid = data['amount']
+        invoice.save()
+        return HttpResponse(status=200)
 
 def get_timeline_steps(project):
     status_choices = Project.STATUS_CHOICES
-    current_status_index = next(index for index, (status, _) in enumerate(status_choices) if status == project.status)
-    
+    current_status_index = next(index for index, (status, _) in enumerate(status_choices) if status.lower() == project.status)
+    print(project.status)
     steps = []
     for index, (status, label) in enumerate(status_choices):
         if status not in ["not_approved", "inactive", "cancelled"] :
@@ -40,14 +122,14 @@ def get_timeline_steps(project):
 
     return steps
 
-
 @login_required
 def projects(request):
-    # Retrieve all projects and paginate them
-    Project_list = Project.objects.all()
+    # Asegúrate de que la consulta esté ordenada para evitar el UnorderedObjectListWarning
+    Project_list = Project.objects.all().order_by('project_name')  # Puedes cambiar por el campo que desees
     paginator = Paginator(Project_list, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    
     sellers = User.objects.all()
     customers = Customer.objects.all()
     current_user = request.user
@@ -70,10 +152,14 @@ def projects(request):
                 new_project = form.save(commit=False)
                 new_project.sales_advisor = request.user
                 new_project.status = "new"
-                new_project.save()
+                folder_name = new_project.project_name
+                create_folder_response = create_folders_by_projects(folder_name)
+                if create_folder_response['status'] == 'success':
+                    new_project.folder_id = create_folder_response['folder_id']
+                    new_project.save()
 
                 return redirect('projects')
-
+                
             else:
                 return render(request, 'projects.html', {
                     'form': form,
@@ -92,19 +178,16 @@ def projects(request):
 
 @login_required
 def detail_project(request, project_id):
-    project = get_object_or_404(Project, pk=project_id)
-    
-    budgets = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=True)
+    project = get_object_or_404(Project, pk=project_id) 
+    budgets = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=True, isChangeOrder=False)
     invoices = InvoiceProjects.objects.filter(project_id=project_id)
+    proposals = ProposalProjects.objects.filter(project_id=project_id)
+    changes_orders = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True)
     
-    print(invoices, project.status)
-    
-    if (len(invoices) <= 0 or len(budgets) <= 0) and project.status not in ['new', 'cancelled', 'inactive', 'pending_payment', 'not_approved']:
+    if (len(invoices) <= 0 and len(budgets) <= 0) and project.status not in ['new', 'cancelled', 'inactive', 'pending_payment', 'not_approved']:
         project.status = 'new'
         project.save()
-    
-    budgets_with_related = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=False)
-
+    budgets_with_related = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=False, isChangeOrder=False)
     budgets_dict = {}
     for budget in budgets_with_related:
         related_id = budget.id_related_budget.id  # Suponiendo que `id_related_budget` es un atributo accesible
@@ -112,21 +195,55 @@ def detail_project(request, project_id):
             budgets_dict[related_id] = {'budget': [budget]}
         else:
             budgets_dict[related_id]['budget'].insert(0, budget)
+    productionUsers = None  
+    if project.status == 'approved':
+        productionUsers = User.objects.all()
+        
+    if project.project_manager and project.status != 'in_production':
+        project.status = 'in_production'
+        project.save()
+        
+    if request.method == 'GET':
+        status_choices = Project.STATUS_CHOICES
+        timeline_steps = get_timeline_steps(project)
 
-    status_choices = Project.STATUS_CHOICES
-    
-    timeline_steps = get_timeline_steps(project)
-
-    if request.method == 'POST':
-        print(request.POST)
+    else:
         if 'status' in request.POST:
             new_status = request.POST.get('status') 
-            invoice_id = request.POST.get('invoice_id')
-            invoice = get_object_or_404(InvoiceProjects, pk=invoice_id)
-            if new_status in dict(InvoiceProjects.STATUS_CHOICES).keys():
-                invoice.status = new_status
-                invoice.save()
-        return redirect('detail_project', project_id=project_id)
+            proposal_id = request.POST.get('proposal_id')
+            budget_id = request.POST.get('budget_id')
+            proposal = get_object_or_404(ProposalProjects, pk=proposal_id)
+            budget = get_object_or_404(BudgetEstimate, pk=budget_id)
+            if new_status in dict(ProposalProjects.STATUS_CHOICES).keys():
+                proposal.status = new_status
+                if proposal.status in  ['sent', 'pending'] and budget.status != 'complete':
+                    budget.status = 'complete'
+                    budget.save()
+                elif proposal.status  == 'approved' and budget.status != 'approved':
+                    budget.status = 'approved'
+                    budget.save()
+                elif proposal.status  == 'rejected' and budget.status != 'rejected':
+                    budget.status = 'rejected'
+                    budget.save()
+                elif proposal.status  == 'new' and budget.status != 'saved':
+                    budget.status = 'saved'
+                    budget.save()
+                proposal.save()
+                updateStatusProject(new_status, project)
+                status_choices = Project.STATUS_CHOICES
+                timeline_steps = get_timeline_steps(project)
+                productionUsers = User.objects.all()
+                
+            return render(request, 'details_project.html', {
+                'project': project,
+                'budgets': budgets,
+                'steps': timeline_steps,
+                'budgets_dict': budgets_dict,
+                'invoices': invoices,
+                'proposals':proposals,
+                'status_choices': status_choices,
+                'productionUsers': productionUsers
+            })
 
     # Renderizar la plantilla
     return render(request, 'details_project.html', {
@@ -135,8 +252,25 @@ def detail_project(request, project_id):
         'steps': timeline_steps,
         'budgets_dict': budgets_dict,
         'invoices': invoices,
-        'status_choices': status_choices,  # Si necesitas mostrar las opciones de estado en la plantilla
+        'proposals':proposals,
+        'status_choices': status_choices,
+        'changes_orders': changes_orders,
+        'productionUsers': productionUsers
     })
+
+@login_required
+def select_Manager(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+    manager_id = request.GET.get('manager_id')
+    manager = get_object_or_404(User, id=manager_id)
+    project.project_manager = manager
+    project.status = 'in_production'
+    project.save()
+    if manager_id:
+        print(f"Manager selected: {manager_id}")
+    
+    return redirect('detail_project', project_id)
+
 
 @login_required    
 def new_budget(request, project_id):
@@ -165,12 +299,21 @@ def new_budget(request, project_id):
         except json.JSONDecodeError:
             return JsonResponse({'status': 'error', 'message': 'Error al procesar los datos.'})
     
+@login_required
+def view_changeOrder(request, project_id,  budget_id):
+    project = get_object_or_404(Project, pk=project_id)
+    budget = get_object_or_404(BudgetEstimate, pk=budget_id)
+    qtCHO = BudgetEstimate.objects.filter(id_related_budget=budget.id_related_budget, isChangeOrder=True)
+    if request.method == 'GET':
+        return render(request, 'view_changeOrder.html', {
+            'project': project,
+            'budget': budget,
+            'qtChangeOrder': len(qtCHO),
+        })
 
-        
 
 
-@login_required 
-def view_budget(request, project_id, budget_id):
+def view_budget(request, project_id, budget_id): 
     project = get_object_or_404(Project, pk=project_id)
     budget = get_object_or_404(BudgetEstimate, pk=budget_id)
     
@@ -184,9 +327,41 @@ def view_budget(request, project_id, budget_id):
             'date_valid' : date.today() + timedelta(days=25),
             'data':  json.dumps(data)
         })
-    
-        
-        
+            
+@login_required 
+def new_change_order(request, project_id, proposal_id):
+    project = get_object_or_404(Project, pk=project_id)
+   
+    if request.method == 'GET':
+        proposal = get_object_or_404(ProposalProjects, pk=proposal_id)
+        budget = proposal.budget
+        data = extract_data_budget(budget)
+        return render(request, 'new_changeOrder.html', {
+            'project': project,
+            'budget': budget,
+            'date': date.today(),
+            'date_valid' : date.today() + timedelta(days=25),
+            'data':  json.dumps(data)
+        })
+    else:
+            budget = get_object_or_404(BudgetEstimate, pk=proposal_id)
+            data = json.loads(request.body)
+            budgetRelated = budget
+            dataBudget = {
+                'project': project, 
+                'projectedCost': data['utilsData']['costTotal'], 
+                'profitValue': data['utilsData']['profitTotal'],
+                'actualCost':0, 
+                'status': BudgetEstimate.STATUS_SAVED,
+                'sales': request.user, 
+                'dateCreated': timezone.now(),  
+                'related_budget':budgetRelated, 
+                'isChangeOrder': True,
+            }
+            save_budget_data_from_dict(dataBudget, data)
+            return redirect('detail_project', project_id=project.id)
+
+
 @login_required 
 def edit_budget(request, project_id, budget_id):
     project = get_object_or_404(Project, pk=project_id)
@@ -225,8 +400,6 @@ def edit_budget(request, project_id, budget_id):
         except json.JSONDecodeError:
             return JsonResponse({'status': 'error', 'message': 'Error al procesar los datos.'})
 
-
-@login_required 
 def generate_pdf(request, project_id, budget_id):
     """context = get_budget_context(project_id, budget_id)
 
@@ -241,7 +414,6 @@ def generate_pdf(request, project_id, budget_id):
         HTML(string=html_string).write_pdf(response)"""
 
     pass
-
 
 @login_required 
 def view_budgetSimple(request, project_id, budget_id):
@@ -279,6 +451,18 @@ def delete_budget(request, project_id, budget_id):
     return redirect('detail_project', project_id=project_id)
 
 @login_required
+def delete_project(request, project_id, folder_root_value=None):
+    project = get_object_or_404(Project, pk=project_id)
+    if folder_root_value:
+        delete_folder_response = delete_folders_by_projects(project.project_name, folder_root_value)
+        print(delete_folder_response)
+        project.delete()
+        return redirect('projects')
+    else:
+        project.delete()
+        return redirect('projects')
+    
+@login_required
 def delete_invoice(request, project_id, invoice_id):
     """
     Deletes an invoice and updates the related project's estimated cost 
@@ -294,26 +478,64 @@ def delete_invoice(request, project_id, invoice_id):
     """
     with transaction.atomic():
         invoice = get_object_or_404(InvoiceProjects, id=invoice_id)
-        budget = invoice.budget
-
-        project = get_object_or_404(Project, id=project_id)
-        project.estimated_cost = F('estimated_cost') - invoice.total_invoice
-        project.save(update_fields=['estimated_cost'])
-
         invoice.delete()
 
-        percentage_of_budget = budget.total_percentage_invoiced
-        if percentage_of_budget >= 99:
-            budget.status = 'Complete'
-        elif percentage_of_budget == 0:
-            budget.status = 'New'
-        else:
-            budget.status = 'Billed'
+    return redirect('detail_project', project_id=project_id)
+
+@login_required
+def delete_proposal(request, project_id, proposal_id):
+    """
+    Deletes an proposal and updates the related project's estimated cost 
+    and budget's status accordingly.
+
+    Args:
+        request: The HTTP request object.
+        project_id (int): The ID of the project to which the proposal belongs.
+        proposal_id (int): The ID of the proposal to delete.
+
+    Returns:
+        HttpResponseRedirect: Redirects to the project detail view after deletion.
+    """
+    with transaction.atomic():
+        proposal = get_object_or_404(ProposalProjects, id=proposal_id)
+        budget = proposal.budget
+        project = get_object_or_404(Project, id=project_id)
+        project.estimated_cost = F('estimated_cost') - proposal.total_proposal
+        project.save(update_fields=['estimated_cost'])
+        proposal.delete()
+        # percentage_of_budget = budget.total_percentage_proposald
+        # if percentage_of_budget >= 99:
+        #     budget.status = 'Complete'
+        # elif percentage_of_budget == 0:
+        #     budget.status = 'New'
+        # else:
+        #     budget.status = 'Billed'
         budget.save(update_fields=['status'])
 
     return redirect('detail_project', project_id=project_id)
 
+def pdf_invoice(request, project_id, invoice_id):
+    project = get_object_or_404(Project, pk=project_id)
+    invoice = get_object_or_404(InvoiceProjects, id=invoice_id)
 
+    if request.method == 'GET':
+        return render(request, 'pdf_invoice.html', {
+            'project': project,
+            'invoice':invoice})
+    elif request.method == 'POST':
+        return HttpResponse(status=200)
+    
+def pdf_proposal(request, project_id, proposal_id):
+    project = get_object_or_404(Project, pk=project_id)
+    proposal = get_object_or_404(ProposalProjects, id=proposal_id)
+
+    if request.method == 'GET':
+        return render(request, 'pdf_proposal.html', {
+            'project': project,
+            'proposal':proposal})
+    elif request.method == 'POST':
+        return HttpResponse(status=200)
+    
 def save_budget_data_from_dict(dataBudget,data):
     """
     Crea un nuevo BudgetEstimate y guarda los datos relacionados a partir de un diccionario.
@@ -324,7 +546,11 @@ def save_budget_data_from_dict(dataBudget,data):
         related_budget = None
         if dataBudget.get('related_budget'):
             related_budget = dataBudget.get('related_budget')  # Ajusta esto si necesitas buscar un objeto relacionado
-
+        if dataBudget.get('isChangeOrder'):
+            isChangeOrder = True
+        else:
+            isChangeOrder = False
+        
         # Crea el presupuesto
         budget = BudgetEstimate.objects.create(
             project=dataBudget.get('project'),
@@ -334,7 +560,8 @@ def save_budget_data_from_dict(dataBudget,data):
             status=dataBudget.get('status'),
             sales_advisor=dataBudget.get('sales'),  
             date_created=dataBudget.get('dateCreated'),
-            id_related_budget=related_budget
+            id_related_budget=related_budget,
+            isChangeOrder=isChangeOrder
         )
         
         # Guardar datos de Utilidad (dataHolePosts)
@@ -406,6 +633,8 @@ def save_budget_data_from_dict(dataBudget,data):
                     cost=material.get('cost'),
                     item_value=material.get('itemValue'),
                     is_generated_by_utils=material.get('isGeneratedByUtils'),
+                    is_generated_by_checklist=material.get('isGeneratedByCheckList'),
+                    id_generated_by_checklist=material.get('idGeneratedByCheckList'),
                 )
         if 'contractorData' in data:
             contractor_data = data['contractorData']     
@@ -458,34 +687,27 @@ def save_budget_data_from_dict(dataBudget,data):
         print({'status': 'error', 'message': str(e)})
 
 
-from django.db import transaction
-
 def save_budget_simple(data, project, budget, dictScope, saleAdvisor):
     with transaction.atomic():
-        invoice = InvoiceProjects.objects.create(
+        proposal = ProposalProjects.objects.create(
             project=project,
             budget=budget,
             tracking_id=data['tracking'],
-            invoiceInfo=dictScope,
+            proposalInfo=dictScope,
             date_created=data['date_created'],
             project_name=data['project_name'],
             due_date=data['valid_until'],
             subtotal=data['subtotal'],
             tax=data['tax'],
             retention=data['retention'],
-            total_invoice=float(data['subtotal']) + float(data['tax']) - float(data['retention']),
+            total_proposal=float(data['subtotal']) + float(data['tax']) - float(data['retention']),
             approved_by=data['approved_by'],
             print_name=data['print_name'],
             signature=data['signature'],
             sales_advisor=saleAdvisor,
             terms_conditions=data['terms'],
         )
-        percentage_of_budget = budget.total_percentage_invoiced
-        budget.status = 'Complete' if percentage_of_budget >= 99 else 'Billed'
-        budget.save(update_fields=['status'])
-        if project.status == 'new':
-            project.status = 'contacted'
-        project.estimated_cost = F('estimated_cost') + invoice.total_invoice
+        project.estimated_cost = F('estimated_cost') + proposal.total_proposal
         project.save(update_fields=['status', 'estimated_cost'])
 
     
@@ -494,14 +716,13 @@ def modify_old_budget(budget_id):
     budget.mark_as_obsolete()
 
 
-
 def extract_data_budget(budget):
     data = {
         "labors": list( budget.labors.values(
             'id', 'labor_description', 'cost_by_day', 'days', 'lead_time', 'labor_cost', 'item_value', 'is_generated_by_utils'
         )),
         "materials": list(budget.materials.values(
-            'id', 'material_description', 'quantity', 'unit_cost', 'lead_time', 'cost', 'item_value', 'is_generated_by_utils'
+            'id', 'material_description', 'quantity', 'unit_cost', 'lead_time', 'cost', 'item_value', 'is_generated_by_utils', 'id_generated_by_checklist', 'is_generated_by_checklist'
         )),
         "contractors": list(budget.contractors.values(
             'id', 'contractor_description', 'lead_time', 'contractor_cost', 'item_value', 'is_generated_by_utils'
@@ -537,3 +758,51 @@ def decimal_to_float(data):
         return float(data)  # O str(data) si prefieres
     else:
         return data
+    
+def save_invoice(data,project, budget, proposal, saleAdvisor):
+    if data['startDate']:
+        date_created = datetime.strptime(data['startDate'], '%Y-%m-%d')
+    else:
+        date_created = datetime.strptime(data['dateId'], '%Y-%m-%d')
+        
+    if data['endDate']:
+        due_date = data['endDate']
+    else:
+        due_date = date_created + timedelta(days=90)
+    
+    with transaction.atomic():
+        invoice = InvoiceProjects.objects.create(
+            project=project,
+            budget=budget,
+            proposal=proposal,
+            invoiceInfo=data,
+            date_created=date_created,
+            due_date = due_date,
+            total_invoice=float(data['total']),
+            sales_advisor=saleAdvisor,
+            type_invoice=data['type']
+        )
+    
+    
+                
+        
+@receiver(post_save, sender=InvoiceProjects)
+@receiver(post_delete, sender=InvoiceProjects)
+def update_billed_proposal(sender, instance, **kwargs):
+    proposal = instance.proposal
+    total_billed = proposal.invoices.aggregate(total=Sum('total_invoice'))['total'] or 0
+    proposal.billed_proposal = total_billed
+    proposal.save()
+    
+
+def updateStatusProject(proposalStatus, project):
+    print('algo')
+    if proposalStatus == 'sent' and project.status != 'contacted':
+        project.status = 'contacted'
+        project.save()
+    elif  proposalStatus == 'pending' and project.status != 'quote_sent':
+        project.status = 'quote_sent'
+        project.save()
+    elif  proposalStatus == 'approved' and project.status != 'approved':
+        project.status = 'approved'
+        project.save()

@@ -8,6 +8,7 @@ from django.db.models import Sum,Q
 from django.db.models.functions import Coalesce
 from django.db.models import DecimalField
 
+
 class Customer(models.Model):
     # Tipos de clientes
     CUSTOMER_TYPES = [
@@ -85,6 +86,11 @@ class Customer(models.Model):
 
 
 class BudgetEstimate(models.Model):
+    FORMAT_CHOICES = [
+        ('WEB', 'Web'),
+        ('XLSX', 'Excel'),
+    ]
+        
     STATUS_SAVED = 'saved'
     STATUS_SENT = 'sent'
     STATUS_REJECTED = 'rejected'
@@ -115,6 +121,8 @@ class BudgetEstimate(models.Model):
     status = models.CharField("Status", max_length=20, choices=BUDGET_STATUS_CHOICES, default=STATUS_SAVED)
     sales_advisor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Sales Advisor")
     actual_invoice = models.DecimalField("Actual Cost", max_digits=30, decimal_places=2, blank=True, null=True)
+    format_type = models.CharField("Format", max_length=4, choices=FORMAT_CHOICES,default='WEB', )
+    isChangeOrder = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Budget for {self.project.project_name}"
@@ -147,6 +155,20 @@ class BudgetEstimate(models.Model):
     def total_percentage_invoiced(self):
         related_invoices = self.invoices.all()  # Uso del nombre del `related_name` si lo tienes configurado
         return sum(invoice.percentage_of_budget for invoice in related_invoices)
+    
+    @property
+    def total_change_order(self):
+        try:
+            return ((self.profit_value or 0) + (self.projected_cost or 0)) - ((self.id_related_budget.profit_value or 0) + (self.id_related_budget.projected_cost or 0))
+        except:
+            return 0
+
+    @property
+    def id_related_total_value(self):
+        try:
+            return (self.id_related_budget.profit_value or 0) + (self.id_related_budget.projected_cost or 0)
+        except:
+            return 0 
 
 
 class BudgetEstimateLaborData(models.Model):
@@ -170,7 +192,8 @@ class BudgetEstimateMaterialData(models.Model):
     unit_cost = models.DecimalField(max_digits=10, decimal_places=2)
     lead_time = models.CharField(max_length=50, blank=True)
     cost = models.DecimalField(max_digits=10, decimal_places=2)
-
+    is_generated_by_checklist = models.BooleanField(default=False)
+    id_generated_by_checklist = models.CharField(max_length=50, default='Null')
 
 class BudgetEstimateContractorData(models.Model):
     id = models.AutoField(primary_key=True, verbose_name="Contractor ID")
@@ -287,30 +310,83 @@ class Project(models.Model):
     description = models.TextField("Project Description", null=True, blank=True)
     estimated_cost = models.DecimalField("Estimated Cost", max_digits=10, decimal_places=2, null=True, blank=True, default=0)
     actual_cost = models.DecimalField("Actual Cost", max_digits=10, decimal_places=2, null=True, blank=True, default=0)
-    sales_advisor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Sales Advisor")
+    sales_advisor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Sales Advisor",  related_name='sales_advisor_projects')
+    project_manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Project Manager", related_name='project_manager_projects')
     created_at = models.DateTimeField("Created At", auto_now_add=True)
     updated_at = models.DateTimeField("Updated At", auto_now=True)
     city = models.CharField("City", max_length=100, default="Hialeah")
     state = models.CharField("State/Province", max_length=100, default="Florida")
     zip_code = models.CharField("ZIP/Postal Code", max_length=20, blank=True, null=True)
     country = models.CharField("Country", max_length=100, default="United States")
-
+    folder_id = models.CharField("Folder ID", max_length=255, null=True, blank=True)
     def __str__(self):
         return self.project_name
-
+    
+    def get_approved_proposal(self):
+        """
+        Retorna el único proposal aprobado asociado al proyecto.
+        """
+        return self.proposals.filter(status=ProposalProjects.STATUS_APPROVED).first()
 
 
 from django.db import models
 from django.utils import timezone
 
 class InvoiceProjects(models.Model):
+    STATUS_SENT = 'sent'
+    STATUS_PENDING = 'pending'
+    STATUS_PAID = 'paid'
+    STATUS_OVERDUE = 'overdue'
+    STATUS_CANCELLED = 'cancelled'
+
+    STATUS_CHOICES = [
+        (STATUS_SENT, 'Sent'),                # Enviada
+        (STATUS_PENDING, 'Pending'),          # Pendiente de pago
+        (STATUS_PAID, 'Paid'),                # Pagada
+        (STATUS_OVERDUE, 'Overdue'),          # Vencida
+        (STATUS_CANCELLED, 'Cancelled'),      # Cancelada
+    ]
+
+    
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='invoices')
+    budget = models.ForeignKey('BudgetEstimate', on_delete=models.CASCADE, null=True, related_name='invoices')
+    proposal = models.ForeignKey('ProposalProjects', on_delete=models.CASCADE, null=True, related_name='invoices')
+    invoiceInfo = models.JSONField(default=dict, blank=True)
+    date_created = models.DateTimeField("Date Created", default=timezone.now)
+    due_date = models.DateTimeField("Due Date", null=True)
+    subtotal = models.DecimalField("Subtotal", max_digits=15, decimal_places=2,default=0)  # Added subtotal
+    tax = models.DecimalField("Tax", max_digits=15, decimal_places=2, default=0)  # Added tax
+    retention = models.DecimalField("Retention", max_digits=15, decimal_places=2, default=0)  # Definir valor predeterminado
+    total_invoice = models.DecimalField("Total Invoice", max_digits=15, decimal_places=2, default=0)
+    sales_advisor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Sales Advisor", blank=True)
+    status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default=STATUS_SENT)
+    total_paid = models.DecimalField("Total Invoice Paid", max_digits=15, decimal_places=2, default=0)
+    type_invoice =  models.CharField(max_length=255, default='none')
+    class Meta:
+        verbose_name = "Invoice"
+        verbose_name_plural = "Invoices"
+        
+    @property
+    def percentage_of_proposal(self):
+        if self.proposal and self.proposal.total_proposal > 0:
+            return int((self.total_invoice / math.floor(self.proposal.total_proposal)) * 100)
+        return 0
+    
+    @property
+    def percentage_paid(self):
+        if self.total_invoice > 0:
+            return round((self.total_paid / self.total_invoice) * 100, 2)
+        return 0
+    
+
+    
+class ProposalProjects(models.Model):
     # Estados del invoice
     STATUS_NEW = 'new'
     STATUS_SENT = 'sent'
     STATUS_PENDING = 'pending'
     STATUS_APPROVED = 'approved'
     STATUS_REJECTED = 'rejected'
-    STATUS_PAID = 'paid'
 
     STATUS_CHOICES = [
         (STATUS_NEW, 'New'),               
@@ -318,33 +394,50 @@ class InvoiceProjects(models.Model):
         (STATUS_PENDING, 'Pending'),       
         (STATUS_APPROVED, 'Approved'),    
         (STATUS_REJECTED, 'Rejected'),      
-        (STATUS_PAID, 'Paid'),           
     ]
     
     
-    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='invoices')
-    budget = models.ForeignKey('BudgetEstimate', on_delete=models.SET_NULL, null=True, related_name='invoices')
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='proposals')
+    budget = models.ForeignKey('BudgetEstimate', on_delete=models.CASCADE, null=True, related_name='proposals')
     tracking_id = models.CharField(max_length=255)  # Unique tracking ID
-    invoiceInfo = models.JSONField(default=dict, blank=True)
+    proposalInfo = models.JSONField(default=dict, blank=True)
     project_name = models.CharField(max_length=255, default='none')  # Added project name
     date_created = models.DateTimeField("Date Created", default=timezone.now)
     due_date = models.DateTimeField("Due Date",)
     subtotal = models.DecimalField("Subtotal", max_digits=15, decimal_places=2,default=0)  # Added subtotal
     tax = models.DecimalField("Tax", max_digits=15, decimal_places=2, default=0)  # Added tax
     retention = models.DecimalField("Retention", max_digits=15, decimal_places=2, default=0)  # Definir valor predeterminado
-    total_invoice = models.DecimalField("Total Invoice", max_digits=15, decimal_places=2, default=0)
+    total_proposal = models.DecimalField("Total Proposal", max_digits=15, decimal_places=2, default=0)
     approved_by = models.CharField(max_length=255,null=True, blank=True)  # Added approved by
     print_name = models.CharField(max_length=255, null=True, blank=True)  # Added print name
     signature = models.CharField(max_length=255, null=True, blank=True)  # Added signature
     sales_advisor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Sales Advisor", blank=True)
     terms_conditions = models.TextField("Terms and Conditions", null=True, blank=True)  # Optional field for terms
     status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default=STATUS_NEW)
+    billed_proposal = models.DecimalField("Total Billed", max_digits=15, decimal_places=2, default=0)
+    
     class Meta:
-        verbose_name = "Invoice"
-        verbose_name_plural = "Invoices"
+        verbose_name = "Proposal"
+        verbose_name_plural = "Proposals"
         
     @property
-    def percentage_of_budget(self):
-        if self.budget and self.budget.total_value > 0:
-            return int((self.total_invoice / math.floor(self.budget.total_value)) * 100)
-        return 0
+    def remaining_amount(self):
+        return self.total_proposal - self.billed_proposal
+
+
+class ProjectBudgetXLSX(models.Model):
+    budget = models.ForeignKey(BudgetEstimate, related_name='xlxs_data', on_delete=models.CASCADE)
+    cost_items = models.JSONField("Cost Items", default=list)
+    value_items = models.JSONField("Value Items", default=list)
+    total_cost = models.DecimalField("Total Cost", max_digits=10, decimal_places=2, default=0)
+    total_budget = models.DecimalField("Total Budget", max_digits=10, decimal_places=2, default=0)
+    xlsx_id = models.CharField("Folder ID", max_length=255, null=True, blank=True)
+
+
+
+class TaskProject(models.Model):
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='tasks')
+    gantt_data = models.JSONField(default=list)
+
+    def __str__(self):
+        return f"TaskProject for {self.project.project_name}"  

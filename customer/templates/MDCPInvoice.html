@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_head %}
+    <style>
+        body {
+            background-image: url("{% static 'img/logoPatron.png' %}");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: cover;
+            backdrop-filter: grayscale(100%);
+        }
+        .infoContainer{
+          background-image: url("{% static 'img/logoPatron.png' %}");
+          background-repeat: none;
+          background-position: center;
+          background-size: 480px 480px
+      }
+        .container-sm {
+            background-color: white;
+            padding: 40px;
+            box-shadow: 0 0 10px black;
+        }
+        .logoView{
+          background-color: #1a4784;
+          width: 100px;
+          padding: 4px;
+          height: 70px;
+          margin:8px
+      }
+      .imgSello{
+        position: absolute;
+        opacity: 0.5;
+        fill: none;
+        left: 65%;
+        width:250px;
+        user-select: none;
+        pointer-events: none;
+        
+    }
+    .firma{
+        display: absolute;
+        width:60px;
+        top:-15px
+    }
+    input.form-control {
+        border:none;
+        padding:0px 10px;
+        border-radius:0px;
+        border-size:2px
+    }
+    #addItem{
+        position: relative;
+        top: -56px;
+        opacity: 0.2;
+    }
+    #addItem:hover{
+        position: relative;
+        top: -56px;
+        opacity: 1;
+    }
+    </style>
+{% endblock %}
+{% block title %} MDC | {{ project.project_name }}{% endblock %}
+{% block content %}
+{% load custom_filters %} 
+    <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}" data-typeInv='MDCP'>
+    
+
+    <h1 class='fs-5 bg-white border border-4 border-primary fw-bold text-primary p-2 m-2 rounded-4 w-50 d-flex flex-row justify-content-between align-items-center'>MDC-CO TEMPLATE - ID{{project.id}} {{project.project_name}}
+        <div>
+            <button id="saveButton" class="btn btn-primary rounded-2" onclick="saveInvoice()">
+            <i class="bi bi-floppy text-light"></i>Save
+            </button>
+            <a class="btn btn-sm rounded-2 p-1 d-none" role="button" data-bs-toggle="tooltip" id='infoSave'
+                data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                data-bs-title="The budget amount exceeds the available total for billing. $ {{proposal.remaining_amount}}" 
+                aria-label="Info" data-bs-original-title="Rejected Proposal">
+                <i class="bi bi-info-circle text-danger" style="font-size: 15px;"></i>
+            </a>
+        </div>
+    </h1>
+    <div class="container-sm mx-5 my-4 rounded-4 mx-auto col-md-10" id='containerInvoice'>
+        <div class="d-flex flex-row mb-4">
+            <div class="col">
+                <span class="bg-primary text-white px-3 py-2">INVOICE :  <input id="invoiceId" type='text' class="bg-primary border-0 text-white" style="width: auto; min-width: 1ch; text-align: center;" size="8" value="{{project.id}}-{{proposal.id}}{{next_invoice_id}}"></span>
+            </div>
+            <div class="d-flex flex-row justify-content-center text-end bg position-relative">
+                <div class="d-flex flex-column align-items-center px-4 mx-4">
+                    <img src="{% static 'img/DaylenFirma.webp' %}" alt="DC FENCE Logo" class="firma position-relative">
+                    <span class="text-center position-absolute nameSignature" style="border-top: 2px solid black; display: inline-block; padding-top: 5px; bottom:0%">
+                        Approved by Daylen Puerto
+                    </span>
+                </div>
+                <img src="{% static 'img/LogoCompleteWhite.webp' %}" alt="DC FENCE Logo" class="logoView mx-4">
+            </div>
+        </div>
+    
+        <div class="col">
+            <strong>DADE: </strong>
+            <input id="dadeId" type="text" class="border-0" style="width: auto; min-width: 5ch; text-align: center;" value="20BS00539">
+        </div>
+        <div class="col text-end">
+            <strong>DATE: </strong>
+                <input id="dateId" type="date" class="border-0" style="width: auto; min-width: 5ch; text-align: center;" value="{{ today|date:'Y-m-d' }}" readonly>
+        </div>
+    
+        <div class="mb-2">
+            <div class="row">
+                <div class="col-4 fw-bold border border-2 text-end">INVOICE NO.</div>
+                <div class="col-8">
+                    <input id="invoiceNumber" type="text" class="form-control border-bottom" value="{{project.id}}-{{proposal.id}}{{next_invoice_id}}">
+                </div>
+            </div>
+        </div>
+    
+        <img src="{% static 'img/DcSello.webp' %}" alt="DC FENCE Logo" class="imgSello">
+    
+        <div class="mb-2">
+            <div class="row">
+                <div class="col-4 fw-bold border border-2 text-end">JOB ADDRESS</div>
+                <div class="col-8">
+                    <input id="jobAddress" type="text" class="form-control border-bottom" value="{{project.customer.address}}">
+                </div>
+            </div>
+        </div>
+    
+        <div class="mb-2">
+            <div class="row">
+                <div class="col-4 fw-bold border border-2 text-end">DESCRIPTION</div>
+                <div class="col-8">
+                    <input id="jobDescription" type="text" class="form-control border-bottom" value="{{project.description}}">
+                </div>
+            </div>
+        </div>
+    
+        <div class="mb-2">
+            <div class="row">
+                <div class="col-4 fw-bold border border-2 text-end">BILL TO:</div>
+                <div class="col-8">
+                    <input id="billTo" type="text" class="form-control border-bottom" value="MDCPS">
+                </div>
+            </div>
+        </div>
+    
+        <div class="mb-2">
+            <div class="row">
+                <div class="col-4 fw-bold border border-2 text-end">PO:</div>
+                <div class="col-8">
+                    <input id="poNumber" type="text" class="form-control border-bottom" value="9000393393">
+                </div>
+            </div>
+        </div>
+    
+        <div class="mb-2">
+            <div class="row">
+                <div class="col-4 fw-bold border border-2 text-end">PROJECT NAME</div>
+                <div class="col-8">
+                    <input id="projectName" type="text" class="form-control border-bottom" value="{{project.project_name}}">
+                </div>
+            </div>
+        </div>
+    
+        <div class="mb-2">
+            <div class="row">
+                <div class="col-4 fw-bold border border-2 text-end">CONTRACT #</div>
+                <div class="col-8">
+                    <input id="contractNumber" type="text" class="form-control border-bottom" value="">
+                </div>
+            </div>
+        </div>
+    
+        <div class="mb-2">
+            <div class="row">
+                <div class="col-4 fw-bold border border-2 text-end">VENDOR NUM</div>
+                <div class="col-8">
+                    <input id="vendorNumber" type="text" class="form-control border-bottom" value="">
+                </div>
+            </div>
+        </div>
+        <div>
+            <table class="table table-sm table-hover">
+                <thead>
+                    <tr>
+                        <th>Quantity</th>
+                        <th>Description</th>
+                        <th class="text-end">Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="itemsBody">
+                    <tr class='itemRow'>
+                        <td style='width:40px'><input id="item1Quantity" type="number" class="form-control" value="1"></td>
+                        <td><input id="item1Description" type="text" class="form-control" value="Supply and install Chain Link Fence and Gates"></td>
+                        <td class="text-end w-25"><input id="item1Amount" type="text" class="form-control text-end" value="{{proposal.remaining_amount}}" oninput="updateTotal()"></td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2" class="text-end text-primary fw-bold"><strong>TOTAL :</strong></td>
+                        <td class="text-end bg-primary">
+                            <input id="totalAmount" type="text" class="form-control text-end bg-primary text-light fw-bold" value="{{proposal.remaining_amount}}" readonly >
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+            <button id="addItem" class="btn btn-primary py-1 fs-6">+ Add Item</button>
+        </div>
+        
+    
+        <div class="d-flex flex-row flex-nowrap justify-content-evenly rounded-4 infoContainer p-3 px-4">
+            <div class="text-center m-2 p-2 bg-white rounded-4">
+                <p class="mb-2" id="shipTo">SHIP TO: DC FENCE SOLUTIONS/ 2498 W THIRD CT HIALEAH, FL 33010</p>
+                <p class="text-danger mb-2" id="paymentInstructions">Please make checks payable to: DC FENCE SOLUTIONS</p>
+                <p class="text-primary" id="thankYouMessage">Thank you for your trust</p>
+            </div>
+            <div class="d-flex flex-column bg-white justify-content-center align-items-center text-center px-1">
+                <span id="trackingId">{{proposal.tracking_id}}</span>
+                <h4>Tracking ID <span style='font-size: 1rem'> <i class="btn bi bi-copy p-1  text-sm d-real"></i></span></h4>
+                <p class="m-0">You can view the status of your project at <a href='www.dcfence.org/traking/'><br><b> www.dcfence.org/traking</b></a></p>
+            </div>
+        </div>
+    </div>
+    <div id="alert-container"></div>
+    <div id="loadingOverlay"  class="containerLoading d-none" >
+        <img src="{% static 'img/loading.gif' %}" alt="Cargando" class="img-fluid rounded-1" style="width: 100px; height: auto;">
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('addItem').addEventListener('click', addItem);
+
+        let itemCount = 1;
+        let total = {{proposal.remaining_amount}}
+
+        function addItem() {
+            itemCount++;
+            const tbody = document.getElementById('itemsBody');
+            
+            // Create a new row
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td><input id="item${itemCount}Quantity" type="number" class="form-control" value="1" oninput="updateTotal()"></td>
+                <td><input id="item${itemCount}Description" type="text" class="form-control" value="New Item"></td>
+                <td class="text-end"><input id="item${itemCount}Amount" type="text" class="form-control text-end" value="0.00" oninput="updateTotal()"></td>
+                <td class="p-0 text-center d-flex align-items-center" style="width:0px; positionL:relative" >
+                    <button type="button" class="border-0 text-danger remove_btn p-1 rounded-4 " aria-label="remove-item" onclick="removeItem(this)">
+                        <i class="bi bi-trash3 fs-5"></i>
+                    </button>
+                </td>
+            `;
+            row.classList.add('itemRow');
+            tbody.appendChild(row);
+    total
+            updateTotal();
+        }
+        function removeItem(button) {
+            const row = button.closest('tr');
+            row.remove();
+            updateTotal();
+        }
+        function updateTotal() {
+            total = 0;
+            const amounts = document.querySelectorAll('[id^="item"][id$="Amount"]');
+            amounts.forEach(input => {
+                total += parseFloat(input.value) || 0;
+            });
+            const infoSaved = document.getElementById("infoSave");
+            const maxTotal = parseFloat('{{ proposal.total_proposal }}'); 
+            const totalElement = document.getElementById('totalAmount');
+            totalElement.value = (parseFloat(total)).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            const saveButton = document.getElementById('saveButton');
+            const warningDiv = document.getElementById('warningDiv');
+            if (total > maxTotal) {
+                
+                if (infoSaved.classList.contains("d-none")) {
+                    infoSaved.classList.remove("d-none");
+                }
+                saveButton.disabled = true;
+                showAlert('The budget amount exceeds the available total for billing.'+'${{proposal.remaining_amount}}', 'warning');
+            } else {
+                saveButton.disabled = false;
+                if (!infoSaved.classList.contains("d-none")) {
+                    infoSaved.classList.add("d-none");
+                }
+            }
+        }
+        
+
+        function saveInvoice() {
+            const inputs = document.querySelectorAll(".container-sm input");
+            const jsonData = {};
+            const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+            inputs.forEach(input => {
+                if (input.id && !input.closest('.itemRow') ) {
+                    jsonData[input.id] = input.value;
+                }
+            });
+            const rowItems = document.querySelectorAll(".itemRow");
+            const items = [];
+            
+            rowItems.forEach(row => {
+                const rowData = {};
+                const cells = row.querySelectorAll("td");
+                
+                cells.forEach((cell, index) => {
+                    const input = cell.querySelector("input"); 
+
+                    if (input) { 
+                        if (index === 0) {
+                            rowData.qt = input.value;
+                        } else if (index === 1) {
+                            rowData.description = input.value; 
+                        } else if (index === 2) {
+                            rowData.value = input.value;
+                        }
+                    }
+                });
+                items.push(rowData);
+                });
+            jsonData['items'] = items;
+            jsonData['total'] = total;
+            jsonData['type'] = 'MDCPS';
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.classList.remove('d-none');
+            fetch(`/projects/{{project.id}}/mdcpInvoice/{{proposal.id}}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken,
+                },
+                body: JSON.stringify(jsonData),
+            })
+            .then(data => {
+                console.log('Respuesta del servidor:', jsonData);
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                window.location.href = `/projects/{{project.id}}/`;
+                loadingOverlay.classList.add('d-none');
+            })
+            .catch(error => {
+                console.error('Error al enviar los datos:', error);
+            });
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById("alert-container");
+            const alert = document.createElement("div");
+            alert.classList.add("alert", `alert-${type}`, "alert-dismissible", "fade", "show");
+            alert.role = "alert";
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            alertContainer.appendChild(alert);
+            setTimeout(() => {
+                alert.classList.remove("show");
+                alert.classList.add("fade");
+                alert.remove();
+            }, 4000); 
+            return alert;
+        }
+        
+    </script>
+
+{% endblock %}

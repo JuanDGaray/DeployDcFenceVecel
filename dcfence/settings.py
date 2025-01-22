@@ -27,7 +27,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 DEBUG = True
 
 ALLOWED_HOSTS = ['*', '.vercel.app']
-
+GOOGLE_DRIVE_CREDENTIALS_FILE = os.path.join(BASE_DIR, 'dcfence-444421-696271195932.json')
 
 # Application definition
 

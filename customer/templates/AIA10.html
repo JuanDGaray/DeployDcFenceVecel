@@ -1,0 +1,161 @@
+{% extends "base.html" %} {% load static %} {% block content %}
+<div
+  class="container d-flex flex-column justify-content-center align-items-center position-absolute"
+  style="height: 100vh"
+  id="loading-container"
+>
+  <div class="spinner-border text-primary" role="status"></div>
+  <span>Loading...</span>
+</div>
+<div class="container d-flex flex-column justify-content-center m-0 p-2">
+  <!-- navigation.html -->
+  <nav class="d-flex justify-content-between">
+    <div>
+      <a href="{% url 'detail_project' project.id %}">
+        <strong
+          ><i class="bi bi-back"></i>
+          <span 
+            id="project-container" 
+            data-project-id="{{ project.id }}"
+            {% if budget.id %}
+                data-budget-id="{{ budget.id }}"
+            {% endif %}
+            >
+            {{ project.id }}
+        </span>
+          - {{ project.project_name }}
+        </strong> 
+      </a>
+      / <span>AIA 10%</span>
+      <div id="project-container" data-project-id="{{ project.id }}"></div>
+    </div>
+  </nav>
+
+  <div class="row">
+    <div class="col-md-14" style="height: 80vh">
+      <div id="budget-template-container"></div>
+    </div>
+  </div>
+  <div class="mt-4 d-flex d-row" id="action-container">
+    <div class="d-flex flex-row cd-flex d-row p-2 bg-secondary mx-2 rounded-2">
+      <div class="d-flex flex-row">
+        <div class="d-flex flex-row">
+          <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}" data-typeInv='MDCP'>
+          <div class="d-flex flex-column">
+            <label for="total-cost" class="fs-6 text-white">Total</label>
+            <input type="number" id="total-cost" class="w-40 p-0" style="height: 40px" placeholder="Enter total cost" min="0" step="any" value='{{proposal.total_proposal}}'>
+          </div>
+          <div class="d-flex flex-column mx-4">
+            <label for="total-budget" class="fs-6 text-white">Retention</label>
+            <input type="number" id="retention" class="w-40 p-0" style="height: 40px" placeholder="Enter retention amount" min="0" step="any">
+          </div>
+        </div>
+        <div class="d-flex flex-row">
+          <div class="d-flex flex-column">
+            <label for="creation-date" class="fs-6 text-white">Creation Date</label>
+            <input type="date" id="creation-date" class="w-40 p-0" style="height: 40px" value="{{ today|date:'Y-m-d' }}">
+          </div>
+          <div class="d-flex flex-column mx-4">
+            <label for="due-date" class="fs-6 text-white">Due Date</label>
+            <input type="date" id="due-date" class="w-40 p-0" style="height: 40px">
+          </div>
+        </div>
+      </div>
+      <button id="save-btn" class="btn btn-primary fw-bold align-self-center" disabled>
+        Save
+      </button>
+    </div>
+  
+</div>
+<div id="loadingOverlay"  class="containerLoading d-none" >
+  <img src="{% static 'img/loading.gif' %}" alt="Cargando" class="img-fluid rounded-1" style="width: 100px; height: auto;">
+</div>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const loadingContainer = document.getElementById("loading-container");
+    const mainContent = document.getElementById("main-content");
+    const projectContainer = document.getElementById("project-container");
+    const actionContainer = document.getElementById("action-container");
+    const projectId = projectContainer.dataset.projectId;
+
+    
+    // Fetch para obtener datos del proyecto
+    fetch(`/projects/${projectId}/new_aia10_xlxs_template/search/`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (data && data.data) {
+          const fileData = data.data[0]; // Asumiendo que 'data.data' es un array
+          console.log(fileData);
+          loadingContainer.classList.add("d-none");
+          actionContainer.classList.remove("d-none");
+          const iframe = document.createElement("iframe");
+          iframe.setAttribute("id", "iframe-budget");
+          iframe.setAttribute("data-file-id", fileData.id);
+          iframe.src = `https://docs.google.com/spreadsheets/d/${fileData.id}/edit?rm=minimal`;
+          iframe.width = "100%";
+          iframe.height = "100%";
+          document
+            .getElementById("budget-template-container")
+            .appendChild(iframe);
+        } else {
+          console.error("Archivo no encontrado:", data);
+        }
+      })
+      .catch((error) => {
+        console.error("Error al buscar el archivo:", error);
+      });
+    const inputs = document.querySelectorAll("#total-cost, #retention, #creation-date, #due-date");
+    const saveBtn = document.getElementById("save-btn");
+    function checkInputs() {
+      const allFilled = Array.from(inputs).every(input => input.value.trim() !== "");
+      saveBtn.disabled = !allFilled; // Habilita o deshabilita el botón
+    }
+    inputs.forEach(input => {
+      input.addEventListener("input", checkInputs);
+    });
+    inputs.forEach(input => {
+      input.addEventListener("input", checkInputs);
+    });
+
+     saveBtn.addEventListener("click", function () {
+      const totalCost = document.getElementById("total-cost").value;
+      const retention = document.getElementById("retention").value;
+      const creationDate = document.getElementById("creation-date").value;
+      const dueDate = document.getElementById("due-date").value;
+      saveBtn.disabled = true
+      const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+      loadingOverlay.classList.remove('d-none');
+
+
+      const dataToSend = {
+        total: totalCost,
+        retention: retention,
+        startDate: creationDate,
+        endDate: dueDate,
+        type:'AIA10%'
+      };
+      
+      fetch(`/projects/{{project.id}}/aiaInvoice5/{{proposal.id}}`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrfToken,
+          },
+          body: JSON.stringify(dataToSend),
+      })
+      .then(data => {
+          console.log('Respuesta del servidor:', dataToSend);
+          const loadingOverlay = document.getElementById('loadingOverlay');
+          window.location.href = `/projects/{{project.id}}/`;
+          loadingOverlay.classList.add('d-none');
+      })
+      .catch(error => {
+          console.error('Error al enviar los datos:', error);
+      });
+    });
+  });
+    
+
+</script>
+
+{% endblock %}

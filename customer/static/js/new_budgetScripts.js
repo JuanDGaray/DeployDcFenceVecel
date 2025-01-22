@@ -98,10 +98,26 @@ document.getElementById('add-misc-btn').addEventListener('click', function () {
 
 function createMaterialRow(data = null) {
     const tbodyMaterial = document.getElementById('materials-section');
-    const rowCountMaterial = tbodyMaterial.querySelectorAll('tr').length; // Correct row count
+    const rowCountMaterial = tbodyMaterial.querySelectorAll('tr').length;
     const newRowMaterial = document.createElement('tr');
     
-    // Si hay datos, completar con los valores proporcionados; si no, dejar en blanco
+    // Asigna el id único si se proporciona
+
+    if (data && data.id_generated_by_checklist && data.id_generated_by_checklist != 'null') {
+        newRowMaterial.id = data.id_generated_by_checklist
+        newRowMaterial.classList.add('AutoCheckList')
+    } else if (data && data.id) {
+        newRowMaterial.id = data.id;
+    }
+    if (data && data.isCheckList){
+        newRowMaterial.classList.add('AutoCheckList')
+    }
+
+
+    
+
+
+
     newRowMaterial.innerHTML = `
         <td class="text-center p-0"><strong>${rowCountMaterial}</strong></td>
         <td colspan="2" class="p-0">
@@ -112,30 +128,32 @@ function createMaterialRow(data = null) {
                 <input class="form-control-budget" type="text" name="materials_desc" value="${data ? data.material_description : ''}">
             </div>
         </td>
-        <td class="p-0"><input class="form-control-budget" type="number" name="materials_qt" step="0" value="${data ? data.quantity : ''}"></td>
-        <td class="p-0">
+        <td class="p-0"  style="max-width:40px;"><input class="form-control-budget" type="number" name="materials_qt" step="0" value="${data ? data.quantity : ''}"></td>
+        <td class="p-0" style="max-width:60px;">
             <div class="input-group p-0">
                 <span class="money_simbol_input">$</span>
                 <input class="form-control-budget text-end" type="number" name="materials_UnitCost" id="materials_UnitCost" step="0.01" value="${data ? data.unit_cost : ''}">
             </div>
         </td>
-        <td class="p-0"><input class="form-control-budget" type="text" name="materials_lead-time" value="${data ? data.lead_time : ''}"></td>
-        <td class="p-0">
+        <td class="p-0  style="max-width:60px;"><input class="form-control-budget" type="text" name="materials_lead-time" value="${data ? data.lead_time : ''}"></td>
+        <td class="p-0"  style="max-width:60px;">
             <div class="input-group p-0">
                 <span class="money_simbol_input">$</span>
                 <input class="form-control-budget text-end" type="number" name="materials_Cost" id="materials_Cost" step="0.01" value="${data ? data.cost : ''}" readonly disabled>
             </div>
         </td>
         <td class="p-0 text-center" style="width:0px">
-            <button type="button" id="remove-materials-btn" class="btn btn-danger border-0 text-center remove_btn p-1" aria-label="Remove materials">
-                <i class="bi bi-trash3"></i>
-            </button>
+                    ${
+                        data 
+                        ? ''
+                        : `<button type="button" id="remove-materials-btn" class="btn btn-danger border-0 text-center remove_btn p-1" aria-label="Remove materials">
+                            <i class="bi bi-trash3"></i>
+                        </button>`
+                    }
         </td>`;
-    // Insert the new row at the end of tbodyMaterial
     tbodyMaterial.appendChild(newRowMaterial);
-
-    // Update select options or any other necessary functionality
     updateSelectOptions();
+    updateRowNumbers(materialsSection)
 }
 
 // Event listener for adding a new materials row when the button is clicked
@@ -249,16 +267,16 @@ function createProfitRow(data = null) {
         <td colspan="4" class="p-0">
             <div class="d-flex align-items-center">
                 <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
-                    <option value="${data ? data.select_value : 'GENERAL'}">${data ? data.select_label : 'GENERAL'}</option>
+                    <option value="${data ? data.item_value : 'GENERAL'}">${data ? data.item_value : 'GENERAL'}</option>
                 </select>
-                <input class="form-control-budget" type="text" name="profit_desc" value="${data ? data.profit_desc : ''}">
+                <input class="form-control-budget" type="text" name="profit_desc" value="${data ? data.profit_description : ''}">
             </div>
         </td>
         <td class="p-0" style="width:200px"> 
-            <input class="form-control-budget" type="text" name="profit_lead-time" value="${data ? data.profit_lead_time : ''}">
+            <input class="form-control-budget" type="text" name="profit_lead-time" value="${data ? data.lead_time : ''}">
         </td>  
         <td class="p-0">
-            <input class="form-control-budget profit_item'" type="number" name="Profit_UnitCost" id="Profit_UnitCost" step="1"   id="profit_item" value="${data ? data.profit_UnitCost : ''}">
+            <input class="form-control-budget profit_item'" type="number" name="Profit_UnitCost" step="1"   id="profit_item" value="${data ? data.profit_value : ''}">
         </td>
         <td class="p-0 text-center" style="width:0px">
             <button type="button" id="remove-profit-btn" class="btn btn-danger border-0 text-center remove_btn p-1" aria-label="Remove profit">
@@ -302,6 +320,7 @@ laborSection.addEventListener("input", function (event) {
         updateTotalCost(); // Update the total cost
         calculateTotalByItem()
     }
+    calculateTotalByItem()
 });
 
     // Materials section
@@ -319,6 +338,7 @@ materialsSection.addEventListener("input", function (event) {
             updateTotalCost();
             updateRowNumbers(materialsSection)
     }
+    calculateTotalByItem()
 });
 
 
@@ -329,6 +349,7 @@ contractorSection.addEventListener("input", function (event) {
         updateTotalCost(); // Update the total cost
         updateRowNumbers(contractorSection)
     }
+    calculateTotalByItem()
 });
 
 // misc section
@@ -338,6 +359,7 @@ miscSection.addEventListener("input", function (event) {
         updateTotalCost(); // Update the total cost
         updateRowNumbers(miscSection)
     }
+    calculateTotalByItem()
 });
 
 // deducts section
@@ -348,6 +370,7 @@ deductsSection.addEventListener("input", function (event) {
         updateTotalCost();
         updateRowNumbers(deductsSection)
     }
+    calculateTotalByItem()
 });
 
 profitSection.addEventListener("input", function (event) {
@@ -355,6 +378,7 @@ profitSection.addEventListener("input", function (event) {
         updateTotalCost();
         updateRowNumbers(profitSection)
     }
+    calculateTotalByItem()
 });
 
 // Remove a labor row when the trash button is clicked
@@ -452,6 +476,7 @@ function updateProfit() {
     const TotalCostInput = document.querySelector('input[name="total_CostWithProfit"]');
     const profitPercentInput = profitPercentLabel.value;
     const profitInput = document.querySelector('input[name="profit_value"]');
+    
     const profitPercent = Number(profitPercentInput); // Convertir el valor del input a número
     const profitTotal = total * (profitPercent / 100); // Calcular la ganancia total
     profitInput.value = profitTotal.toFixed(2); // Actualizar el input con el profit formateado a 2 decimales
@@ -460,8 +485,9 @@ function updateProfit() {
     formatTotalCost(profitInput);
 }
 
-
+  
 function updateTotalCost() {
+    validateInputs()
     let laborTotal = 0;
     let materialsTotal = 0;
     let contractorTotal = 0;
@@ -519,12 +545,14 @@ function updateTotalCost() {
     // Calculate deducts profit 
     const profitInputs = $$('#profit_item');
     const subtotalprofit =  $$$('total_profit');
+    const totalprofit =  $$$('total_profit_cost');
     if (profitInputs){
         profitInputs.forEach(input => {
             profitTotal += parseFloat(input.value) || 0;
         });
         subtotalprofit.value = profitTotal.toFixed(2); 
-
+        totalprofit.value = profitTotal.toFixed(2); 
+        formatTotalCost(subtotalprofit)
     }
    
 
@@ -535,7 +563,7 @@ function updateTotalCost() {
     granTotalInput = $$$('grand_Cost');
     granTotalCosto =   total +  deductsTotal
     granTotalInput.value = granTotalCosto.toFixed(2);         
-
+    formatTotalCost(granTotalCosto)
 
         // Actualizar el total de costos
     let labelTotalCostInput = $('#totalCostByItems');  // Elemento para el total de costos
@@ -551,10 +579,13 @@ function updateTotalCost() {
     let labelTotalCostProfitInput = $('#totalCostProfitByItems');  // Elemento para el total combinado
     let totalProfit = profitTotal + granTotalCosto;
     labelTotalCostProfitInput.innerHTML = totalProfit.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    let Value_Project = $('#Value_Project'); 
+    Value_Project.value = totalProfit;
+    formatTotalCost(Value_Project)
 
     return total
-
 }
+
 
 // Format any input value passed to it
 function formatTotalCost(inputElement) {
@@ -603,7 +634,7 @@ function toggleAddHole() {
                     <input class="form-control-budget text-end" type="text" name="materials_UnitCost" step="0.01" value="Null">
                 </div>
             </td>
-            <td class="p-0"><input class="form-control-budget" type="text" name="materials_lead-time" value='8'></td>                             
+            <td class="p-0"><input class="form-control-budget" type="text" name="materials_lead-time" value='8 days'></td>                             
             <td class="p-0">
             <div class="input-group p-0">
                 <span class="money_simbol_input">$</span>
@@ -650,6 +681,14 @@ function updateHoleCost(){
         if (table) { // Solo manipula table si existe
             table.style.display = "none";  
         }
+        
+        var postCount = parseInt(totalPost.value) || 0;
+        var additionalMultiplier = Math.floor(postCount/ 50.01); // Calcula cuántos incrementos de 50 huecos han pasado desde los 45 iniciales
+        if (additionalMultiplier > 0) {
+            totalQTElement.value = additionalMultiplier + 1;  // Actualiza el costo
+        } else {
+            totalQTElement.value = 1;  // Si no se han superado los 45, el multiplicador es 0
+        }
         $$$("holeItem")?.remove(); // Remueve solo si existe
         toggleAddHole(); // Asegúrate de que esta función esté definida
     }
@@ -685,15 +724,15 @@ function toggleUtilitiesPerFT(){
                 </div>
             </td>
             <td class="p-0">
-                <input class="form-control-budget" type="number" name="materials_qt" step="0" value="${totalFT.toFixed(2)}">
+                <input class="form-control-budget" type="number" name="materials_qt" step="0" value="${totalFT.toFixed(2)}" readonly>
             </td>
             <td class="p-0">
                 <div class="input-group p-0">
                     <span class="money_simbol_input">$</span>
-                    <input class="form-control-budget text-end" type="text" name="materials_UnitCost" step="0.01" value="${utilitiesCost.toFixed(2)}">
+                    <input class="form-control-budget text-end" type="text" name="materials_UnitCost" step="0.01" value="${utilitiesCost.toFixed(2)}" readonly>
                 </div>
             </td>
-            <td class="p-0"><input class="form-control-budget" type="text" name="materials_lead-time" value='8'></td>                             
+            <td class="p-0"><input class="form-control-budget" type="text" name="materials_lead-time" value='8 days'></td>                             
             <td class="p-0">
             <div class="input-group p-0">
                 <span class="money_simbol_input">$</span>
@@ -769,15 +808,15 @@ function toggleRemmovalPerFT(){
                 </div>
             </td>
             <td class="p-0">
-                <input class="form-control-budget" type="number" name="materials_qt" step="0" value="${totalFT.toFixed(2)}">
+                <input class="form-control-budget" type="number" name="materials_qt" step="0" value="${totalFT.toFixed(2)}" readonly>
             </td>
             <td class="p-0">
                 <div class="input-group p-0">
                     <span class="money_simbol_input">$</span>
-                    <input class="form-control-budget text-end" type="text" name="materials_UnitCost" step="0.01" value="${removalCost.toFixed(2)}">
+                    <input class="form-control-budget text-end" type="text" name="materials_UnitCost" step="0.01" value="${removalCost.toFixed(2)}" readonly>
                 </div>
             </td>
-            <td class="p-0"><input class="form-control-budget" type="text" name="materials_lead-time" value='8'></td>                             
+            <td class="p-0"><input class="form-control-budget" type="text" name="materials_lead-time" value='8 days'></td>                             
             <td class="p-0">
             <div class="input-group p-0">
                 <span class="money_simbol_input">$</span>
@@ -930,59 +969,61 @@ function toggleProfitByDay() {
     }
 }
 
+
+
 // Function to toggle the visibility of the loans section
 function toggleAddLoans() {
-// Retrieve the checkbox, table, and input values
-var checkbox = $$$("cbox4"); // Checkbox for activating/deactivating loans
-var table = $$$("loans-to-the-project"); // The loans table element
-var totalCostElement = updateTotalCost() // Total cost of the project
-var percentLabelLoans = parseFloat($$$("percentage-loans").value) || 0; // Percentage of loans
-var deductsSection = $$$("deducts-section"); // The section where deductions are displayed
-const tbodydeducts = $$$('deducts-section'); // Deductions section (table body)
-const rowCountdeducts = tbodydeducts.querySelectorAll('tr').length; // Count of existing rows in the deductions section
+    // Retrieve the checkbox, table, and input values
+    var checkbox = $$$("cbox4"); // Checkbox for activating/deactivating loans
+    var table = $$$("loans-to-the-project"); // The loans table element
+    var totalCostElement = updateTotalCost() // Total cost of the project
+    var percentLabelLoans = parseFloat($$$("percentage-loans").value) || 0; // Percentage of loans
+    var deductsSection = $$$("deducts-section"); // The section where deductions are displayed
+    const tbodydeducts = $$$('deducts-section'); // Deductions section (table body)
+    const rowCountdeducts = tbodydeducts.querySelectorAll('tr').length; // Count of existing rows in the deductions section
 
-// If the checkbox is checked, display the loans table and calculate the deductions
-if (checkbox.checked) {
-    table.style.display = "table"; // Show the loans table
-    
-    // Calculate the deduction amount based on the total cost and the loan percentage
-    var deductAmount = (totalCostElement * percentLabelLoans).toFixed(2);
+    // If the checkbox is checked, display the loans table and calculate the deductions
+    if (checkbox.checked) {
+        table.style.display = "table"; // Show the loans table
+        
+        // Calculate the deduction amount based on the total cost and the loan percentage
+        var deductAmount = (totalCostElement * percentLabelLoans).toFixed(2);
 
 
-    // Create a new row in the deductions section with the loan deduction details
+        // Create a new row in the deductions section with the loan deduction details
 
-    var newRow = document.createElement("tr");
-        newRow.id = `deducts10`; // ID único para cada fila
-        newRow.className = "align-middle generated-by-utils"
-        newRow.innerHTML = `
-            <td class="text-center p-0"><strong>${rowCountdeducts}</strong></td>
-            <td colspan="4" class="p-0 text-wrap">
-                <div class="d-flex align-items-center text-wrap">
-                    <select id="itemsSelect" class="innerSelect me-2" style="width: auto;"><option value="GENERAL">GENERAL</option><option value="af">af</option><option value="clf">clf</option></select>
-                    <textarea class="form-control-budget text-start" name="deducts_desc" rows="2" readonly>Value for concepts of loans, interest and variable costs related to the financial management of the project (${percentLabelLoans * 100}%) readonly disabled.
-                    </textarea>
-                    <input class="form-control-budget d-none" type="text" name="deducts_desc" value="Value for concepts of loans, interest and variable costs related to the financial management of the project. (${percentLabelLoans * 100}%)">
-                </div>                     
-            </td>
-            <td class="p-0"><input class="form-control-budget" type="text" name="deducts_lead-time" value="Immediate" ></td>                           
-            <td class="p-0">
-                <div class="input-group p-0">
-                    <span class="money_simbol_input">$</span>
-                    <input class="form-control-budget text-end" type="number" name="deducts_UnitCost" id="deducts_UnitCost" value="${deductAmount}" step="0.01" readonly disabled>
-                </div>
-            </td>                         
-    `;
-    deductsSection.appendChild(newRow);// Append the new row to the deductions section
+        var newRow = document.createElement("tr");
+            newRow.id = `deducts10`; // ID único para cada fila
+            newRow.className = "align-middle generated-by-utils"
+            newRow.innerHTML = `
+                <td class="text-center p-0"><strong>${rowCountdeducts}</strong></td>
+                <td colspan="4" class="p-0 text-wrap">
+                    <div class="d-flex align-items-center text-wrap">
+                        <select id="itemsSelect" class="innerSelect me-2" style="width: auto;"><option value="GENERAL">GENERAL</option><option value="af">af</option><option value="clf">clf</option></select>
+                        <textarea class="form-control-budget text-start" name="deducts_desc" rows="2" readonly>Value for concepts of loans, interest and variable costs related to the financial management of the project (${percentLabelLoans * 100}%) readonly disabled.
+                        </textarea>
+                        <input class="form-control-budget d-none" type="text" name="deducts_desc" value="Value for concepts of loans, interest and variable costs related to the financial management of the project. (${percentLabelLoans * 100}%)">
+                    </div>                     
+                </td>
+                <td class="p-0"><input class="form-control-budget" type="text" name="deducts_lead-time" value="Immediate" ></td>                           
+                <td class="p-0">
+                    <div class="input-group p-0">
+                        <span class="money_simbol_input">$</span>
+                        <input class="form-control-budget text-end" type="number" name="deducts_UnitCost" id="deducts_UnitCost" value="${deductAmount}" step="0.01" readonly disabled>
+                    </div>
+                </td>                         
+        `;
+        deductsSection.appendChild(newRow);// Append the new row to the deductions section
 
-} else {
-    // If the checkbox is unchecked, hide the loans table and remove the deduction row
-    table.style.display = "none";  
-    $$$("deducts10")?.remove(); // Remove the row for loan deductions
-}
-calculateTotalByItem()
-calculateProfitAndCostByItem()
-updateTotalCost()
-updateRowNumbers(deductsSection)
+    } else {
+        // If the checkbox is unchecked, hide the loans table and remove the deduction row
+        table.style.display = "none";  
+        $$$("deducts10")?.remove(); // Remove the row for loan deductions
+    }
+    calculateTotalByItem()
+    calculateProfitAndCostByItem()
+    updateTotalCost()
+    updateRowNumbers(deductsSection)
 }
 
 
@@ -1033,15 +1074,20 @@ const items = ['GENERAL'];
 function addItem(input=null) {
     let inputValue;
     if (input) {
-        inputValue = input.trim();
+        inputValue = input.trim().toUpperCase();
     } else {
-        inputValue = $$$("itemInput").value.trim();
+        inputValue = $$$("itemInput").value.trim().toUpperCase();
     }
     const ItemsManufacturing = $$$("cost_per_manufacturing")
     const ItemsManufacturingMW = $$$("cost_per_manufacturingMW")
 
     if (inputValue === "") {
         alert("Please enter a valid item.");
+        return;
+    }
+
+    if (/\d/.test(inputValue)) {
+        alert("The item must not contain numbers.");
         return;
     }
     
@@ -1055,12 +1101,11 @@ function addItem(input=null) {
         return;
     }
 
-
-
-
     // Agregar el nuevo item al array
-    items.push(inputValue);
-    var idInput = inputValue.replace(/\s+/g, '')
+    items.push(inputValue.trim().replace(/\s+/g, '-'));
+    var idInput = inputValue.trim().replace(/\s+/g, '-')
+    const projectsCountSpan = document.getElementById('projects-count');
+    projectsCountSpan.textContent = items.length - 1;
 
     // Crear un nuevo span
     const newSpan = document.createElement("span");
@@ -1125,16 +1170,17 @@ function checkManufacturingCostsMW(checkbox) {
 };
 
 function addRowCostManufacturingMW(valueItem){
+    console.log(valueItem)
     const tbodyLabor = $$$('labor-section');
     const rowCountLabor = tbodyLabor.querySelectorAll('tr').length; 
-    const days = $$$('days-manufacturingMW-'+valueItem.replace(/\s+/g, '').trim()).value
-    const qtyWLD = $$$('qtyWLD-manufacturingMW-'+valueItem.replace(/\s+/g, '').trim()).value
-    const qtyASST = $$$('qtyASST-manufacturingMW-'+valueItem.replace(/\s+/g, '').trim()).value
+    const days = $$$('days-manufacturingMW-'+valueItem.trim().replace(/\s+/g, '-')).value
+    const qtyWLD = $$$('qtyWLD-manufacturingMW-'+valueItem.trim().replace(/\s+/g, '-')).value
+    const qtyASST = $$$('qtyASST-manufacturingMW-'+valueItem.trim().replace(/\s+/g, '-')).value
     const costWLD = $$$('welderCostByDay').value
     const costASST = $$$('assistantCostByDay').value
     // Create a new table row for labor input
     const newRowLabor = document.createElement('tr');
-    newRowLabor.id = `${valueItem.replace(/\s+/g, '').trim()}MW`
+    newRowLabor.id = `${valueItem.trim().replace(/\s+/g, '-')}MW`
     newRowLabor.classList.add('generated-by-utils');
     
     newRowLabor.innerHTML = `
@@ -1142,7 +1188,7 @@ function addRowCostManufacturingMW(valueItem){
             <td colspan="2"  class="p-0 ">
                 <div class="d-flex align-items-center ">
                     <select id="itemsSelect" class="innerSelect me-2" style="width: auto;" readonly disabled>
-                        <option value="${valueItem.trim()}">${valueItem.trim()}</option>
+                        <option value="${valueItem.trim().replace(/\s+/g, '-')}">${valueItem.trim().replace(/\s+/g, '-')}</option>
                     </select>
                     <input class="form-control-budget" type="text" id="laborDescInput" name="Labor_desc" value="workshop manufacturing cost (Welder:${qtyWLD}, Asst:${qtyWLD})">
                 </div>
@@ -1180,7 +1226,7 @@ function activeRowProfitManufacturingMW(checkboxAdd){
             const checkbox = row.querySelector("input[type='checkbox']");
             const daysInput = row.querySelector("input[type='number'].days-manufacturingMW");
             const textNode = checkbox?.parentElement;
-            const text = textNode ? textNode.textContent.trim() : "";
+            const text = textNode ? textNode.textContent.trim().replace(/\s+/g, '-') : "";
             if (checkbox.checked && daysInput && checkboxAdd.checked) {
                 const days = parseInt(daysInput.value) || 0; 
                 addRowProfitManufacturingMW(checkbox, days, text);
@@ -1236,7 +1282,7 @@ function reloadRowProfitManufacturingMW(){
         const checkbox = row.querySelector("input[type='checkbox']");
         const daysInput = row.querySelector("input[type='number'].days-manufacturingMW");
         const textNode = checkbox?.parentElement;
-        const text = textNode ? textNode.textContent.trim() : "";
+        const text = textNode ? textNode.textContent.trim().replace(/\s+/g, '-') : "";
         if (checkbox.checked && daysInput && checkboxProfit.checked) {
             const days = parseInt(daysInput.value) || 0; 
             addRowProfitManufacturingMW(checkbox, days, text);
@@ -1274,23 +1320,49 @@ function reloadDataManufacturingMWAll() {
 // Función para eliminar un item (span) y actualizar todos los selects
 function removeItem(element, value) {
     const span = element.parentElement;
-    const item = $$$(`manufacturing-${value.trim()}`);
-    const itemMW = $$$(`manufacturingMW-${value.trim()}`);
-    var checkbox = $$$(`check-manufacturing-${value.trim()}`)     
+    const item = $$$(`manufacturing-${value.trim().replace(/\s+/g, '-')}`);
+    const itemMW = $$$(`manufacturingMW-${value.trim().replace(/\s+/g, '-')}`);
+    var checkbox = $$$(`check-manufacturing-${value.trim().replace(/\s+/g, '-')}`)
+    var checkboxMW = $$$(`check-manufacturingMW-${value.trim().replace(/\s+/g, '-')}`)
+             
     checkbox.checked = false
     checkManufacturingCosts(checkbox)
+    checkboxMW.checked = false
+    checkManufacturingCostsMW(checkboxMW)
     span.remove();
     item.remove();
     itemMW.remove()
-    // Eliminar el item del array
     const index = items.indexOf(value);
     if (index > -1) {
         items.splice(index, 1);
     }
-    // Actualizar las opciones en todos los selects
+    var checkbox = $$$('use-day-in-itemsManufacturing');
+    if (checkbox.checked){
+        checkbox.checked = !checkbox.checked;
+        useDaysInMF()
+        checkbox.checked = true;
+        useDaysInMF()}
+    removeAllElemetsByItems(value)
     updateSelectOptions();
     calculateTotalByItem();
     reloadRowProfitManufacturingMW()
+    const projectsCountSpan = document.getElementById('projects-count');
+    projectsCountSpan.textContent = items.length - 1;
+
+}
+function removeAllElemetsByItems(item){
+    const selects = document.querySelectorAll(".innerSelect");
+    const filteredSelects = Array.from(selects).filter(select => select.value === item)
+    .filter(select => {
+        const parentRow = select.closest('tr');
+        return parentRow && !parentRow.classList.contains('generate_by_items'); 
+    });
+    filteredSelects.forEach(select => {
+        const removeButton = select.closest('tr')?.querySelector('.remove_btn');
+        if (removeButton) {
+            removeButton.click();
+        }
+    });
 }
 
 // Actualiza las opciones en todos los selects con clase "innerSelect"
@@ -1332,7 +1404,7 @@ let costInputs = costManagement.querySelectorAll('#total_Cost');
 
 function calculateTotalByItem() {
 let itemSelects = costManagement.querySelectorAll('#itemsSelect');
-
+validateInputs()
 const totalsByItem = {};
 const descriptionByItem = {};
 itemSelects.forEach((select, index) => {
@@ -1456,13 +1528,14 @@ updateRowNumbers(laborSection)
 
 function addRowCostManufacturing(valueItem){
 const tbodyLabor = $$$('labor-section');
+let stringIdItem = valueItem.trim().replace(/\s+/g, '-')
 const rowCountLabor = tbodyLabor.querySelectorAll('tr').length; 
-const days = $$$('days-manufacturing-'+valueItem.replace(/\s+/g, '').trim()).value
+const days = $$$('days-manufacturing-'+stringIdItem).value
 const CostByDay = $$$("Labor_Total").value
 const TotlaCostByItems = CostByDay * days
 // Create a new table row for labor input
 const newRowLabor = document.createElement('tr');
-newRowLabor.id = valueItem.replace(/\s+/g, '').trim()
+newRowLabor.id = valueItem.trim().replace(/\s+/g, '-')
 newRowLabor.classList.add('generated-by-utils');
 
 newRowLabor.innerHTML = `
@@ -1470,18 +1543,18 @@ newRowLabor.innerHTML = `
         <td colspan="2"  class="p-0 ">
             <div class="d-flex align-items-center ">
                 <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
-                    <option value="${valueItem.trim()}">${valueItem.trim()}</option>
+                    <option value="${stringIdItem}">${stringIdItem}</option>
                 </select>
-                <input class="form-control-budget" type="text" id="laborDescInput" name="Labor_desc" value="manufacturing cost (${valueItem.trim()})">
+                <input class="form-control-budget" type="text" id="laborDescInput" name="Labor_desc" value="manufacturing cost (${stringIdItem})">
             </div>
         </td>
         <td class="p-0">
             <div class="input-group p-0">
                 <span class="money_simbol_input">$</span>
-                <input class="form-control-budget text-end" type="number" name="Labor_hourly" step="1" value="${CostByDay}" reandoly>
+                <input class="form-control-budget text-end" type="number" name="Labor_hourly" step="1" value="${CostByDay}" readonly>
             </div>
         </td>
-        <td class="p-0"><input class="form-control-budget" type="number" name="Labor_hour" step="0" value="${days}" reandoly></td>
+        <td class="p-0"><input class="form-control-budget" type="number" name="Labor_hour" step="0" value="${days}" readonly></td>
         <td class="p-0"><input class="form-control-budget" type="text" name="Labor_lead-time" value="${days} days"></td>                           
         <td class="p-0"> 
             <div class="input-group p-0">
@@ -1503,7 +1576,7 @@ updateTotalCost()
 function removeRowCostManufacturing(valueItem){
     const tbodyLabor = $$$('labor-section');
     // Create a new table row for labor input
-    const RowLabor = document.getElementById(valueItem.replace(/\s+/g, '').trim());
+    const RowLabor = document.getElementById(valueItem.trim().replace(/\s+/g, '-'));
     if (RowLabor){
         RowLabor.remove()
         updateTotalCost()
@@ -1514,7 +1587,7 @@ function removeRowCostManufacturing(valueItem){
 function removeRowCostManufacturingMW(valueItem){
     const tbodyLabor = $$$('labor-section');
     // Create a new table row for labor input
-    const RowLabor = document.getElementById(`${valueItem.replace(/\s+/g, '').trim()}MW`);
+    const RowLabor = document.getElementById(`${valueItem.trim().replace(/\s+/g, '-')}MW`);
     if (RowLabor){
         RowLabor.remove()
         updateTotalCost()
@@ -1579,7 +1652,7 @@ function useDaysInMF() {
                             <td colspan="4"  class="p-0">
                                 <div class="d-flex align-items-center">
                                     <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
-                                        <option value="${namePerItems[index].textContent.trim()}">${namePerItems[index].textContent.trim()}</option> 
+                                        <option value="${namePerItems[index].textContent.trim().replace(/\s+/g, '-')}">${namePerItems[index].textContent.trim().replace(/\s+/g, '-')}</option> 
                                     </select>
                                     <input class="form-control-budget" type="text" name="profit_desc" value="profit per manufacturing day (${namePerItems[index].textContent.trim()})">
                                 </div>
@@ -2123,7 +2196,7 @@ function isGeneratedByUtils(row) {
     return row.classList.contains('generated-by-utils');
 }
 
-function getCostManagementData(modify=false, budgetID = null) {
+function getCostManagementData() {
     const laborData = [];
     const materialsData = [];
     const contractorData = [];
@@ -2143,7 +2216,7 @@ function getCostManagementData(modify=false, budgetID = null) {
                 leadTime: cells[4]?.querySelector('input[name="Labor_lead-time"]')?.value || '',
                 laborCost: parseFloat(cells[5]?.querySelector('input[name="Labor_Cost"]')?.value) || 0,
                 itemValue: row.querySelector('#itemsSelect')?.value, 
-                isGeneratedByUtils: row.classList.contains('generated-by-utils') || false
+                isGeneratedByUtils: row.classList.contains('generated-by-utils') || false,
             });
         }
     });
@@ -2161,6 +2234,8 @@ function getCostManagementData(modify=false, budgetID = null) {
                 cost: parseFloat(cells[5]?.querySelector('input[name="materials_Cost"]')?.value) || 0,
                 itemValue: row.querySelector('#itemsSelect')?.value, 
                 isGeneratedByUtils: row.classList.contains('generated-by-utils') || false,
+                isGeneratedByCheckList: row.classList.contains('AutoCheckList') || false,
+                idGeneratedByCheckList: row.classList.contains('AutoCheckList') ? row.id || '' : 'null',
             });
         }
     });
@@ -2217,7 +2292,7 @@ function getCostManagementData(modify=false, budgetID = null) {
             profitData.push({
                 index: index,
                 profitDescription: cells[1]?.querySelector('input[name="profit_desc"]')?.value || '',
-                leadTime: cells[2]?.querySelector('input[name="Profit_lead-time"]')?.value || '',
+                leadTime: cells[2]?.querySelector('input[name="profit_lead-time"]')?.value || '',
                 profitValue: cells[3]?.querySelector('input[name="Profit_UnitCost"]')?.value || 0,
                 itemValue: row.querySelector('#itemsSelect')?.value, 
                 isGeneratedByUtils: row.classList.contains('generated-by-utils') || false,
@@ -2242,11 +2317,38 @@ function getCostManagementData(modify=false, budgetID = null) {
 
     const projectId = document.getElementById('project-container').dataset.projectId;
     const csrfToken = document.getElementById('csrf-token').dataset.csrf;
-    console.log(data)
-    // Enviar los datos
-    if (modify) {
-        // Llamada para modificar el presupuesto
-        fetch(`/projects/${projectId}/edit_budget/${budgetID}`, {
+    let isModify = false
+    let isChangeOrder = false
+    let budgetId = null
+    const hiddenDataElement = document.getElementById('hiddenData');
+    if (hiddenDataElement) {
+        isModify = hiddenDataElement.getAttribute('data-modify') === 'true';
+        budgetId = hiddenDataElement.getAttribute('data-budget-id');} 
+
+    const hiddenDataElementCO = document.getElementById('hiddenDataCO');
+    if (hiddenDataElementCO) {
+        isChangeOrder = hiddenDataElementCO.getAttribute('data-change-order') === 'true';
+        budgetId = hiddenDataElementCO.getAttribute('data-budget-id');
+        console.log(budgetId)} 
+
+    if (isChangeOrder) {
+        fetch(`/projects/${projectId}/new_change_order/${budgetId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify(data),
+        })
+        .then(() => {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.classList.add('d-none');
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+    } else if (isModify) {
+        fetch(`/projects/${projectId}/edit_budget/${budgetId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -2261,8 +2363,7 @@ function getCostManagementData(modify=false, budgetID = null) {
         })
         .catch((error) => {
             console.error('Error:', error);
-        });
-    } else {
+        });} else if (!isChangeOrder && !isModify)  {
         // Llamada para crear un presupuesto nuevo
         fetch(`/projects/${projectId}/new_budget/`, {
             method: 'POST',
@@ -2279,17 +2380,28 @@ function getCostManagementData(modify=false, budgetID = null) {
             console.error('Error:', error);
         });
     }
-} 
 
-// Escuchar el evento 'click' en el botón de guardar
+    }
+ 
+
 document.getElementById('save-btn').addEventListener('click', function(event) {
-    event.preventDefault();
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    loadingOverlay.classList.remove('d-none');  // Remueve la clase d-none para mostrar el overlay
+    event.preventDefault(); // Evita el envío inmediato del formulario
 
+    // Referencia al botón y al overlay de carga
+    const saveButton = document.getElementById('save-btn');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    
+    // Mostrar overlay de carga
+    loadingOverlay.classList.remove('d-none');
+    
+    // Deshabilitar el botón para evitar múltiples envíos
+    saveButton.setAttribute('disabled', true);
+    
     // Llama a la función para manejar los datos
     getCostManagementData();
 });
+
+
 
 
 document.querySelectorAll('[data-bs-toggle="collapse"]').forEach((toggle) => {
@@ -2311,5 +2423,201 @@ document.querySelectorAll('[data-bs-toggle="collapse"]').forEach((toggle) => {
 });
 
 
+function validateInputs() {
+    let saveBtn = 'none'
+    const inputs = document.querySelectorAll('#management-section input'); 
+    saveBtn = document.getElementById('save-btn');
+    let allValid = true;
+    inputs.forEach(input => {
+        if (!input.readOnly) {
+            if (input.value.trim() === '') {
+                input.style.boxShadow = '0px 4px 5px 0px rgba(255, 0, 0, 0.54)';
+                allValid = false; // Marcamos que hay un input inválido
+            } else {
+                input.style.boxShadow = '';
+            }
+        }
+    });
+    saveBtn.disabled = !allValid;
+}
+
+document.querySelectorAll('#management-section input').forEach(input => {
+    input.addEventListener('input', validateInputs);
+});
+
+validateInputs();
 
 
+
+function addPaintRow() {
+    const paintId = "paint_Automatic"; // ID único para la fila de pintura
+    const tbodyMaterial = document.getElementById('materials-section');
+    const existingRow = document.getElementById(paintId);
+
+    if (existingRow) {
+        tbodyMaterial.removeChild(existingRow);
+        calculateTotalByItem()
+        updateRowNumbers(materialsSection)
+    } else {
+        const paintDetails = {
+            item_value: "Paint", 
+            material_description: "General painting for the project", 
+            quantity: 0, 
+            unit_cost: 0, 
+            lead_time: "N/A", 
+            cost: 0, 
+            id: paintId ,
+            isCheckList: true
+        };
+
+        // Llama a la función para crear la fila del material pasando los datos
+        createMaterialRow(paintDetails);
+    }
+}
+
+
+function addConcrete() {
+    const concreteId = "concrete_Automatic"; // ID único para la fila de concreto
+    const tbodyMaterial = document.getElementById('materials-section');
+    const existingRow = document.getElementById(concreteId);
+
+    if (existingRow) {
+        tbodyMaterial.removeChild(existingRow);
+        calculateTotalByItem();
+        updateRowNumbers(materialsSection);
+    } else {
+        const concreteDetails = {
+            item_value: "Concrete", 
+            material_description: "General concrete for the project", 
+            quantity: 0, 
+            unit_cost: 0, 
+            lead_time: "N/A", 
+            cost: 0, 
+            id: concreteId,
+            isCheckList: true
+        };
+
+        createMaterialRow(concreteDetails);
+    }
+}
+
+function addWelding() {
+    const weldingId = "welding_Automatic"; // ID único para la fila de soldadura
+    const tbodyMaterial = document.getElementById('materials-section');
+    const existingRow = document.getElementById(weldingId);
+
+    if (existingRow) {
+        tbodyMaterial.removeChild(existingRow);
+        calculateTotalByItem();
+        updateRowNumbers(materialsSection);
+    } else {
+        const weldingDetails = {
+            item_value: "Welding Ext.", 
+            material_description: "Welding extension for the project", 
+            quantity: 0, 
+            unit_cost: 0, 
+            lead_time: "N/A", 
+            cost: 0, 
+            id: weldingId,
+            isCheckList: true
+        };
+
+        createMaterialRow(weldingDetails);
+    }
+}
+
+function addDrawings() {
+    const drawingsId = "drawings_Automatic"; // ID único para la fila de dibujos
+    const tbodyMaterial = document.getElementById('materials-section');
+    const existingRow = document.getElementById(drawingsId);
+
+    if (existingRow) {
+        tbodyMaterial.removeChild(existingRow);
+        calculateTotalByItem();
+        updateRowNumbers(materialsSection);
+    } else {
+        const drawingsDetails = {
+            item_value: "Drawings", 
+            material_description: "Architectural drawings for the project", 
+            quantity: 0, 
+            unit_cost: 0, 
+            lead_time: "N/A", 
+            cost: 0, 
+            id: drawingsId,
+            isCheckList: true
+        };
+
+        createMaterialRow(drawingsDetails);
+    }
+}
+
+function addWindscreen() {
+    const windscreenId = "windscreen_Automatic"; // ID único para la fila de parabrisas
+    const tbodyMaterial = document.getElementById('materials-section');
+    const existingRow = document.getElementById(windscreenId);
+
+    if (existingRow) {
+        tbodyMaterial.removeChild(existingRow);
+        calculateTotalByItem();
+        updateRowNumbers(materialsSection);
+    } else {
+        const windscreenDetails = {
+            item_value: "Windscreen", 
+            material_description: "Windscreen for the project", 
+            quantity: 0, 
+            unit_cost: 0, 
+            lead_time: "N/A", 
+            cost: 0, 
+            id: windscreenId,
+            isCheckList: true 
+        };
+
+        createMaterialRow(windscreenDetails);
+    }
+    updateTotalCost()
+    calculateTotalByItem()
+}
+
+
+function resizeInput(input) {
+    // Crear un elemento temporal para medir el tamaño del texto
+    const tempElement = document.createElement("span");
+    tempElement.style.visibility = "hidden";
+    tempElement.style.position = "absolute";
+    tempElement.style.whiteSpace = "nowrap";
+    tempElement.style.font = window.getComputedStyle(input).font;
+    
+    // Copiar el texto del input al elemento temporal
+    tempElement.textContent = input.value || input.placeholder;
+    
+    // Insertar temporalmente el elemento en el DOM para medirlo
+    document.body.appendChild(tempElement);
+    const textWidth = tempElement.offsetWidth + 20; // Agregar un margen extra
+    document.body.removeChild(tempElement);
+
+    // Ajustar el ancho del input al tamaño del texto
+    input.style.width = `${textWidth}px`;
+}
+
+document.getElementById('toggleDisplayButton').addEventListener('click', function () {
+    const costManagement = document.getElementById('cost-management');
+    const displayButtonIcon = document.getElementById('DisplayButton');
+    const elements = document.querySelectorAll('.costTable');
+    if (costManagement.classList.contains('flex-row')) {
+        costManagement.classList.remove('flex-row');
+        costManagement.classList.add('flex-column');
+        displayButtonIcon.classList.remove('bi-file-spreadsheet-fill');
+        displayButtonIcon.classList.add('bi-layout-sidebar-reverse');
+        elements.forEach((element) => {
+            element.classList.remove('col-md-6');
+        });
+    } else {
+        costManagement.classList.remove('flex-column');
+        costManagement.classList.add('flex-row');
+        displayButtonIcon.classList.remove('bi-layout-sidebar-reverse');
+        displayButtonIcon.classList.add('bi-file-spreadsheet-fill');
+        elements.forEach((element) => {
+            element.classList.add('col-md-6');
+        });
+    }
+});

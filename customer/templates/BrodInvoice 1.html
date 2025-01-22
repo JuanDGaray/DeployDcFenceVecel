@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ project.project_name }}{% endblock %}
+{% block extra_head %}
+    <style>
+        body {
+            background-image: url("{% static 'img/logoPatron.png' %}");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: cover;
+            backdrop-filter: grayscale(100%);
+        }
+        .infoContainer{
+          background-image: url("{% static 'img/logoPatron.png' %}");
+          background-repeat: none;
+          background-position: center;
+          background-size: 480px 480px
+      }
+        .container-sm {
+            background-color: white;
+            padding: 40px;
+            box-shadow: 0 0 10px black;
+        }
+        .logoView{
+          background-color: #1a4784;
+          width: 200px;
+          padding: 4px;
+          height: 140px;
+          margin:8px
+      }
+      .imgSello{
+        position: absolute;
+        opacity: 0.5;
+        fill: none;
+        left: 65%;
+        width:250px;
+        user-select: none;
+        pointer-events: none;
+        
+    }
+    .firma{
+        display: absolute;
+        width:80px
+    }
+    input.form-control {
+        border:none;
+        padding:0px 8px;
+        border-radius:0px;
+        border-size:2px
+    }
+    </style>
+{% endblock %}
+{% block content %}
+{% load custom_filters %} 
+    <div class="d-flex flex-column justify-content-center align-items-center">
+      <h1 class="bg-white px-2">INV Broward - {{project.project_name}}</h1>
+      <div class='button-container'>
+        <button id="downloadBtn" class="mx-2 mt-2 button rounded-2" onclick="generatePDF()">
+          <i class="bi bi-file-earmark-pdf-fill text-danger"></i> Download PDF
+        </button>
+        <button id="sendBtn" class="mx-2 mt-2 button rounded-2" onclick="">
+          <i class="bi bi-envelope-arrow-up-fill text-primary"></i> Enviar PDF to email
+        </button>
+        <button id="downloadBtn" class="mx-2 mt-2 button rounded-2" onclick="generatePDF()">
+          <i class="bi bi-file-earmark-pdf-fill text-danger"></i> Guardar
+        </button>
+      </div>
+    </div>
+    <div class="container-sm m-5 rounded-4 mx-auto ">
+
+        <div class="d-flex flex-row mb-4">
+            <div class="col">
+                <span class="bg-primary text-white px-3 py-2">INVOICE :  <input type='text' class="bg-primary border-0 text-white" style="width: auto; min-width: 1ch; text-align: center;" size="8" value="{{project.id}}{{project.customer.id}}_{{invoice.id}}"></span>
+            </div>
+            <div class="d-flex flex-row justify-content-center text-end bg position-relative">
+                <div class="d-flex flex-column align-items-center px-4 mx-4">
+                    <img src="{% static 'img/DaylenFirma.webp' %}" alt="DC FENCE Logo" class="firma position-relative">
+                    <span class="text-center position-absolute nameSignature" style="border-top: 2px solid black; display: inline-block; padding-top: 5px; bottom:0%">
+                        Approved by Daylen Puerto
+                    </span>
+                </div>
+                <img src="{% static 'img/LogoCompleteWhite.webp' %}" alt="DC FENCE Logo" class="logoView mx-4">
+            </div>
+        </div>
+
+        <div class="col">
+            <strong>DADE: </strong>
+            <input 
+                type="text" 
+                class="border-0" 
+                style="width: auto; min-width: 5ch; text-align: center;" 
+                value="20BS00539">
+        </div>
+        <div class="col">
+            <strong>BRO: </strong>
+            <input 
+                type="text" 
+                class="border-0" 
+                style="width: auto; min-width: 5ch; text-align: center;" 
+                value="21F22501R">
+        </div>
+        <div class="mb-3">
+            <div class="row">
+                <div class="col-4 fw-bold border border-2 text-end">INVOICE NO.</div>
+                <div class="col-8">
+                    <input type="text" class="form-control border-bottom" value="24-0531">
+                </div>
+            </div>
+        </div>
+        
+        <img src="{% static 'img/DcSello.webp' %}" alt="DC FENCE Logo" class="imgSello">
+        
+        <div class="mb-3">
+            <div class="row">
+                <div class="col-4 fw-bold border border-2 text-end">JOB ADDRESS</div>
+                <div class="col-8">
+                    <input type="text" class="form-control border-bottom" value="12265 SW 34th St Miami FL 33175">
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <div class="row">
+                <div class="col-4 fw-bold border border-2 text-end">DESCRIPTION</div>
+                <div class="col-8">
+                    <input type="text" class="form-control border-bottom" value="FENCE AND GATE">
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <div class="row">
+                <div class="col-4 fw-bold border border-2 text-end">BILL TO:</div>
+                <div class="col-8">
+                    <input type="text" class="form-control border-bottom" value="MDCPS">
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <div class="row">
+                <div class="col-4 fw-bold border border-2 text-end">PERIOD:</div>
+                <div class="col-8">
+                    <div class="d-flex">
+                        <input type="date" class="form-control border-bottom me-2" placeholder="Start Date">
+                        <input type="date" class="form-control border-bottom" placeholder="End Date">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <div class="row">
+                <div class="col-4 fw-bold border border-2 text-end">PROJECT NAME</div>
+                <div class="col-8">
+                    <input type="text" class="form-control border-bottom" value="Village Green Elementary">
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <div class="row">
+                <div class="col-4 fw-bold border border-2 text-end">CONTRACT #</div>
+                <div class="col-8">
+                    <input type="text" class="form-control border-bottom" value="5600014870">
+                </div>
+            </div>
+        </div>
+        
+        
+        <table class="table table-bordered mt-4">
+            <thead class="bg-primary text-white">
+                <tr>
+                    <th>ITEMS</th>
+                    <th>DESCRIPTION</th>
+                    <th class="text-end">AMOUNT</th>
+                </tr>
+            </thead>
+            <tbody id="invoice-items">
+                <tr>
+                    <td><input type="number" class="form-control" value="1"></td>
+                    <td><input type="text" class="form-control" value="Supply an install Chain Link Fence and Gates"></td>
+                    <td class="text-end"><input type="text" class="form-control text-end" value="$ 62,557.00"></td>
+                </tr>
+        
+                <tr>
+                    <td colspan="2" class="text-end"><strong>TOTAL</strong></td>
+                    <td class="text-end bg-secondary"><input type="text" class="form-control text-end text-white fw-bold bg-secondary" value="$ 62,557.00"></td>
+                </tr>
+            </tbody>
+            
+        </table>
+        <div class="d-flex justify-content-center w-100">
+            <button type="button" class="btn btn-primary m-2" id="add-item-btn">Add Item</button>
+        </div>  
+            <div class=" d-flex flex-row flex-nowrap justify-content-evenly rounded-4 infoContainer p-3 px-4">
+                <div class="text-center m-2 p-2 bg-white rounded-4">
+                    <p class="mb-2">SHIP TO: DC FENCE SOLUTIONS/ 2498 W THIRD CT HIALEAH, FL 33010</p>
+                    <p class="text-danger mb-2">Please make checks payable to: DC FENCE SOLUTIONS</p>
+                    <p class="text-primary">Thank you for your trust</p>
+                </div>
+                
+                <div class="d-flex flex-column bg-white justify-content-center align-items-center text-center px-1">
+                    <span>6321</span>
+                    <h4>Tracking ID <span style='font-size: 1rem'> <i class="btn bi bi-copy p-1  text-sm d-real"></i></span></h4>
+                    <p class="m-0">You can view the status of your project at <a href='www.dcfence.org/traking/'> <br> <b> www.dcfence.org/traking</b> </a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+{% include "loading_component.html" %} 
+<script>
+    document.getElementById('add-item-btn').addEventListener('click', function() {
+    const tbody = document.getElementById('invoice-items');
+    const newRow = document.createElement('tr');
+
+    newRow.innerHTML = `
+        <td><input type="number" class="form-control" value="1"></td>
+        <td><input type="text" class="form-control" placeholder="Item description"></td>
+        <td class="text-end"><input type="text" class="form-control text-end" placeholder="Amount"></td>
+    `;
+
+    // Insert the new row before the TOTAL row
+    const totalRow = tbody.querySelector('tr:last-child');
+    tbody.insertBefore(newRow, totalRow);
+});
+
+</script>
+
+{% endblock %}

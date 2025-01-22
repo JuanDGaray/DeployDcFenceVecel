@@ -1,0 +1,20 @@
+{% load static %}
+<script src="{% static 'js/new_budgetScripts.js' %}"></script>
+<script src="{% static 'js/addDetailsBudget.js' %}"></script>
+<script>
+    const dataC = {{ data|safe }};
+    document.addEventListener("DOMContentLoaded", () => {
+        const removeLaborButtons = document.querySelectorAll(".remove_btn");
+        removeLaborButtons.forEach(button => {
+            button.style.display = "none";
+        });
+    });
+
+    const toggleButton = document.getElementById('toggle-button');
+    const toolsContainer = document.getElementById('tools-container');
+
+    toggleButton.addEventListener('click', () => {
+    toolsContainer.classList.toggle('active');
+    });
+
+</script>

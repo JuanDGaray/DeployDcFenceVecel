@@ -1,6 +1,7 @@
 {% extends "base.html" %} 
 {% load static %}
 {% block extra_head %}
+{% load custom_filters %}
     <link rel="stylesheet" href="{% static 'css/stylesProducction.css' %}">
 {% endblock %}
 
@@ -25,46 +26,77 @@
                     </div>
                 </div>
             </div>
-                <!-- Modal para agregar evidencia -->
-            <div id="evidenceModal" class="modal">
-                <div class="modal-content">
-                    <span class="close" onclick="closeEvidenceModal()">&times;</span>
-                    <h2>Añadir evidencia</h2>
-                    <form id="evidenceForm">
-                        <label for="evidenceTitle">Título de la evidencia:</label>
-                        <input type="text" id="evidenceTitle" name="evidenceTitle" required>
-                        
-                        <label for="evidenceDescription">Descripción:</label>
-                        <textarea id="evidenceDescription" name="evidenceDescription" required></textarea>
-                        
-                        <button type="submit">Guardar</button>
-                    </form>
-                </div>
-            </div>
             <div class="row mt-3">
                 <div class="card col-4 col-md-2 mx-4 mb-4">
                     <p class="fw-semibold mb-0"> Etimated budget</p>
-                    <p class="text-end">{{project.formatted_estimated_cost}}</p>
+                    <p class="text-end">{{ project.get_approved_proposal.total_proposal | currency_usd }}</p>
                 </div>
                 <div class="card col-4 col-md-2 mx-4 mb-4">
                     <p class="fw-semibold mb-0">Budget Spent</p>
-                    <p class="text-end">{{project.formatted_actual_cost}}</p>
+                    <p class="text-end">{{ project.get_approved_proposal.billed_proposal | currency_usd }}</p>
                 </div>
                 <div class="card col-4 col-md-2 mx-4 mb-4">
                     <p class="fw-semibold mb-0">Dates</p>
-                    <p class="text-end">{{project.start_date}} - {{project.end_date}}</p>
+                    {%if project.start_date and project.end_date %}
+                        <a class="text-end  cursor-pointer"  data-bs-toggle="modal" data-bs-target="#dateModal">{{project.start_date}} - {{project.end_date}} </a>
+                    {% else %}
+                        <p class="text-end">{{ today|date:'Y-m-d' }}                             
+                            <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                                data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                                data-bs-title="You cannot create a schedule without estimated dates, please add project dates." >
+                                <i class="bi bi-info-circle text-danger" style="font-size: 15px;"></i>
+                            </a>
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#dateModal">
+                                Set Dates
+                            </button>
+                        </p>
+                    {% endif %}
                 </div>
                 <div class="card col-4 col-md-2 mx-4 mb-4">
                     <p class="fw-semibold mb-0">Manager</p>
-                    <p class="text-end">@{{project.sales_advisor}}</p>
+                    <p class="text-end">@{{project.project_manager}}</p>
                 </div>
             </div>
         </div>
-
-        <h2 class="text-center">Project timeline</h2>
-
-    <div class="card mb-3 p-0 overflow-hidden" id="gantt_here" style="width:100%; height:400px;"></div>
-
+        <!-- Modal para ingresar fechas -->
+        <div class="modal fade" id="dateModal" tabindex="1" aria-labelledby="dateModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="dateModalLabel">Set Project Dates</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="dateForm">
+                            <div class="mb-3">
+                                <label for="startDate" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="startDate" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="endDate" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="endDate" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="saveDatesBtn">Save Dates</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <h2 class="text-center">Project Timeline        
+            <button onclick="hasGanttChanged()" class='btn p-2 rounded-5 bg-white border border-2 border-primary' id='saveGantButton'><i class="bi bi-floppy-fill fs-4 text-primary"id='logoSave'></i>  
+            <span id="spinner" class="spinner-border spinner-white spinner-border-sm d-none" role="status" aria-hidden="true""></span>
+            </button>
+        </h2>
+        {%if project.start_date == None or project.end_date == None %}
+            <div class='text-danger'> ⛔ You can't create a schedule without estimated dates </div>
+        {% else %} 
+            <div class="card mb-3 p-0 overflow-hidden" id="gantt_here" style="width:100%; height:400px;"></div>
+        {% endif %}   
+        </div>
         <div class="accordion accordion-flush" id="accordionFlushExample">
             <div class="accordion-item">
             <h2 class="accordion-header" id="headingOne">
@@ -74,7 +106,7 @@
             </h2>
             <div id="flush-collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionFlushExample">
                 <div class="accordion-body">
-                Aquí puedes incluir la descripción detallada del proyecto, los objetivos principales y la información de contacto del equipo responsable.
+                    {% include 'viewItemsbyProject.html' %}
                 </div>
             </div>
             </div>
@@ -87,7 +119,7 @@
             </h2>
             <div id="flush-collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionFlushExample">
                 <div class="accordion-body">
-                Lista de tareas pendientes con sus fechas de vencimiento, asignadas a cada miembro del equipo y el estado actual de cada una.
+                    
                 </div>
             </div>
             </div>
@@ -126,203 +158,287 @@
     <!-- Carga de DHTMLX Gantt -->
     <link rel="stylesheet" href="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.css">
     <script src="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.js"></script>
-<script>
-    function parseCustomDate(dateStr) {
-        const months = {
-            "Jan.": 0,
-            "Feb.": 1,
-            "Mar.": 2,
-            "Apr.": 3,
-            "May.": 4,
-            "Jun.": 5,
-            "Jul.": 6,
-            "Aug.": 7,
-            "Sep.": 8,
-            "Oct.": 9,
-            "Nov.": 10,
-            "Dec.": 11
-        };
-
-        const parts = dateStr.split(' ');
-        const month = months[parts[0]];
-        const day = parseInt(parts[1], 10);
-        const year = parseInt(parts[2], 10);
-
-        return new Date(year, month, day);
-    }
-
-    gantt.plugins({
-		quick_info: true,
-        auto_scheduling: true,
-        marker: true
-	});
-
-    gantt.init("gantt_here"); 
-    gantt.templates.task_text = function (start, end, task) {
-        return "<span>" + task.text + "</span> " + 
-               "<button onclick='addEvidence(" + task.id + ")' class='evidence-btn'>" +
-               "<i class='bi bi-paperclip'></i></button>";
-    };
-    
-    function addEvidence(taskId) {
-        alert("Añadir evidencia para la tarea con ID: " + taskId);
-    }
-    
-    
-    gantt.config.min_date = parseCustomDate("{{ project.start_date }}");
-    const startDate =parseCustomDate('{{ project.start_date }}');
-    const endDateStr = "{{ project.end_date }}"; 
-    // Lógica para establecer la fecha máxima
-    const endDate = (endDateStr && endDateStr !== "None") ? parseCustomDate(endDateStr) : null;
-    const maxDate = endDate ? endDate : new Date(startDate.getTime() + 120 * 24 * 60 * 60 * 1000);
-
-    gantt.config.max_date = maxDate; // Establecer la fecha máxima
-
-    // Configuración de la escala de tiempo
-    gantt.config.scale_unit = "day"; // Cambiar a semanas
-    gantt.config.date_scale = "%d"; // Muestra el número de semana en el año
-    gantt.config.subscales = [
-        { unit: "month", step: 1, date: "%M" } // Muestra solo el nombre corto del mes
-    ];
-    
-	var dateToStr = gantt.date.date_to_str(gantt.config.task_date);
-    var today = new Date(); 
-	gantt.addMarker({
-		start_date: today,
-		css: "today",
-		text: "Today",
-		title: "Today: " + dateToStr(today)
-	});
-
-    var start = startDate;
-	gantt.addMarker({
-		start_date: start,
-		css: "status_line",
-		text: "Start project",
-		title: "Start project: " + dateToStr(start)
-	});
-    
-    gantt.parse({
-        data: [
-            {
-                id: 1, // ID único para la tarea
-                text: "Planning, budget and negotiation", // Nombre de la tarea
-                start_date: startDate, // Fecha de inicio
-                end_date: new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000), 
-                progress: 1, // Progreso de la tarea (0 a 1)
-            },
-
-            {
-                id: 2,
-                text: "Project delivery", // Nombre de la tarea
-                start_date: new Date(maxDate.getTime() - 2 * 24 * 60 * 60 * 1000), // Comienza 7 días antes de la fecha máxima
-                end_date: maxDate, // Finaliza en la fecha máxima
-                progress: 0, // Progreso de la tarea
+    <script> 
+        document.addEventListener('DOMContentLoaded', function () {
+            // Elementos y funciones que se usan cuando el DOM está listo
+        
+            // Variables globales
+            let ganttData = JSON.parse('{{ ganttData|safe }}');
+            let previousGanttData = null;
+        
+            // Función para obtener los datos del Gantt
+            function getGanttData() {
+                return gantt.serialize();  // Obtén los datos del Gantt
             }
-        ]
-    });
-    gantt.attachEvent("onLinkClick", function (id) {
-		var link = this.getLink(id),
-			src = this.getTask(link.source),
-			trg = this.getTask(link.target),
-			types = this.config.links;
+        
+            // Comprobar si el Gantt ha cambiado
+            function hasGanttChanged() {
+                const currentGanttData = getGanttData();
+                return JSON.stringify(currentGanttData) !== JSON.stringify(previousGanttData);
+            }
+        
+            // Función para guardar los datos del Gantt en el servidor
+            function saveGanttDataToServer() {
+                const currentGanttData = getGanttData();
+                const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+                const saveButton = document.getElementById('saveGantButton');
+                const iconSaveButton = document.getElementById('logoSave');
+                const spinner = document.getElementById('spinner');
+                saveButton.disabled = true;
+                spinner.classList.remove('d-none');
+                iconSaveButton.classList.add('d-none');
+    
+                fetch('/production/{{project.id}}/save_gantt_data/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({
+                        gantt_data: currentGanttData,
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Datos del Gantt guardados exitosamente', data);
+                    saveButton.disabled = false;
+                    spinner.classList.add('d-none');
+                    iconSaveButton.classList.remove('d-none');
+                })
+                .catch(error => {
+                    console.error('Error al guardar los datos del Gantt:', error);
+                    saveButton.disabled = false;
+                    spinner.classList.add('d-none');
+                    iconSaveButton.classList.remove('d-none');
+                });
 
-		var first = "", second = "";
-		switch (link.type) {
-			case types.finish_to_start:
-				first = "finish";
-				second = "start";
-				break;
-			case types.start_to_start:
-				first = "start";
-				second = "start";
-				break;
-			case types.finish_to_finish:
-				first = "finish";
-				second = "finish";
-				break;
-		}
+            }
+        
+            // Función que parsea fechas personalizadas
+            function parseCustomDate(dateStr) {
+                const months = {
+                    "Jan.": 0,
+                    "Feb.": 1,
+                    "Mar.": 2,
+                    "Apr.": 3,
+                    "May.": 4,
+                    "Jun.": 5,
+                    "Jul.": 6,
+                    "Aug.": 7,
+                    "Sep.": 8,
+                    "Oct.": 9,
+                    "Nov.": 10,
+                    "Dec.": 11
+                };
+        
+                const parts = dateStr.split(' ');
+                const month = months[parts[0]];
+                const day = parseInt(parts[1], 10);
+                const year = parseInt(parts[2], 10);
+        
+                return new Date(year, month, day);
+            }
+        
+            // Función que valida las fechas de inicio y fin
+            document.getElementById("saveDatesBtn").addEventListener("click", function(event) {
+                var startDate = document.getElementById("startDate").value;
+                var endDate = document.getElementById("endDate").value;
+                const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+        
+                if (startDate && endDate) {
+                    if (new Date(startDate) > new Date(endDate)) {
+                        alert("The start date must be before the end date.");
+                        event.preventDefault();
+                    } else {
+                        var modal = bootstrap.Modal.getInstance(document.getElementById('dateModal'));
+                        modal.hide();
+        
+                        fetch(`/production/{{project.id}}/set_date_project/${startDate}/${endDate}/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrfToken,
+                            },
+                        })
+                        .then(() => {
+                            window.location.reload();
+                        })
+                        .catch((error) => {
+                            console.error('Error:', error);
+                        });
+                    }
+                } else {
+                    alert("Please fill in both start and end dates.");
+                }
+            });
+        
+            // Función que guarda el Gantt cada 30 segundos si hay cambios
+            setInterval(function() {
+                if (hasGanttChanged() && !document.getElementById('saveGantButton').disabled) {
+                    console.log("El Gantt ha cambiado, guardando los datos...");
+                    previousGanttData = getGanttData();
+                    saveGanttDataToServer()
+                } else {
+                    console.log('no hay cambios');
+                }
+            }, 3000);
+        
+            // Inicialización de Gantt
+            gantt.plugins({
+                quick_info: true,
+                auto_scheduling: true,
+                marker: true
+            });
+        
+            gantt.init("gantt_here");
+        
+            // Función para personalizar el texto de las tareas en Gantt
+            gantt.templates.task_text = function (start, end, task) {
+                return "<span>" + task.text + "</span> " + 
+                       "<button onclick='addEvidence(" + task.id + ")' class='evidence-btn'>" +
+                       "<i class='bi bi-paperclip'></i></button>";
+            };
+        
+            // Función para agregar evidencia
+            function addEvidence(taskId) {
+                alert("Añadir evidencia para la tarea con ID: " + taskId);
+            }
+        
+            // Definir fechas de inicio y fin del proyecto
+            const startDateStr = "{{ project.start_date }}";
+            const startDate = startDateStr && startDateStr !== "None" 
+                ? parseCustomDate(startDateStr) 
+                : new Date(); 
+        
+            const endDateStr = "{{ project.end_date }}"; 
+            const endDate = endDateStr && endDateStr !== "None" 
+                ? parseCustomDate(endDateStr) 
+                : null;
+        
+            gantt.config.min_date = startDate;
+            const maxDate = endDate ? endDate : new Date(startDate.getTime() + 120 * 24 * 60 * 60 * 1000);
+            gantt.config.max_date = maxDate;
+        
+            // Configuración de visualización del Gantt
+            gantt.config.scale_unit = "day"; 
+            gantt.config.date_scale = "%d"; 
+            gantt.config.subscales = [
+                { unit: "month", step: 1, date: "%M" } 
+            ];
+        
+            var dateToStr = gantt.date.date_to_str(gantt.config.task_date);
+            var today = new Date(); 
+            gantt.addMarker({
+                start_date: today,
+                css: "today",
+                text: "Today",
+                title: "Today: " + dateToStr(today)
+            });
+        
+            var start = startDate;
+            gantt.addMarker({
+                start_date: start,
+                css: "status_line",
+                text: "Start project",
+                title: "Start project: " + dateToStr(start)
+            });
+        
+            if (ganttData && ganttData.length === 0) {
+                gantt.parse({
+                    data: [
+                        {
+                            id: 1,
+                            text: "Planning, budget and negotiation", 
+                            start_date: startDate, 
+                            end_date: new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000), 
+                            progress: 1,
+                        },
+        
+                        {
+                            id: 2,
+                            text: "Project delivery",
+                            start_date: new Date(maxDate.getTime() - 2 * 24 * 60 * 60 * 1000), 
+                            end_date: maxDate, 
+                            progress: 0,
+                        }
+                    ]
+                });
+            } else {
+                gantt.parse({ data: ganttData });
+            }
+        
+            gantt.attachEvent("onLinkClick", function (id) {
+                var link = this.getLink(id),
+                    src = this.getTask(link.source),
+                    trg = this.getTask(link.target),
+                    types = this.config.links;
+        
+                var first = "", second = "";
+                switch (link.type) {
+                    case types.finish_to_start:
+                        first = "finish";
+                        second = "start";
+                        break;
+                    case types.start_to_start:
+                        first = "start";
+                        second = "start";
+                        break;
+                    case types.finish_to_finish:
+                        first = "finish";
+                        second = "finish";
+                        break;
+                }
+        
+                gantt.message("Must " + first + " <b>" + src.text + "</b> to " + second + " <b>" + trg.text + "</b>");
+            });
+        
+            gantt.templates.task_class = function (start, end, task) {
+                if (task.progress === 1) {
+                    return "task-completed";
+                } else if (task.progress === 0) {
+                    return "task-not-started";
+                }
+                return "task-in-progress";
+            };
+        
+            // Función para abrir el modal de evidencia
+            function openEvidenceModal() {
+                document.getElementById("evidenceModal").style.display = "block";
+            }
+        
+            // Función para cerrar el modal de evidencia
+            function closeEvidenceModal() {
+                document.getElementById("evidenceModal").style.display = "none";
+            }
+        
+            // Cerrar el modal al hacer clic fuera de él
+            window.onclick = function(event) {
+                var modal = document.getElementById("evidenceModal");
+                if (event.target === modal) {
+                    modal.style.display = "none";
+                }
+            }
+        
+            // Manejador de envío del formulario de evidencia
+            document.getElementById("evidenceForm").onsubmit = function(event) {
+                event.preventDefault(); // Evita el envío del formulario
+        
+                var taskId = event.target.dataset.taskId;
+                var title = document.getElementById("evidenceTitle").value;
+                var description = document.getElementById("evidenceDescription").value;
+        
+                // Lógica para guardar la evidencia (personalízala según tus necesidades)
+                console.log("Guardando evidencia para la tarea ID:", taskId);
+                console.log("Título:", title);
+                console.log("Descripción:", description);
+        
+                closeEvidenceModal();
+                document.getElementById("evidenceForm").reset();
+            };
+        });
+        
+        
 
-		gantt.message("Must " + first + " <b>" + src.text + "</b> to " + second + " <b>" + trg.text + "</b>");
-	});
-
-    gantt.templates.task_class = function (start, end, task) {
-        if (task.progress === 1) {
-            return "task-completed";
-        } else if (task.progress === 0) {
-            return "task-not-started";
-        }
-        return "task-in-progress";
-    };
-
-    
-    function openEvidenceModal() {
-        document.getElementById("evidenceModal").style.display = "block";
-    }
-    
-    function closeEvidenceModal() {
-        document.getElementById("evidenceModal").style.display = "none";
-    }
-    
-    // Cierra el modal si se hace clic fuera de él
-    window.onclick = function(event) {
-        var modal = document.getElementById("evidenceModal");
-        if (event.target === modal) {
-            modal.style.display = "none";
-        }
-    }
-    
-    // Puedes agregar un manejador de envío para el formulario si quieres procesar la evidencia
-    document.getElementById("").onsubmit = function(event) {
-        event.preventDefault(); // Evita el envío del formulario
-        closeEvidenceModal();
-        alert("Evidencia guardada exitosamente.");
-    };
-    function addEvidence(taskId) {
-        // Muestra el ID de la tarea en el modal
-        document.getElementById("taskIdDisplay").textContent = taskId;
-    
-        // Guarda el ID de la tarea en un atributo de datos para usarlo al guardar la evidencia
-        document.getElementById("evidenceForm").dataset.taskId = taskId;
-    
-        // Abre el modal
-        document.getElementById("evidenceModal").style.display = "block";
-    }
-    
-    function closeEvidenceModal() {
-        document.getElementById("evidenceModal").style.display = "none";
-    }
-    
-    // Cierra el modal si se hace clic fuera de él
-    window.onclick = function(event) {
-        var modal = document.getElementById("evidenceModal");
-        if (event.target === modal) {
-            modal.style.display = "none";
-        }
-    }
-    
-    // Manejador de envío del formulario
-    document.getElementById("evidenceForm").onsubmit = function(event) {
-        event.preventDefault(); // Evita el envío del formulario
-    
-        // Obtiene el ID de la tarea y los datos de la evidencia
-        var taskId = event.target.dataset.taskId;
-        var title = document.getElementById("evidenceTitle").value;
-        var description = document.getElementById("evidenceDescription").value;
-    
-        // Lógica para guardar la evidencia usando el taskId (personalízalo según tus necesidades)
-        console.log("Guardando evidencia para la tarea ID:", taskId);
-        console.log("Título:", title);
-        console.log("Descripción:", description);
-    
-        // Cierra el modal después de guardar
-        closeEvidenceModal();
-    
-        // Limpia el formulario
-        document.getElementById("evidenceForm").reset();
-    };
-    
-
-</script>
+    </script>
 
 {% endblock %}

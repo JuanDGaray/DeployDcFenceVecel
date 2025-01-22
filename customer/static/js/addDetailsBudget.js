@@ -18,19 +18,15 @@ function updateTableMi(data) {
 }
 
 function updateManufacturingTable(data) {
-    console.log('cambio')
     data.forEach(entry => {
-        // Encuentra la fila por el id basado en el item
-        const row = document.querySelector(`#manufacturing-${entry.item.replace(/\s+/g, '').trim()}`);
-        console.log(entry.item.replace(/\s+/g, '').trim())
+        const row = document.querySelector(`#manufacturing-${entry.item.trim().replace(/\s+/g, '-')}`);
+        console.log(entry.item.trim().replace(/\s+/g, '-'))
         console.log(row)
         if (row) {
-            // Actualiza el campo de días si existe
             const daysInput = row.querySelector(`input[type="number"]`);
             if (daysInput) {
                 daysInput.value = entry.days;
             }
-            // Actualiza el checkbox si existe
             const checkbox = row.querySelector(`input[type="checkbox"]`);
             if (checkbox) {
                 checkbox.checked = entry.checked;
@@ -43,7 +39,7 @@ function updateManufacturingTable(data) {
 function updateManufacturingMWTable(data) {
     data.forEach(entry => {
         // Encuentra la fila por el id basado en el item
-        const row = document.querySelector(`#manufacturingMW-${entry.item.replace(/\s+/g, '').trim()}`);
+        const row = document.querySelector(`#manufacturingMW-${entry.item.trim().replace(/\s+/g, '-')}`);
         if (row) {
             // Actualiza el campo de qtyWLD si existe
             const qtyWLDInput = row.querySelector(`input.qtyWLD-manufacturingMW`);
@@ -71,7 +67,9 @@ function updateManufacturingMWTable(data) {
 }
 
 function populateUtils(data) {
+    
     const utilsData = data[0];
+    utilsData.cost_data.forEach(entry => addItem(entry.item));
     document.getElementById("assistantCostByDay").value = utilsData.data_unit_cost_mw[0].value;;
     document.getElementById("welderCostByDay").value = utilsData.data_unit_cost_mw[1].value;
     
@@ -83,7 +81,6 @@ function populateUtils(data) {
     document.getElementById("Labor_Total").value = utilsData.manufacturing_data.Total  || 0;
     
     updateTableMi(utilsData.data_unit_cost_mw)
-    utilsData.cost_data.forEach(entry => addItem(entry.item));
     updateManufacturingTable(utilsData.cost_data)
     updateManufacturingMWTable(utilsData.data_unit_cost_mw_items)
 
@@ -137,7 +134,30 @@ function addManualData(data) {
     filteredDeducts.forEach((deduct, index) => {
         createDeductsRow(deduct)
     });
+
+    const filteredProfit = data.profits.filter(profit => !profit.is_generated_by_utils);
+    filteredProfit.forEach((profit, index) => {
+        createProfitRow(profit)
+    });
     
+}
+
+function toggleCheckboxesInChecklist(data) {
+    const filteredMaterials = data.filter(material => material.is_generated_by_checklist);
+    const checkboxes = document.querySelectorAll('#Checklist input[type="checkbox"]');
+    const checklistIds = filteredMaterials.map(material => material.id_generated_by_checklist);
+    const checkboxIds = Array.from(checkboxes).map(checkbox => checkbox.id);
+    console.log('checklistIds', checklistIds)
+    console.log('checkboxIds', checkboxIds)
+    checkboxIds.forEach(checkboxId => {
+        const matchingId = `${checkboxId}_Automatic`;
+        if (checklistIds.includes(matchingId)) {
+            const checkbox = document.querySelector(`#${checkboxId}`);
+            if (checkbox) {
+                checkbox.checked = true;
+            }
+        }
+    });
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -153,5 +173,6 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleRemmovalPerFT()
     useDaysInMF()
     toggleAddLoans() 
+    toggleCheckboxesInChecklist(dataC.materials)
     reloadRowProfitManufacturingMW()
 });

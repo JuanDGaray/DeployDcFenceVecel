@@ -1,6 +1,7 @@
 {% extends "base.html"%} 
 {% load static %}
 {% block content%}
+{% include "loading_component.html" %} 
 <div class="container d-flex flex-column justify-content-center ">
   <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
     <div class="card-header d-flex justify-content-between  p-3 border-bottom bg-gray">
@@ -279,11 +280,12 @@
                   </div>
                   </div>
                 </div>
-              <button type="submit" id="submit-btn" class="btn btn-primary w-50 justify-item-center m-4 mx-auto" disabled>Create</button>
+              <button type="submit" id="submit-btn" class="btn btn-primary w-50 justify-item-center m-4 mx-auto" disabled>Create
+                <span id="spinner" class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true" style="display: none;"></span>
+              </button>
           </div>
       </div>
-  </div>
-  
+    </div>
   </form>
 <div>
   {% if warning %}
@@ -293,6 +295,7 @@
   </div>
   {% endif %}
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{% static 'js/projects_Scripts.js' %}"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -304,5 +307,14 @@
       allowClear: true
     });
   });
+
+  document.querySelector('form').addEventListener('submit', function(event) {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const spinner = document.getElementById('spinner');
+    spinner.style.display = 'inline-block';
+    this.disabled = true;
+    document.getElementById('submit-btn').disabled = true;
+    loadingOverlay.classList.remove('d-none');
+});
 </script>
 {% endblock %}

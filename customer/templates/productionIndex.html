@@ -1,7 +1,8 @@
 {% extends "base.html"%} 
 {% load static %}
+{% load custom_filters %}
 {% block content%}
-<div class="container d-flex flex-column justify-content-center ">
+<div class="container d-flex flex-column justify-content-center p-4">
     <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
 
     <div class="card-header d-flex justify-content-between  p-3 border-bottom bg-gray">
@@ -29,8 +30,7 @@
     </div>
     {% if projects %}
     <div id="cardView" class="">
-        
-        <div class="row row-cols-1 row-cols-md-3 g-4 m-2">
+        <div class="row row-cols-1 row-cols-md-3 g-4 m-2 p-4">
             {% for project in projects %}
                 <div class="col">
                     <div class="card pb-3">
@@ -44,7 +44,7 @@
                         </a>
                             <p class="card-text mx-3 my-2 text-dark">
                                 <strong>Customer</strong><br>
-                                <a href="{% url 'detail_customer' project.customer.id %}" class="fw-light text-decoration-none"">
+                                <a href="{% url 'detail_customer' project.customer.id %}" class="fw-bold text-decoration-none"">
 
                                 {%   if project.customer.customer_type == "individual" %}
                                     {{ project.customer.first_name }} {{ project.customer.last_name }}
@@ -63,7 +63,7 @@
                                 </div>
                                 <div class='px-3'>
                                     <strong>Budget</strong> <br> 
-                                    Estimated: {{ project.formatted_estimated_cost }} - Actual {{ project.formatted_actual_cost }} <br>
+                                    Estimated: {{ project.get_approved_proposal.total_proposal | currency_usd }} - Actual {{ project.get_approved_proposal.billed_proposal | currency_usd }} <br>
                                 </div>
                                 <div class='px-3'>
                                     <strong>Progress</strong> 
@@ -72,13 +72,21 @@
                                         </div>
                                 </div>
                             </p>
-                            <div class='px-3 d-flex flex-row gap-2 justify-content-end'>
-                                <i class="bi bi-person-circle fs-4 align-self-center text-secondary""></i> 
-                                <div class='d-flex flex-column h-5' style="line-height: 1; gap: 0.1rem;">
-                                    <span class="m-0 align-self-center border-bottom border-3 border-bottom fw-bold">@{{ project.sales_advisor }}</span>
-                                    <span class="m-0" style="font-size: 0.7rem;">Project Manager</span> 
+                            <div class='d-flex justify-content-end'>
+                                <div class='px-3 d-flex flex-row gap-2 justify-content-end'>
+                                    <i class="bi bi-person-circle fs-4 align-self-center text-secondary""></i> 
+                                    <div class='d-flex flex-column h-5' style="line-height: 1; gap: 0.1rem;">
+                                        <span class="m-0 align-self-center border-bottom border-3 border-bottom fw-bold">@{{ project.sales_advisor}}</span>
+                                        <span class="m-0" style="font-size: 0.7rem;">Sales Manager</span> 
+                                    </div>
                                 </div>
-                                
+                                <div class='px-3 d-flex flex-row gap-2 justify-content-end'>
+                                    <i class="bi bi-person-circle fs-4 align-self-center text-secondary""></i> 
+                                    <div class='d-flex flex-column h-5' style="line-height: 1; gap: 0.1rem;">
+                                        <span class="m-0 align-self-center border-bottom border-3 border-bottom fw-bold">@{{ project.project_manager}}</span>
+                                        <span class="m-0" style="font-size: 0.7rem;">Project Manager</span> 
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

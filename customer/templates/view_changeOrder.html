@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}CHO.{{budget.id}} | {{ project.project_name }}
+{% endblock %}
+{% block extra_head %}
+
+    <style>
+            .main-container {
+                background-image: url(/static/img/logoPatron.png);
+                background-repeat: repeat;
+                background-position: center;
+                backdrop-filter: blur(30px) grayscale(100%); /* Aplica desenfoque y escala de grises */
+                background-color: #c7c7c780; /* Fondo semitransparente */
+            }
+            
+                
+            .header-blue {
+                background-color: #004AAD;
+                color: white;
+            }
+            .border-black {
+                border: 1px solid #000;
+            }
+            .table-row {
+                border-bottom: 1px solid #000;
+            }
+            .imgSello{
+                position: absolute;
+                opacity: 0.5;
+                fill: none;
+                left: 65%;
+                width:250px;
+                user-select: none;
+                pointer-events: none;
+                
+            }
+            .firma{
+                display: absolute;
+                width:100px;
+                top:0px
+                padding:0px;
+                margin:0px;
+            }
+            .logoView{
+                background-color: #1a4784;
+                width: 100%;
+                padding: 4px;
+                margin:8px
+            }
+            #add-row{
+                position: relative;
+                top: -46px;
+                opacity: 0.2;
+            }
+            #add-row:hover{
+                position: relative;
+                top: -46px;
+                opacity: 1;
+            }
+    </style>
+{% endblock %}
+{% block content %}
+<div id="alert-container"></div>
+
+<div class="d-flex flex-column justify-content-center main-container p-0 m-0">
+    <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}" data-typeInv='MDCP'>
+    
+
+    <h1 class='fs-5 bg-white border border-4 border-primary fw-bold text-primary p-2 m-2 rounded-4 w-50 d-flex flex-row justify-content-between align-items-center'>CHO - ID{{project.id}} {{project.project_name}}
+        <div>
+            <button id="saveButton" class="btn btn-primary rounded-2" onclick="saveInvoice()">
+            <i class="bi bi-floppy text-light"></i> Save
+            </button>
+            <button id="saveButton" class="btn btn-success rounded-2" onclick="saveInvoice()">
+                <i class="bi bi-printer text-light"></i> Print
+                </button>
+        </div>
+    </h1>
+    <div class="container col-md-7 col-sm-12 my-4 bg-white p-1 border border-2 border-secondary">
+        <div class="border-black p-3 w-100 w-100">
+            <!-- Header Section -->
+            <div class="d-flex flex-row justify-content-between mb-4">
+                <div class="col-md-4">
+                    <h2 class="mb-3 fw-bold">CHANGE ORDER</h2>
+                    <div class="small">
+                        <div>DADE: 20BS00539</div>
+                        <div>BROWARD: 21-F-22501-R</div>
+                        <div>786-747-4766</div>
+                        <div>2498 W 3CT Hialeah FL 33010</div>
+                        <div>dpuerto@dcfence.org</div>
+                    </div>
+                </div>
+                <div class="w-50 d-flex flex-row justify-content-center text-end bg position-relative">
+                    <div class="w-50 d-flex flex-column align-items-center">
+                        <img src="{% static 'img/DaylenFirma.webp' %}" alt="DC FENCE Logo" class="firma position-relative">
+                        <span class="text-center position-absolute nameSignature p-0 m-0" style="border-top: 2px solid black; display: inline-block; padding-top: 5px; bottom:0%">
+                            Approved by Daylen Puerto
+                        </span>
+                    </div>
+                    <img src="{% static 'img/LogoCompleteWhite.webp' %}" alt="DC FENCE Logo" class="logoView mx-4 w-50">
+                </div>
+            </div>
+            
+            <!-- Form Section -->
+            <div class="border-black">
+                <div class="row m-0">
+                    <div class="col-6 border-black p-2">
+                        <div class="fw-bold">To:</div>
+                    </div>
+                    <div class="col-6 border-black p-2">
+                        <div  class="fw-bold">Job Name:</div>
+                        {% if project.customer.customer_type == "individual" %}
+                            <a href="{% url 'detail_customer' project.customer.id %}" target='_blank'>
+                                <span class="status title_{{ project.customer.customer_type }} fs-6">
+                                    {{ project.customer.first_name }} {{ project.customer.last_name }} <i class="bi bi-person-arms-up"></i>
+                                </span>
+                            </a> 
+                        {% else %}
+                            <a href="{% url 'detail_customer' project.customer.id %}" target='_blank'>
+                                <span class="status title_{{ project.customer.customer_type }} fs-6">{{ project.customer.company_name }} 
+                                    <i class="bi bi-buildings-fill"></i> 
+                                </span> 
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row m-0">
+                    <div class="col-6 border-black p-2">
+                        <div  class="fw-bold">Sub Contract No.</div>
+                        <input id="SubContractNo" type="number" class="form-control border-0 p-0" value='0000'>
+
+                    </div>
+                    <div class="col-6 border-black p-2">
+                        <div  class="fw-bold" >Job Location:</div>
+                        <input id="JobLocation" type="text" class="form-control border-0 p-0" value='{{ project.addres }} {{ project.city }} {{ project.state }} - {{ project.zip_code }}'>
+                    </div>
+                </div>
+
+                <div class="row m-0">
+                    <div class="col-6 border-black p-2">
+                        <div  class="fw-bold">Purchase Order</div>
+                        <input id="PurchaseOrder" type="number" class="form-control border-0 p-0" value='0000'>
+                    </div>
+                    <div class="col-6 border-black p-2">
+                        <div  class="fw-bold">Existing Contract Amount:</div>
+                        <input id="PurchaseOrder" type="text" class="form-control border-0 p-0" value='{{budget.id_related_total_value | currency_usd}}'>
+                    </div>
+                </div>
+
+                <div class="row m-0">
+                    <div class="col-6 border-black p-2">
+                        <div  class="fw-bold">Phone:</div>
+                        <input id="Phone" type="tel" class="form-control border-0 p-0" value='{{project.customer.phone}}'>
+                    </div>
+                    <div class="col-6 border-black p-2">
+                        <div  class="fw-bold">Change Order No.</div>
+                        <input id="ChangeOrderNo" type="number" class="form-control border-0 p-0" value='{{qtChangeOrder}}'>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Changes Table -->
+            <div class="mt-3">
+                <table class='w-100'>
+                    <thead>
+                      <tr class='bg-primary'>
+                        <th class="col-9 border-black header-blue p-2">We hereby agree to make the following change(s)</th>
+                        <th class="col-3 border-black header-blue p-2">Amount +/-</th>
+                      </tr>
+                    </thead>
+                    <tbody id="table-body">
+                      <!-- Fila predeterminada -->
+                      <tr>
+                        <td class="border-black p-2">
+                            <input type="text" class="form-control border-0 p-0 m-0" placeholder="Enter the change order description"  />
+                          </td>
+                          <td class="border-black border-1 p-2 text-end d-flex flex-end">
+                            $ 
+                            <input type="number" class="form-control border-0 p-0 m-0 text-end totalRow" placeholder="Amount" value='{{ budget.total_change_order }}'>
+                        </td>
+                      </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                        <td class="border-black p-2 text-end"><strong>Total Change Order</strong></td>
+                        <td class="border-black py-2 px-0 text-end"><strong><span class="status fs-5 title_budget{% if budget.total_change_order < 0 %}Down{% else %}Up{% endif %}"><i class="bi bi-graph-{% if budget.total_change_order < 0 %}down{% else %}up{% endif %}-arrow fs-5"></i>{{ budget.total_change_order | currency_usd }}</span></strong></td>
+                        </tr>
+                    </tfoot>
+                  </table>
+                  
+                  <!-- Botón para agregar nueva fila -->
+                  <button id="add-row" class="btn btn-primary py-0 px-1">+ Add Row</button>
+                </div>                  
+            <!-- Footer Section -->
+            <div class="mt-3">
+                <div class="text-center mb-3">
+                    <strong>THIS CHANGE BECOMES PART OF AND IN CONFORMANCE WITH THE EXISTING CONTRACT.</strong>
+                </div>
+                
+                <div class="row">
+                    <div class="col-6">
+                        <p>We Hereby agree to make the change(s) specified<br>
+                        above at the price indicated per this Change Order.</p>
+                    </div>
+                    <div class="col-6">
+                        <p>The prices and specification of this Change Order are satisfactory<br>
+                        and are hereby accepted. All work is to be performed under the<br>
+                        established terms and conditions specified in the original<br>
+                        contract unless otherwise specified</p>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-6 text-center">
+                        <div class="border-top border-dark pt-2">Authorized Contractor Signature</div>
+                        <div class="border-top border-dark mt-4 pt-2">Date of Acceptance</div>
+                    </div>
+                    <div class="col-6 text-center">
+                        <div class="border-top border-dark pt-2">Owner Signature</div>
+                        <div class="border-top border-dark mt-4 pt-2">Date of Acceptance</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    const addRowButton = document.getElementById('add-row');
+    const tableBody = document.getElementById('table-body');
+    const saveButton = document.getElementById('saveButton');
+    const maxTotal = {{budget.total_change_order}};
+
+    // Función para agregar una nueva fila
+    addRowButton.addEventListener('click', function() {
+        const newRowHTML = `
+            <tr>
+                <td class="border-black p-2">New change description</td>
+                <td class="border-black p-2 d-flex flex-row">
+                    $ 
+                    <input type="number" class="form-control border-0 p-0 text-end totalRow" placeholder="Amount">
+                </td>
+                <td class='p-0 m-0' style="width:0px">
+                    <button class="btn btn-danger btn-sm border-0 text-danger remove_btn p-1 rounded-4 bi bi-trash3 text-light" style="position: relative; top: 5px; right: 0px;">
+                    </button>
+                </td>
+            </tr>
+        `;
+
+        // Crear un elemento de fila a partir del HTML como string
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = newRowHTML;
+
+        // Obtener el botón de eliminar y agregar un evento de click
+        const deleteButton = newRow.querySelector('.remove_btn');
+        deleteButton.addEventListener('click', function() {
+            tableBody.removeChild(newRow);
+            checkTotal(); // Verifica el total después de eliminar la fila
+        });
+
+        // Añadir la fila al cuerpo de la tabla
+        tableBody.appendChild(newRow);
+
+        // Agregar evento al campo totalRow para recalcular el total al cambiar el valor
+        const totalRowInput = newRow.querySelector('.totalRow');
+        totalRowInput.addEventListener('input', checkTotal); // Se dispara cada vez que el usuario ingresa un valor
+    });
+
+    // Función para verificar si el total de los campos "totalRow" supera el máximo
+    function checkTotal() {
+        let total = 0;
+
+        // Obtener todos los valores de las celdas "totalRow"
+        const totalRows = document.querySelectorAll('.totalRow');
+        totalRows.forEach(function(input) {
+            const value = parseFloat(input.value) || 0; // Se asegura de que sea un número
+            total += value;
+        });
+
+        console.log(total, maxTotal)
+        if (total != maxTotal) {
+            saveButton.disabled = true; 
+            showAlert('You will not be able to save because it diferent the total values of the Change Order: ${{ budget.total_change_order }}', 'warning');
+        } else {
+            saveButton.disabled = false;
+        }
+    }
+
+    // Verificar el total al cargar la página
+    checkTotal();
+
+    function showAlert(message, type) {
+        const alertContainer = document.getElementById("alert-container");
+        const alert = document.createElement("div");
+        alert.classList.add("alert", `alert-${type}`, "alert-dismissible", "fade", "show");
+        alert.role = "alert";
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        alertContainer.appendChild(alert);
+        setTimeout(() => {
+            alert.classList.remove("show");
+            alert.classList.add("fade");
+            alert.remove();
+        }, 4000); 
+        return alert;
+    }
+
+    
+
+</script>
+
+  
+{% endblock %}
