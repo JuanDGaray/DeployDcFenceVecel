@@ -9,6 +9,7 @@ from googleapiclient.http import MediaIoBaseUpload
 import json
 from .models import (Project)
 from django.shortcuts import get_object_or_404
+import os
 
 drive_id = '0AF4IswhouZv_Uk9PVA'
 
@@ -19,12 +20,22 @@ class DriveService:
     @staticmethod
     def get_service():
         if DriveService._service is None:
-            creds = Credentials.from_service_account_file(
-                'dcfence-web-django-1a4b921d8976.json', 
+            credentials_info = json.loads(os.getenv('GOOGLE_CREDENTIALS', '{}'))
+            print(credentials_info)
+            if 'private_key' in credentials_info:
+                credentials_info['private_key'] = credentials_info['private_key'].replace("\\n", "\n")
+            # Crear las credenciales
+            creds = Credentials.from_service_account_info(
+                credentials_info,
                 scopes=["https://www.googleapis.com/auth/drive"]
             )
+            if 'private_key' in credentials_info:
+                credentials_info['private_key'] = credentials_info['private_key'].replace("\\n", "\n")
+                
+            # Refrescar las credenciales si es necesario
             if creds.expired and creds.refresh_token:
                 creds.refresh(Request())
+            
             DriveService._creds = creds
             DriveService._service = build('drive', 'v3', credentials=creds)
         
