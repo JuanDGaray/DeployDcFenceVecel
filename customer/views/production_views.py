@@ -38,9 +38,10 @@ def production_project(request, project_id):
     taskGantt = TaskProject.objects.filter(project=project)
     RealCost = RealCostProject.objects.filter(project=project)
     RealCostByItems = None
-    if len(RealCost) > 0:
+    if RealCost.exists():
         RealCostItems = RealCost.get()
-        RealCostByItems = RealCostItems
+        RealCostByItems = json.dumps(RealCostByItems.items)
+        
 
     proposal = project.get_approved_proposal()
     budget = proposal.budget
@@ -71,7 +72,7 @@ def production_project(request, project_id):
         'data' : json.dumps(extract_data_budget(budget)),
         'progress': round(progress*100),
         'taskGantt':taskGantt,
-        'realCostItems': json.dumps(RealCostByItems.items)
+        'realCostItems': RealCostByItems
     })
     
     
