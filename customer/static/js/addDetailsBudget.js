@@ -20,8 +20,6 @@ function updateTableMi(data) {
 function updateManufacturingTable(data) {
     data.forEach(entry => {
         const row = document.querySelector(`#manufacturing-${entry.item.trim().replace(/\s+/g, '-')}`);
-        console.log(entry.item.trim().replace(/\s+/g, '-'))
-        console.log(row)
         if (row) {
             const daysInput = row.querySelector(`input[type="number"]`);
             if (daysInput) {
@@ -67,7 +65,7 @@ function updateManufacturingMWTable(data) {
 }
 
 function populateUtils(data) {
-    
+    console.log(data)
     const utilsData = data[0];
     utilsData.cost_data.forEach(entry => addItem(entry.item));
     document.getElementById("assistantCostByDay").value = utilsData.data_unit_cost_mw[0].value;;
@@ -97,16 +95,18 @@ function populateUtils(data) {
 
 
     
-    document.getElementById("cbox1").checked = utilsData.add_hole_checked;
+    document.getElementById("cbox1").checked = utilsData.add_post_and_hole;
     document.getElementById("cbox2").checked = utilsData.add_unit_cost_mi;
-    document.getElementById("cboxMW").checked = utilsData.add_hole_checked;
-    document.getElementById("cbox3").checked = utilsData.add_utilities_checked;
+    document.getElementById("cboxMW").checked = utilsData.add_unit_cost_mw;
+    document.getElementById("cbox3").checked = utilsData.add_data_profit_by_day;
     document.getElementById("Add-hole-check").checked = utilsData.add_hole_checked;
     document.getElementById("add-utilities-per-FT").checked = utilsData.add_utilities_checked;
     document.getElementById("add-removal-per-FT").checked = utilsData.add_removal_checked;
     document.getElementById("cboxMWadd").checked = utilsData.add_data_profit_by_day;
     document.getElementById("use-day-in-itemsManufacturing").checked = utilsData.use_day_in_items_manufacturing
+    document.getElementById("add-utilities-per-FT").checked = utilsData.add_utilities_checked;
     document.getElementById("cbox4").checked = utilsData.add_loans;
+
 }
 
 function addManualData(data) {
@@ -147,8 +147,6 @@ function toggleCheckboxesInChecklist(data) {
     const checkboxes = document.querySelectorAll('#Checklist input[type="checkbox"]');
     const checklistIds = filteredMaterials.map(material => material.id_generated_by_checklist);
     const checkboxIds = Array.from(checkboxes).map(checkbox => checkbox.id);
-    console.log('checklistIds', checklistIds)
-    console.log('checkboxIds', checkboxIds)
     checkboxIds.forEach(checkboxId => {
         const matchingId = `${checkboxId}_Automatic`;
         if (checklistIds.includes(matchingId)) {
@@ -161,6 +159,7 @@ function toggleCheckboxesInChecklist(data) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    console.log(dataC)
     populateUtils(dataC.utils);
     addManualData(dataC)
     toggleAddHole()
@@ -172,7 +171,6 @@ document.addEventListener("DOMContentLoaded", () => {
     activeRowProfitManufacturingMW(this)
     toggleRemmovalPerFT()
     useDaysInMF()
-    toggleAddLoans() 
     toggleCheckboxesInChecklist(dataC.materials)
     reloadRowProfitManufacturingMW()
 });

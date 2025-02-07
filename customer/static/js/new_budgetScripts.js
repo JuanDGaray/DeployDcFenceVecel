@@ -232,7 +232,7 @@ function createDeductsRow(data = null) {
         <td class="p-0">
             <div class="input-group p-0">
                 <span class="money_simbol_input">$</span>
-                <input class="form-control-budget text-end" type="number" name="deducts_UnitCost" id="deducts_UnitCost" step="0.01" value="${data ? data.deduct_value : ''}">
+                <input class="form-control-budget text-end" type="number" name="deducts_UnitCost" id="deducts_item" step="0.01" value="${data ? data.deduct_value : ''}">
             </div>
         </td>
         <td class="p-0 text-center" style="width:0px">
@@ -318,9 +318,9 @@ laborSection.addEventListener("input", function (event) {
         // Update the Labor Cost field in the row
         laborCostInput.value = laborCost.toFixed(2);
         updateTotalCost(); // Update the total cost
-        calculateTotalByItem()
+        updateValuesUI()
     }
-    calculateTotalByItem()
+    updateValuesUI()
 });
 
     // Materials section
@@ -338,7 +338,7 @@ materialsSection.addEventListener("input", function (event) {
             updateTotalCost();
             updateRowNumbers(materialsSection)
     }
-    calculateTotalByItem()
+    updateValuesUI()
 });
 
 
@@ -349,7 +349,7 @@ contractorSection.addEventListener("input", function (event) {
         updateTotalCost(); // Update the total cost
         updateRowNumbers(contractorSection)
     }
-    calculateTotalByItem()
+    updateValuesUI()
 });
 
 // misc section
@@ -359,7 +359,7 @@ miscSection.addEventListener("input", function (event) {
         updateTotalCost(); // Update the total cost
         updateRowNumbers(miscSection)
     }
-    calculateTotalByItem()
+    updateValuesUI()
 });
 
 // deducts section
@@ -370,7 +370,7 @@ deductsSection.addEventListener("input", function (event) {
         updateTotalCost();
         updateRowNumbers(deductsSection)
     }
-    calculateTotalByItem()
+    updateValuesUI()
 });
 
 profitSection.addEventListener("input", function (event) {
@@ -378,7 +378,7 @@ profitSection.addEventListener("input", function (event) {
         updateTotalCost();
         updateRowNumbers(profitSection)
     }
-    calculateTotalByItem()
+    updateValuesUI()
 });
 
 // Remove a labor row when the trash button is clicked
@@ -391,7 +391,7 @@ laborSection.addEventListener('click', function(event) {
             updateRowNumbers(laborSection)
         }
     }
-    calculateTotalByItem()
+    updateValuesUI()
 });
 
 // Remove a materials row when the trash button is clicked
@@ -404,7 +404,7 @@ materialsSection.addEventListener('click', function(event) {
             updateRowNumbers(materialsSection)
         }
     }
-    calculateTotalByItem()
+    updateValuesUI()
 });
 
     // Remove a contractors row when the trash button is clicked
@@ -417,7 +417,7 @@ contractorSection.addEventListener('click', function(event) {
             updateRowNumbers(contractorSection)
         }
     }
-    calculateTotalByItem()
+    updateValuesUI()
 });
 
 // Remove a misc row when the trash button is clicked
@@ -430,7 +430,7 @@ if (event.target.closest('#remove-misc-btn')) {
         updateRowNumbers(miscSection)
     }
 }
-calculateTotalByItem()
+updateValuesUI()
 });
 
 // Remove a deducts row when the trash button is clicked
@@ -443,7 +443,7 @@ deductsSection.addEventListener('click', function(event) {
             updateRowNumbers(deductsSection)
         }
     }
-    calculateTotalByItem()
+    updateValuesUI()
     });
 
 profitSection.addEventListener('click', function(event) {
@@ -455,7 +455,7 @@ profitSection.addEventListener('click', function(event) {
             updateRowNumbers(profitSection)
         }
     }
-    calculateTotalByItem()
+    updateValuesUI()
     });
 
 function updateRowNumbers(tableSection) {
@@ -648,10 +648,9 @@ function toggleAddHole() {
         $$$("holeItem")?.remove();
     }
     updateTotalCost()
-    calculateTotalByItem()
+    updateValuesUI()
     updateSelectOptions()
     updateRowNumbers(materialsSection)
-   
 }
 
 const element = $$$("Add-hole-check");
@@ -748,7 +747,7 @@ function toggleUtilitiesPerFT(){
         $$$("utilitiesItem")?.remove(); // Remove the row for loan deductions
     }
     updateTotalCost()
-    calculateTotalByItem()
+    updateValuesUI()
     updateSelectOptions()
     updateRowNumbers(materialsSection)
 }
@@ -831,7 +830,7 @@ function toggleRemmovalPerFT(){
         $$$("removalItem")?.remove();
     }
     updateTotalCost()
-    calculateTotalByItem()
+    updateValuesUI()
     updateSelectOptions()
     updateRowNumbers(materialsSection)
 }
@@ -922,7 +921,7 @@ function toggleProfitByDay() {
         table.style.display = "table";
         var days = table.querySelector('#days-per-profit')
         var profitPerDay = table.querySelector('#profit-value')
-        var totalProfit = days.value + profitPerDay.value
+        var totalProfit = days.value * profitPerDay.value
         const tbodyProfit = $$$('profit-section');
         const rowCountProfit = tbodyProfit.querySelectorAll('tr').length; // Correct row count
 
@@ -970,6 +969,14 @@ function toggleProfitByDay() {
 }
 
 
+function reoloadLoans(){
+    var checkbox = $$$("cbox4");
+    checkbox.checked = false
+    toggleAddLoans()
+    checkbox.checked = true
+    toggleAddLoans()
+}
+
 
 // Function to toggle the visibility of the loans section
 function toggleAddLoans() {
@@ -981,26 +988,29 @@ function toggleAddLoans() {
     var deductsSection = $$$("deducts-section"); // The section where deductions are displayed
     const tbodydeducts = $$$('deducts-section'); // Deductions section (table body)
     const rowCountdeducts = tbodydeducts.querySelectorAll('tr').length; // Count of existing rows in the deductions section
-
+    const totalCostByItems = calculateProfitAndCostByItem()
     // If the checkbox is checked, display the loans table and calculate the deductions
     if (checkbox.checked) {
-        table.style.display = "table"; // Show the loans table
-        
-        // Calculate the deduction amount based on the total cost and the loan percentage
-        var deductAmount = (totalCostElement * percentLabelLoans).toFixed(2);
-
-
-        // Create a new row in the deductions section with the loan deduction details
-
-        var newRow = document.createElement("tr");
-            newRow.id = `deducts10`; // ID único para cada fila
-            newRow.className = "align-middle generated-by-utils"
+        table.style.display = "table"; // Show the loans table 
+        Object.entries(totalCostByItems).forEach(([key, value], index) => {
+            // Calcula el monto de deducción para cada elemento del diccionario
+            const deductAmount = (value * percentLabelLoans).toFixed(2);
+            const newRow = document.createElement("tr");
+    
+            newRow.id = `deducts${index}`; // ID único para cada fila
+            newRow.className = "align-middle generated-by-utils";
             newRow.innerHTML = `
-                <td class="text-center p-0"><strong>${rowCountdeducts}</strong></td>
+                <td class="text-center p-0"><strong>${index + 1}</strong></td>
                 <td colspan="4" class="p-0 text-wrap">
                     <div class="d-flex align-items-center text-wrap">
-                        <select id="itemsSelect" class="innerSelect me-2" style="width: auto;"><option value="GENERAL">GENERAL</option><option value="af">af</option><option value="clf">clf</option></select>
-                        <textarea class="form-control-budget text-start" name="deducts_desc" rows="2" readonly>Value for concepts of loans, interest and variable costs related to the financial management of the project (${percentLabelLoans * 100}%) readonly disabled.
+                        <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
+                            <option value="${key}">${key}</option>
+                            <option value="GENERAL">GENERAL</option>
+                            <option value="af">af</option>
+                            <option value="clf">clf</option>
+                        </select>
+                        <textarea class="form-control-budget text-start" name="deducts_desc" rows="2" readonly>
+    Value for concepts of loans, interest and variable costs related to the financial management of the project (${percentLabelLoans * 100}%) readonly disabled.
                         </textarea>
                         <input class="form-control-budget d-none" type="text" name="deducts_desc" value="Value for concepts of loans, interest and variable costs related to the financial management of the project. (${percentLabelLoans * 100}%)">
                     </div>                     
@@ -1009,16 +1019,18 @@ function toggleAddLoans() {
                 <td class="p-0">
                     <div class="input-group p-0">
                         <span class="money_simbol_input">$</span>
-                        <input class="form-control-budget text-end" type="number" name="deducts_UnitCost" id="deducts_UnitCost" value="${deductAmount}" step="0.01" readonly disabled>
+                        <input class="form-control-budget text-end" type="number" name="deducts_UnitCost" id="deducts_item" value="${deductAmount}" step="0.01" readonly>
                     </div>
                 </td>                         
-        `;
-        deductsSection.appendChild(newRow);// Append the new row to the deductions section
-
+            `;
+            deductsSection.appendChild(newRow); // Agrega la nueva fila a la sección de deducciones
+        });
     } else {
         // If the checkbox is unchecked, hide the loans table and remove the deduction row
         table.style.display = "none";  
-        $$$("deducts10")?.remove(); // Remove the row for loan deductions
+        Object.entries(totalCostByItems).forEach(([key, value], index) => {
+            $$$(`deducts${index}`)?.remove();
+            });
     }
     calculateTotalByItem()
     calculateProfitAndCostByItem()
@@ -1027,16 +1039,6 @@ function toggleAddLoans() {
 }
 
 
-
-function reoloadLoans() {
-    var checkbox = $$$("cbox4"); 
-    checkbox.checked = false
-    toggleAddLoans()
-    checkbox.checked = true
-    toggleAddLoans()
-}
-
-//to change
 
 //to change percentLabelLoan update the deductAmount
 $$$("percentage-loans").addEventListener('input', function() {
@@ -1062,7 +1064,7 @@ function toggleUnitCostMW() {
             checkbox.checked = false;
             checkManufacturingCostsMW(checkbox)
     })}
-    calculateTotalByItem()
+    updateValuesUI()
     calculateProfitAndCostByItem()
     
 }
@@ -1344,7 +1346,7 @@ function removeItem(element, value) {
         useDaysInMF()}
     removeAllElemetsByItems(value)
     updateSelectOptions();
-    calculateTotalByItem();
+    updateValuesUI()
     reloadRowProfitManufacturingMW()
     const projectsCountSpan = document.getElementById('projects-count');
     projectsCountSpan.textContent = items.length - 1;
@@ -1384,7 +1386,7 @@ function updateSelectOptions() {
         }
         
     });
-    calculateTotalByItem()
+    updateValuesUI()
 }
 
 
@@ -1403,106 +1405,112 @@ let costInputs = costManagement.querySelectorAll('#total_Cost');
 
 
 function calculateTotalByItem() {
-let itemSelects = costManagement.querySelectorAll('#itemsSelect');
-validateInputs()
-const totalsByItem = {};
-const descriptionByItem = {};
-itemSelects.forEach((select, index) => {
-    const selectedItem = select.value;
+    let itemSelects = costManagement.querySelectorAll('#itemsSelect');
+    validateInputs()
+    const totalsByItem = {};
+    const descriptionByItem = {};
+    itemSelects.forEach((select, index) => {
+        const selectedItem = select.value;
 
-    // Inicializar el total si no existe
-    if (!totalsByItem[selectedItem]) {
-        totalsByItem[selectedItem] = 0;
-    }
-
-    if (!descriptionByItem[selectedItem]) {
-        descriptionByItem[selectedItem] = {};
-    }
-
-    // Obtener el costo correspondiente según la sección
-    let cost = 0; // Inicializar cost
-
-    if (select.closest('#materials-section')) {
-        // Usar querySelector en lugar de getElementById
-        const materialCostInput = select.parentElement.parentElement.parentElement.querySelector("#materials_Cost");
-        if(materialCostInput){
-            cost = parseFloat(materialCostInput.value)
+        // Inicializar el total si no existe
+        if (!totalsByItem[selectedItem]) {
+            totalsByItem[selectedItem] = 0;
         }
-    } else if (select.closest('#contractor-section')) {
-        const contractorCostInput = select.parentElement.parentElement.parentElement.querySelector("#contractor_UnitCost");
-        if(contractorCostInput){
-            cost = parseFloat(contractorCostInput.value)
+
+        if (!descriptionByItem[selectedItem]) {
+            descriptionByItem[selectedItem] = {};
         }
-    } else if (select.closest('#labor-section')) {
-        const laborCostInput = select.parentElement.parentElement.parentElement.querySelector("#Labor_Cost");
-        if(laborCostInput){
-            cost = parseFloat(laborCostInput.value)
+
+        // Obtener el costo correspondiente según la sección
+        let cost = 0; // Inicializar cost
+
+        if (select.closest('#materials-section')) {
+            // Usar querySelector en lugar de getElementById
+            const materialCostInput = select.parentElement.parentElement.parentElement.querySelector("#materials_Cost");
+            if(materialCostInput){
+                cost = parseFloat(materialCostInput.value)
+            }
+        } else if (select.closest('#contractor-section')) {
+            const contractorCostInput = select.parentElement.parentElement.parentElement.querySelector("#contractor_UnitCost");
+            if(contractorCostInput){
+                cost = parseFloat(contractorCostInput.value)
+            }
+        } else if (select.closest('#labor-section')) {
+            const laborCostInput = select.parentElement.parentElement.parentElement.querySelector("#Labor_Cost");
+            if(laborCostInput){
+                cost = parseFloat(laborCostInput.value)
+            }
+        } else if (select.closest('#misc-section')) {
+            const miscCostInput = select.parentElement.parentElement.parentElement.querySelector("#misc_UnitCost");
+            if(miscCostInput){
+                cost = parseFloat(miscCostInput.value)
+            }
         }
-    } else if (select.closest('#misc-section')) {
-        const miscCostInput = select.parentElement.parentElement.parentElement.querySelector("#misc_UnitCost");
-        if(miscCostInput){
-            cost = parseFloat(miscCostInput.value)
+        else if (select.closest('#deducts-section')) {
+                const dedusctsCostInput = select.parentElement.parentElement.parentElement.querySelector("#deducts_item");
+                if(dedusctsCostInput){
+                    cost = parseFloat(dedusctsCostInput.value)
+            }
         }
-    }
-    else if (select.closest('#deducts10')) {
-            const dedusctsCostInput = select.parentElement.parentElement.parentElement.querySelector("#deducts_UnitCost");
-            if(dedusctsCostInput){
-                cost = parseFloat(dedusctsCostInput.value)
-        }
-    }
-        
-    // Sumar el costo al total
-    nameDesc = select.parentElement.querySelector("input").value
-    totalsByItem[selectedItem] += cost; 
-    descriptionByItem[selectedItem][nameDesc] = cost
-    
-    // Para depuración: mostrar el total actual por cada elemento
-});
-
-
-
-// Mostrar todos los totales al final
-
-// Obtener la referencia al cuerpo de la tabla
-const tableBody = document.querySelector('#cost_per_items tbody');
-
-// Limpiar el contenido de la tabla (en caso de que ya existan datos)
-tableBody.innerHTML = '';
-// Obtener las claves (nombres de los ítems) y ordenarlas alfabéticamente
-const sortedItems = Object.keys(totalsByItem).sort();
-
-// Iterar sobre los ítems ordenados
-sortedItems.forEach(item => {
-    if (totalsByItem.hasOwnProperty(item)) {
-        // Crear una nueva fila
-        row = `
-        <tr >
-            <td class="p-0  px-2">${item}</td>
-            <td class="p-0  px-2">$${totalsByItem[item].toFixed(2)}</td>
-        </tr>`
-        // Añadir la fila al cuerpo de la tabla
-        tableBody.insertAdjacentHTML('beforeend', row);
-        // Añadir las celdas a la fila
-        
-
-        Object.entries(descriptionByItem[item]).forEach(([subKey, subValue]) => {
-                row = `
-                <tr class="table-secondary p-4" style="font-size:0.8rem">
-                    <td colspan="2" class="p-0 border px-4">* $${subKey} - (${subValue})</td>
-                </tr>`;
-            tableBody.insertAdjacentHTML('beforeend', row);
-            });
             
-    }
-});
-calculateProfitByItem()
-calculateProfitAndCostByItem()
-}
-// Escuchar los cambios en los selects y los costos
-itemSelects.forEach(select => select.addEventListener('change', calculateTotalByItem));
-costInputs.forEach(input => input.addEventListener('input', calculateTotalByItem));
+        // Sumar el costo al total
+        nameDesc = select.parentElement.querySelector("input").value
+        totalsByItem[selectedItem] += cost; 
+        descriptionByItem[selectedItem]['ID'+(index+1) + '- ' + nameDesc] = cost
+        
+        // Para depuración: mostrar el total actual por cada elemento
+    });
+    // Mostrar todos los totales al final
+    // Obtener la referencia al cuerpo de la tabla
+    const tableBody = document.querySelector('#cost_per_items tbody');
+    // Limpiar el contenido de la tabla (en caso de que ya existan datos)
+    tableBody.innerHTML = '';
+    // Obtener las claves (nombres de los ítems) y ordenarlas alfabéticamente
+    const sortedItems = Object.keys(totalsByItem).sort();
 
-calculateTotalByItem();
+    // Iterar sobre los ítems ordenados
+    sortedItems.forEach(item => {
+        if (totalsByItem.hasOwnProperty(item)) {
+            // Crear una nueva fila
+            row = `
+            <tr >
+                <td class="p-0  px-2">${item}</td>
+                <td class="p-0  px-2">$${totalsByItem[item].toFixed(2)}</td>
+            </tr>`
+            // Añadir la fila al cuerpo de la tabla
+            tableBody.insertAdjacentHTML('beforeend', row);
+            // Añadir las celdas a la fila
+            
+
+            Object.entries(descriptionByItem[item]).forEach(([subKey, subValue]) => {
+                    row = `
+                    <tr class="table-secondary p-4" style="font-size:0.8rem">
+                        <td colspan="2" class="p-0 border px-4">${subKey} - (${subValue})</td>
+                    </tr>`;
+                tableBody.insertAdjacentHTML('beforeend', row);
+                });
+                
+        }
+    });
+    calculateProfitByItem()
+    calculateProfitAndCostByItem()
+    }
+
+function updateValuesUI() {
+    calculateTotalByItem();
+    var checkbox = $$$("cbox4");
+    console.log(checkbox)
+    if (checkbox.checked == true){
+        reoloadLoans();
+    }
+
+}
+
+// Escuchar los cambios en los selects y los costos
+itemSelects.forEach(select => select.addEventListener('change', updateValuesUI));
+costInputs.forEach(input => input.addEventListener('input', updateValuesUI));
+
+updateValuesUI()
 
 
 function checkManufacturingCosts(checkbox) {
@@ -1738,7 +1746,7 @@ function calculateProfitByItem() {
         // Sumar el costo al total
         nameDesc = select.parentElement.querySelector("input").value
         totalsByItem[selectedItem] += cost; 
-        descriptionByItem[selectedItem][nameDesc] = cost
+        descriptionByItem[selectedItem]['ID'+(index+1) + '- ' +nameDesc] = cost
         
     });
     
@@ -1769,7 +1777,7 @@ function calculateProfitByItem() {
             Object.entries(descriptionByItem[item]).forEach(([subKey, subValue]) => {
                     row = `
                     <tr class="table-secondary p-4" style="font-size:0.8rem">
-                        <td colspan="2" class="p-0 border px-4">* $${subKey} - (${subValue})</td>
+                        <td colspan="2" class="p-0 border px-4">${subKey} - (${subValue})</td>
                     </tr>`;
                 tableBody.insertAdjacentHTML('beforeend', row);
                 });
@@ -1782,6 +1790,7 @@ function calculateProfitAndCostByItem() {
     
     const totalsByItem = {};
     const descriptionByItem = {};
+    const totalCostWithoutDeductionsByItem = {};
     
     itemSelects.forEach((select, index) => {
         const selectedItem = select.value;
@@ -1794,6 +1803,11 @@ function calculateProfitAndCostByItem() {
         if (!descriptionByItem[selectedItem]) {
             descriptionByItem[selectedItem] = {};
         }
+
+        if (!totalCostWithoutDeductionsByItem[selectedItem]) {
+            totalCostWithoutDeductionsByItem[selectedItem] = 0;
+        }
+    
     
         // Obtener el costo correspondiente según la sección
         let cost = 0; // Inicializar cost
@@ -1802,21 +1816,25 @@ function calculateProfitAndCostByItem() {
             const materialCostInput = select.parentElement.parentElement.parentElement.querySelector("#materials_Cost");
             if(materialCostInput){
                 cost = parseFloat(materialCostInput.value) || 0;
+                totalCostWithoutDeductionsByItem[selectedItem] += cost;
             }
         } else if (select.closest('#contractor-section')) {
             const contractorCostInput = select.parentElement.parentElement.parentElement.querySelector("#contractor_UnitCost");
             if(contractorCostInput){
                 cost = parseFloat(contractorCostInput.value) || 0; // Convertir a número
+                totalCostWithoutDeductionsByItem[selectedItem] += cost;
             }
         } else if (select.closest('#labor-section')) {
             const laborCostInput = select.parentElement.parentElement.parentElement.querySelector("#Labor_Cost");
             if(laborCostInput){
                 cost = parseFloat(laborCostInput.value) || 0
+                totalCostWithoutDeductionsByItem[selectedItem] += cost;
             }
         } else if (select.closest('#misc-section')) {
             const miscCostInput = select.parentElement.parentElement.parentElement.querySelector("#misc_UnitCost");
             if(miscCostInput){
                 cost = parseFloat(miscCostInput.value) || 0
+                totalCostWithoutDeductionsByItem[selectedItem] += cost;
             }
             
         } else if  (select.closest('#profit-section')) {
@@ -1826,13 +1844,19 @@ function calculateProfitAndCostByItem() {
                 cost = parseFloat(profitCostInput.value) || 0;
             }
             
+        } else if  (select.closest('#deducts-section')) {
+            // Usar querySelector en lugar de getElementById
+            const deductsCostInput = select.parentElement.parentElement.parentElement.querySelector("#deducts_item");
+            if(deductsCostInput){
+                cost = parseFloat(deductsCostInput.value) || 0;
+            }
+            
         }
     
         // Sumar el costo al total
         nameDesc = select.parentElement.querySelector("input").value
         totalsByItem[selectedItem] += cost; 
-        descriptionByItem[selectedItem][nameDesc] = cost
-        
+        descriptionByItem[selectedItem]['ID'+(index+1)+'- '+nameDesc] = cost
     });
     
     // Mostrar todos los totales al final
@@ -1844,7 +1868,8 @@ function calculateProfitAndCostByItem() {
     tableBody.innerHTML = '';
     // Obtener las claves (nombres de los ítems) y ordenarlas alfabéticamente
     const sortedItems = Object.keys(totalsByItem).sort();
-    
+    let costByItems = {}
+    console.log('totalCostWithoutDeductionsByItem', totalCostWithoutDeductionsByItem)
     // Iterar sobre los ítems ordenados
     sortedItems.forEach(item => {
         if (totalsByItem.hasOwnProperty(item)) {
@@ -1862,18 +1887,19 @@ function calculateProfitAndCostByItem() {
             Object.entries(descriptionByItem[item]).forEach(([subKey, subValue]) => {
                     row = `
                     <tr class="table-secondary p-4" style="font-size:0.8rem">
-                        <td colspan="2" class="p-0 border px-4">* $${subKey} - (${subValue})</td>
+                        <td colspan="2" class="p-0 border px-4">${subKey} - (${subValue})</td>
                     </tr>`;
                 tableBody.insertAdjacentHTML('beforeend', row);
                 });
                 
         }
     });
+    return totalCostWithoutDeductionsByItem
     }
 
 
 document.getElementById('productDetail-form').addEventListener('input', function(event) {
-    calculateTotalByItem()
+    updateValuesUI()
 });
     
 
@@ -1985,6 +2011,7 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 function getUtilsData() {
     // Obtener el checkbox y verificar si está marcado HOLE
+    const addTotalFtPosts = document.getElementById('cbox1').checked;
     const addHoleChecked = document.getElementById('Add-hole-check').checked;
     const addUtilitiesChecked = document.getElementById('add-utilities-per-FT').checked;
     const addRemovalChecked = document.getElementById('add-removal-per-FT').checked;
@@ -2139,6 +2166,7 @@ function getUtilsData() {
     }
     
     const dataHolePosts = {
+        addTotalFtPosts: addTotalFtPosts,
         addHoleChecked: addHoleChecked,
         addUtilitiesChecked: addUtilitiesChecked,
         addRemovalChecked: addRemovalChecked,
@@ -2195,6 +2223,30 @@ function getUtilsData() {
 function isGeneratedByUtils(row) {
     return row.classList.contains('generated-by-utils');
 }
+
+function getTableData(tableId){
+        const table = document.getElementById(tableId);
+        if (!table) {
+            console.error(`No se encontró una tabla con el id '${tableId}'`);
+            return null;
+        }
+    
+        const tbody = table.querySelector('tbody');
+        if (!tbody) {
+            console.error('No se encontró un elemento <tbody> en la tabla.');
+            return null;
+        }
+    
+        const rows = [];
+        Array.from(tbody.rows).forEach((row) => {
+            const rowData = [];
+            Array.from(row.cells).forEach((cell) => {
+                rowData.push(cell.textContent.trim());
+            });
+            rows.push(rowData);
+        });
+        return rows;
+    }
 
 function getCostManagementData() {
     const laborData = [];
@@ -2302,7 +2354,7 @@ function getCostManagementData() {
     primaryBudget = document.querySelector(".related-budget")?.dataset.relatedBudgetId || null;
 
 
-
+    const tableCostData = getTableData('cost_per_items')
     const utilsData = getUtilsData();
     const data = {
         laborData,
@@ -2313,6 +2365,7 @@ function getCostManagementData() {
         profitData,
         utilsData,
         primaryBudget, 
+        tableCostData
     };
 
     const projectId = document.getElementById('project-container').dataset.projectId;
@@ -2456,7 +2509,7 @@ function addPaintRow() {
 
     if (existingRow) {
         tbodyMaterial.removeChild(existingRow);
-        calculateTotalByItem()
+        updateValuesUI()
         updateRowNumbers(materialsSection)
     } else {
         const paintDetails = {
@@ -2483,7 +2536,7 @@ function addConcrete() {
 
     if (existingRow) {
         tbodyMaterial.removeChild(existingRow);
-        calculateTotalByItem();
+        updateValuesUI()
         updateRowNumbers(materialsSection);
     } else {
         const concreteDetails = {
@@ -2508,7 +2561,7 @@ function addWelding() {
 
     if (existingRow) {
         tbodyMaterial.removeChild(existingRow);
-        calculateTotalByItem();
+        updateValuesUI()
         updateRowNumbers(materialsSection);
     } else {
         const weldingDetails = {
@@ -2533,7 +2586,7 @@ function addDrawings() {
 
     if (existingRow) {
         tbodyMaterial.removeChild(existingRow);
-        calculateTotalByItem();
+        updateValuesUI()
         updateRowNumbers(materialsSection);
     } else {
         const drawingsDetails = {
@@ -2558,7 +2611,7 @@ function addWindscreen() {
 
     if (existingRow) {
         tbodyMaterial.removeChild(existingRow);
-        calculateTotalByItem();
+        updateValuesUI()
         updateRowNumbers(materialsSection);
     } else {
         const windscreenDetails = {
@@ -2575,7 +2628,7 @@ function addWindscreen() {
         createMaterialRow(windscreenDetails);
     }
     updateTotalCost()
-    calculateTotalByItem()
+    updateValuesUI()
 }
 
 

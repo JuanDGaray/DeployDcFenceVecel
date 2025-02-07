@@ -1,5 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.apps import apps
+from django.core.serializers import serialize
+
 from ..models import (Customer, Project, User,
                       BudgetEstimate, BudgetEstimateMaterialData, BudgetEstimateDeductsData,
                       BudgetEstimateLaborData, BudgetEstimateContractorData,
@@ -23,6 +26,18 @@ from ..utils import create_folders_by_projects, delete_folders_by_projects, new_
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from datetime import datetime
+
+
+from groq import Groq
+from ..promts import basePromt, QueryReviewPrompt, ModelReviewPrompt, AnalysiData, SystemPromtReviewData
+import re, traceback
+from typing import Optional, List
+from pydantic import BaseModel
+
+client = Groq(
+    api_key="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",
+)
+
 
 def aiaInvoice10(request,project_id, invoice_id):
     project = get_object_or_404(Project, pk=project_id)
@@ -284,7 +299,7 @@ def new_budget(request, project_id):
     else:
         try:
             data = json.loads(request.body)
-            print(data)
+            print('Datos recibidos',data)
             dataBudget = {
                 'project': project, 
                 'projectedCost': data['utilsData']['costTotal'], 
@@ -550,7 +565,6 @@ def save_budget_data_from_dict(dataBudget,data):
             isChangeOrder = True
         else:
             isChangeOrder = False
-        
         # Crea el presupuesto
         budget = BudgetEstimate.objects.create(
             project=dataBudget.get('project'),
@@ -561,7 +575,8 @@ def save_budget_data_from_dict(dataBudget,data):
             sales_advisor=dataBudget.get('sales'),  
             date_created=dataBudget.get('dateCreated'),
             id_related_budget=related_budget,
-            isChangeOrder=isChangeOrder
+            isChangeOrder=isChangeOrder, 
+            dataPreview=data.get('tableCostData'),
         )
         
         # Guardar datos de Utilidad (dataHolePosts)
@@ -573,9 +588,9 @@ def save_budget_data_from_dict(dataBudget,data):
             util_data_MW = util_data['dataUnitCostMW']
             util_data_Pday = util_data['dataProfitByDay']
             util_data_loans = util_data['dataLoans']
-            print(util_data_MW['adddataProfitByDayMW'])
             BudgetEstimateUtil.objects.create(
                 budget=budget,
+                add_post_and_hole = util_data_hole.get('addTotalFtPosts'),
                 add_hole_checked=util_data_hole.get('addHoleChecked'),
                 add_utilities_checked=util_data_hole.get('addUtilitiesChecked'),
                 add_removal_checked=util_data_hole.get('addRemovalChecked'),
@@ -739,8 +754,8 @@ def extract_data_budget(budget):
         "utils": list(budget.util_data.values(
             'id', 'add_hole_checked', 'add_utilities_checked', 'add_removal_checked',
             'total_ft', 'total_posts', 'hole_quantity', 'hole_cost', 'cost_per_hole',
-            'utilities_cost', 'removal_cost', 'add_unit_cost_mi', 'manufacturing_data',
-            'cost_data', 'data_unit_cost_mw', 'data_unit_cost_mw_items', 'add_data_profit_by_daymw','data_profit_by_daymw', 'add_data_profit_by_day',
+            'utilities_cost', 'removal_cost', 'add_unit_cost_mi', 'add_unit_cost_mw', 'manufacturing_data',
+            'cost_data', 'data_unit_cost_mw', 'data_unit_cost_mw_items', 'add_data_profit_by_daymw','data_profit_by_daymw', 'add_data_profit_by_day','add_post_and_hole',
             'days', 'profit_value', 'use_day_in_items_manufacturing', 'add_loans', 'percentage'
         )),}
     serialized_data = decimal_to_float(data)
@@ -806,3 +821,192 @@ def updateStatusProject(proposalStatus, project):
     elif  proposalStatus == 'approved' and project.status != 'approved':
         project.status = 'approved'
         project.save()
+
+@login_required
+def chat_with_groq(request):
+    if request.method == "POST":
+        dataPromt = json.loads(request.body)
+        user_message =dataPromt.get("message", "")
+        context_message =dataPromt.get("messageHistory", "")
+        promt = basePromt.replace('{user_question}', user_message)
+        promt = promt.replace('{user_id}', str(request.user.id))
+        promt = promt.replace('{user_name}', str(request.user))
+        if context_message:
+            promt = promt.replace('{context}', str(context_message))
+        if not user_message:
+            return JsonResponse({"error": "No message provided"}, status=400)
+        try:
+            chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                "role": "system",
+                "content": "you are a helpful assistant. Your responses should always be in json that have a type, content, model, table. Remember that the output must always be in this format: {\"type\": \"consulta\", \"content\": \"SELECT * FROM customer_project WHERE is_active = TRUE LIMIT 5;\", \"model\": \"BudgetEstimate\", \"table\": \"customer_invoiceprojects\"}"
+                },
+                {"role": "user",
+                "content": promt,
+                }
+            ],
+            stream=False,
+            response_format={"type": "json_object"},
+            model="deepseek-r1-distill-llama-70b",
+        )
+            response_message = Recipe.model_validate_json(chat_completion.choices[0].message.content)
+            data = response_message
+            print(data)
+            # Extraer la respuesta del modelo
+            if data.type == 'consulta':
+                result = QueryIA(data.content, data.table, data.model)
+                analisys = ReviewAnalisisIA(result, data.table, context_message).model_dump()
+                return JsonResponse({"response": analisys})
+            else:
+                response_message = RecipeGeneral.model_validate_json(chat_completion.choices[0].message.content)
+                return JsonResponse({"response": data.content}) 
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)
+
+
+
+def QueryIA(query, table_name, model_name):
+    try:
+        print(f"Query recibido: {query}")
+        model = apps.get_model('customer', model_name)
+        print(f"Modelo obtenido: {model}")
+        try:
+            result = model.objects.raw(query)
+            print("Resultado obtenido:")
+            json_data = serialize("json", list(result))
+        except:
+            print("Arreglando el Query")
+            query = ReviewQueryIA(query,model)
+            result = model.objects.raw(query)
+            print("Resultado obtenido:")
+            json_data = serialize("json", list(result))
+       
+        print("Datos serializados en JSON:")
+        return json_data
+    except Exception as e:
+        print("Ocurrió un error:")
+        traceback.print_exc()
+        return {"error": str(e)}
+    
+def ReviewQueryIA(query, model):
+    nameModel = model.__name__
+    promt = QueryReviewPrompt(nameModel, query)
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": promt,
+                }
+            ],
+            model="deepseek-r1-distill-llama-70b",
+        )
+        response_message = chat_completion.choices[0].message.content
+        matches =  response_message.split('</think>')
+        pattern = r"#\s*(.*?)\s*#"
+        match = re.search(pattern, matches[-1], re.DOTALL)
+        print(match)
+        return match.group(1) 
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+    
+def ReviewAnalisisIA(json, model, context):
+    if context:
+        promt = AnalysiData.replace('{context}', str(context))
+        promt = promt.replace('{json_data}', json)
+    else:
+        promt = promt.replace('{json_data}', json)
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                "role": "system",
+                "content": "you are a helpful assistant." + SystemPromtReviewData
+                },
+                {"role": "user",
+                "content": promt,
+                }
+            ],
+            stream=False,
+            response_format={"type": "json_object"},
+            model="deepseek-r1-distill-llama-70b",
+        )
+        response_message = RecipeAnalysis.model_validate_json(chat_completion.choices[0].message.content)
+        print(response_message)
+        return response_message
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+    
+def ReviewModelIA(query, table_model):
+    models = apps.get_models()
+    for model in models:
+        print(model.__name__)
+    promt = AnalysiData(table_model, query)
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {"role": "user",
+                "content": promt,
+                }
+            ],
+            model="deepseek-r1-distill-llama-70b",
+        )
+        response_message = chat_completion.choices[0].message.content
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+
+
+class Recipe(BaseModel):
+    type: str
+    content: str
+    model: Optional[str]
+    table: Optional[str]
+    
+class RecipeGeneral(BaseModel):
+    type: str
+    content: str
+
+class KeyData(BaseModel):
+    tittle: str
+    review: str
+class RecipeAnalysis(BaseModel):
+    type: str
+    table: str
+    href: str
+    resumen: str
+    key_data: List[KeyData]
+    observations: List[str]
+    
+def JsonTableAnalisyModelIA(json, context):
+    promt = AnalysiData.replace('{context}', str(context))
+    promt = promt.replace('{json_data}', str(json))
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                "role": "system",
+                "content": "you are a helpful assistant."
+                },
+                {"role": "user",
+                "content": promt,
+                }
+            ],
+            stream=False,
+            response_format={"type": "json_object"},
+            model="deepseek-r1-distill-llama-70b",
+        )
+        response_message = Recipe.model_validate_json(chat_completion.choices[0].message.content)
+        matches =  response_message.split('</think>')
+        pattern = r"```json\s*(\{.*?\})\s*```"
+        match = re.search(pattern, matches[-1], re.DOTALL)
+        if match:
+            return match
+        return response_message    
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

@@ -123,6 +123,7 @@ class BudgetEstimate(models.Model):
     actual_invoice = models.DecimalField("Actual Cost", max_digits=30, decimal_places=2, blank=True, null=True)
     format_type = models.CharField("Format", max_length=4, choices=FORMAT_CHOICES,default='WEB', )
     isChangeOrder = models.BooleanField(default=False)
+    dataPreview = models.JSONField(default=list, null=True )
 
     def __str__(self):
         return f"Budget for {self.project.project_name}"
@@ -235,6 +236,7 @@ class BudgetEstimateUtil(models.Model):
     # Costos y otros datos de los agujeros
     id = models.AutoField(primary_key=True, verbose_name="Util ID")
     budget = models.ForeignKey(BudgetEstimate, related_name='util_data', on_delete=models.CASCADE)
+    add_post_and_hole = models.BooleanField(default=False)
     add_hole_checked = models.BooleanField(default=False)
     add_utilities_checked = models.BooleanField(default=False)
     add_removal_checked = models.BooleanField(default=False)
@@ -321,6 +323,7 @@ class Project(models.Model):
     folder_id = models.CharField("Folder ID", max_length=255, null=True, blank=True)
     def __str__(self):
         return self.project_name
+    
     
     def get_approved_proposal(self):
         """
@@ -440,4 +443,17 @@ class TaskProject(models.Model):
     gantt_data = models.JSONField(default=list)
 
     def __str__(self):
-        return f"TaskProject for {self.project.project_name}"  
+        return f"TaskProject for {self.project.project_name}"
+    
+
+
+class RealCostProject(models.Model):
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='cost_items')
+    items = models.JSONField(default=list)
+    total = models.CharField(max_length=255, default='none')
+    
+    def __str__(self):
+        return f"RealCostProject for {self.project.project_name}"
+
+
+

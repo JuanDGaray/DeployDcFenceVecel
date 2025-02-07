@@ -913,18 +913,8 @@ function openModal(folderId) {
   folderIdInput.value = folderId;
   modal.style.display = 'flex';
 }
-$(document).on('change', '.file-input', function() {
-  var filesCount = $(this)[0].files.length;
-  
-  var textbox = $(this).prev();
 
-  if (filesCount === 1) {
-    var fileName = $(this).val().split('\\').pop();
-    textbox.text(fileName);
-  } else {
-    textbox.text(filesCount + ' files selected');
-  }
-});
+
 const closeModalButton = document.getElementById('closeModal');
 closeModalButton.addEventListener('click', () => {
   const modal = document.getElementById('modal');
@@ -961,6 +951,18 @@ document.addEventListener("DOMContentLoaded", function () {
   const modal = document.getElementById("modal");
   const form = document.getElementById("file-drop");
   const loadingOverlay = document.getElementById('loadingOverlay');
+  const fileInput = document.querySelector(".file-input");
+
+  fileInput.addEventListener('onchange', () => {
+    var filesCount = $(this)[0].files.length;
+    var textbox = $(this).prev();
+    if (filesCount === 1) {
+      var fileName = $(this).val().split('\\').pop();
+      textbox.text(fileName);
+    } else {
+      textbox.text(filesCount + ' files selected');
+    }
+  });
   
   form.addEventListener("submit", function (e) {
     loadingOverlay.classList.remove('d-none');

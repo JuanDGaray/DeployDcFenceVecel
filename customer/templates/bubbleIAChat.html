@@ -1,0 +1,168 @@
+{% load static%}
+<body>
+<button class="chat-bubble" id="chatBubble"></button>
+<div class="chat-box" id="chatBox">
+    <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}" />
+    <div class="chat-box-header">Fenci | Bot IA (Beta)</div>
+    <div class="chat-box-body" id="chatBody"></div>
+    <div class="chat-box-footer">
+    <input type="text" id="chatInput" placeholder="Escribe tu mensaje" />
+    <button id="sendMessage">Enviar</button>
+    </div>
+</div>
+
+<script>
+    const chatBubble = document.getElementById("chatBubble");
+    const chatBox = document.getElementById("chatBox");
+    const chatInput = document.getElementById("chatInput");
+    const chatBody = document.getElementById("chatBody");
+    const sendMessage = document.getElementById("sendMessage");
+
+    let messageHistory = [];
+
+    chatBubble.addEventListener("click", () => {
+    chatBox.style.display =
+        chatBox.style.display === "flex" ? "none" : "flex";
+    });
+
+    let lastSender = null;
+    
+    function saveMessageToHistory(sender, message) {
+        messageHistory.push({ sender, message });
+        if (messageHistory.length > 5) {
+        messageHistory.shift();
+        }
+        console.log("Últimos 5 mensajes:", messageHistory);
+    }
+    function addMessage(sender, message) {
+        saveMessageToHistory(sender, message);
+        if (sender !== lastSender) {
+            const bubbleElement = document.createElement("div");
+            bubbleElement.classList.add("message-bubble");
+            bubbleElement.classList.add("my-2");
+            bubbleElement.classList.add(
+            sender === "IA" ? "bubble-ia" : "bubble-user"
+            );
+
+            const messageContainer = document.createElement("div");
+            messageContainer.classList.add("message-container");
+            bubbleElement.appendChild(messageContainer);
+            chatBody.appendChild(bubbleElement);
+
+            lastSender = sender;
+        }
+        // Buscar la última burbuja añadida y añadir el mensaje
+        const lastBubble = chatBody.lastElementChild.querySelector(".message-container");
+        const messageElement = document.createElement("div");
+        messageElement.classList.add("message");
+        if (typeof message === "string"){
+            messageElement.textContent = message;
+            lastBubble.appendChild(messageElement);}
+            else {
+                const messageData = message;
+                if (messageData.type === "analisis" && messageData.table && messageData.href) {
+                    const { resumen, key_data, observations } = messageData;
+            
+                    // Crear el mensaje con los datos del análisis
+                    const fullMessageElement = document.createElement("div");
+            
+                    // Resumen
+                    const summaryTitle = document.createElement("h6");
+                    summaryTitle.textContent = "Resumen:";
+                    fullMessageElement.appendChild(summaryTitle);
+            
+                    const summaryMessage = document.createElement("p");
+                    summaryMessage.textContent = resumen;
+                    fullMessageElement.appendChild(summaryMessage);
+            
+                    // Key Data
+                    const keyDataTitle = document.createElement("h6");
+                    keyDataTitle.textContent = "Detalles del Proyecto:";
+                    fullMessageElement.appendChild(keyDataTitle);
+            
+                    key_data.forEach(item => {
+                        const keyDataItem = document.createElement("p");
+                        keyDataItem.innerHTML = `<strong>${item.tittle}:</strong> ${item.review}`;
+                        fullMessageElement.appendChild(keyDataItem);
+                    });
+            
+                    // Observaciones
+                    const observationsTitle = document.createElement("h6");
+                    observationsTitle.textContent = "Observaciones:";
+                    fullMessageElement.appendChild(observationsTitle);
+            
+                    observations.forEach(obs => {
+                        const observationItem = document.createElement("p");
+                        observationItem.textContent = obs;
+                        fullMessageElement.appendChild(observationItem);
+                    });
+
+                    const projectLink = document.createElement("a");
+                    projectLink.href = '/'+ messageData.href;
+                    projectLink.textContent = `Ver Proyecto`;
+                    projectLink.target = "_blank"; 
+                    fullMessageElement.appendChild(projectLink);
+
+                    
+            
+                    // Agregar el mensaje estructurado a la última burbuja
+                    lastBubble.appendChild(fullMessageElement);
+                }
+            }
+            
+        chatBody.scrollTop = chatBody.scrollHeight;
+    }
+
+    sendMessage.addEventListener("click", async () => {
+    const message = chatInput.value.trim();
+    const csrftoken = document.getElementById("csrf-token").dataset.csrf;
+    if (message) {
+        addMessage("Usuario", message);
+        chatInput.value = "";
+        const thinkingMessageElement = document.createElement("div");
+        thinkingMessageElement.classList.add("message-bubble", "my-2", "bubble-ia");
+        const thinkingContainer = document.createElement("div");
+        thinkingContainer.classList.add("message-container");
+        thinkingMessageElement.appendChild(thinkingContainer);
+        chatBody.appendChild(thinkingMessageElement);
+        const thinkingText = document.createElement("p");
+        thinkingText.textContent = "Pensando...";
+        thinkingContainer.appendChild(thinkingText);
+        chatBody.scrollTop = chatBody.scrollHeight;
+        try {
+        const response = await fetch("/api/chat/", {
+            method: "POST",
+            headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": csrftoken,
+            },
+            body: JSON.stringify({
+            message: message,
+            messageHistory: messageHistory,
+            }),
+        });
+
+        if (response.ok) {
+            thinkingMessageElement.remove();
+            const data = await response.json();
+            console.log(data.response);
+            if (Array.isArray(data.response)) {
+            data.response.forEach((item) => {
+                addMessage("IA", item);
+            });
+            } else {
+            addMessage("IA", data.response);
+            }
+        } else {
+            const errorData = await response.json();
+            thinkingMessageElement.remove();
+            addMessage("IA", `Error: ${errorData.error}`);
+        }
+        } catch (error) {
+        thinkingMessageElement.remove();
+        addMessage("IA", "Error al conectarse con el servidor.");
+        }
+    }
+    });
+</script>
+</body>

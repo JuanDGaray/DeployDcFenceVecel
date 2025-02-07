@@ -65,12 +65,6 @@
                                     <strong>Budget</strong> <br> 
                                     Estimated: {{ project.get_approved_proposal.total_proposal | currency_usd }} - Actual {{ project.get_approved_proposal.billed_proposal | currency_usd }} <br>
                                 </div>
-                                <div class='px-3'>
-                                    <strong>Progress</strong> 
-                                    <div class="progress" role="progressbar" aria-label="Animated striped example" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100">
-                                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 25%">25%</div>
-                                        </div>
-                                </div>
                             </p>
                             <div class='d-flex justify-content-end'>
                                 <div class='px-3 d-flex flex-row gap-2 justify-content-end'>

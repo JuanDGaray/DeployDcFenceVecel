@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Función para activar/desactivar el campo 'Company Name'
     function toggleCompanyNameField() {
-        console.log("cambio")
     if (customerType.value === 'company' || customerType.value === 'contractor') {
         companyName.disabled = false;
     } else {
@@ -36,11 +35,12 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(response => response.json())
             .then(data => {
             if (data.exists) { 
-                emailError.style.display = 'inline';  // Muestra el mensaje de error
+                emailError.style.display = 'inline';
+                submitBtn.disabled = true
             } else {
-                emailError.style.display = 'none';   // Oculta el mensaje de error
+                emailError.style.display = 'none'; 
+                submitBtn.disabled = !allFieldsFilled;
             }
-            window.location.reload();
             })
             .catch(error => {
             console.error('Error checking email:', error);

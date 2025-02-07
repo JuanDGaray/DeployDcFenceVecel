@@ -20,8 +20,8 @@
                         <p class="text-dark px-4 fw-bold">Progress</p>
                     </div>
                     <div class="progress m-4 border border-2 border-success" style="height: 30px;">
-                        <div class="progress-bar bg-success fw-bold fs-4" role="progressbar" style="width: 65%;" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100">
-                            65% success
+                        <div class="progress-bar bg-success fw-bold fs-4" role="progressbar" style="width: {{ progress }}%;" aria-valuenow=" {{ progress }}" aria-valuemin="0" aria-valuemax="100">
+                            {{ progress }}% success
                         </div>
                     </div>
                 </div>
@@ -160,18 +160,14 @@
     <script src="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.js"></script>
     <script> 
         document.addEventListener('DOMContentLoaded', function () {
-            // Elementos y funciones que se usan cuando el DOM está listo
         
-            // Variables globales
             let ganttData = JSON.parse('{{ ganttData|safe }}');
             let previousGanttData = null;
         
-            // Función para obtener los datos del Gantt
             function getGanttData() {
                 return gantt.serialize();  // Obtén los datos del Gantt
             }
         
-            // Comprobar si el Gantt ha cambiado
             function hasGanttChanged() {
                 const currentGanttData = getGanttData();
                 return JSON.stringify(currentGanttData) !== JSON.stringify(previousGanttData);
@@ -418,23 +414,6 @@
                     modal.style.display = "none";
                 }
             }
-        
-            // Manejador de envío del formulario de evidencia
-            document.getElementById("evidenceForm").onsubmit = function(event) {
-                event.preventDefault(); // Evita el envío del formulario
-        
-                var taskId = event.target.dataset.taskId;
-                var title = document.getElementById("evidenceTitle").value;
-                var description = document.getElementById("evidenceDescription").value;
-        
-                // Lógica para guardar la evidencia (personalízala según tus necesidades)
-                console.log("Guardando evidencia para la tarea ID:", taskId);
-                console.log("Título:", title);
-                console.log("Descripción:", description);
-        
-                closeEvidenceModal();
-                document.getElementById("evidenceForm").reset();
-            };
         });
         
         

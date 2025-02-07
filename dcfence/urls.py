@@ -72,6 +72,8 @@ urlpatterns = [
     path('projects/<int:project_id>/view_changeOrder/<int:budget_id>', views.view_changeOrder, name='view_changeOrder'),
     path('production/<int:project_id>/set_date_project/<str:start_date>/<str:end_date>/', views.setDateInProduction, name='set_date_project'),
     path('production/<int:project_id>/save_gantt_data/', views.save_gantt_data, name='save_gantt_data'),
+    path('production/<int:project_id>/save_real_cost_by_items/', views.save_real_cost_by_items, name='save_real_cost_by_items'),
+    path('api/chat/', views.chat_with_groq, name='chat_with_groq'),
 
 ]
 
