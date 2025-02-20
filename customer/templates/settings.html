@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_head %}
+<style>
+    .org-tree {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .org-level {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-bottom: 2rem;
+    }
+    .org-group {
+        margin: 0 1rem;
+    }
+    .org-group h3 {
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    .org-member {
+        width: 200px;
+        margin-bottom: 1rem;
+    }
+    .org-member .card {
+        transition: all 0.3s ease;
+    }
+    .org-member .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .vertical-line {
+        width: 2px;
+        height: 2rem;
+        background-color: #dee2e6;
+        margin: 0 auto;
+    }
+</style>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+{% endblock %}
+{% block title %} Settings {% endblock %}
+{% block content %}
+<div class="d-flex flex-column min-vh-100 m-0 justify-content-center p-3">
+    <div class="container mt-5">
+        <div class="d-flex flex-column justify-content-center m-0">
+            <!-- Nivel Admin -->
+            <div class="org-group w-100 m-0">
+                <h4 class="text-primary text-center fw-bold">Administrators
+                    <button class="btn btn-primary btn-sm">+</button>
+                </h4>
+                <hr>
+                <div class="org-member d-flex flex-row w-100 justify-content-center align-items-center my-2">
+                    {% for user in admin_users %}
+                        <div class="card p-1 mx-2">
+                            <h5 class="fs-6 fw-bold w-100 m-0">{{ user.name }}</h5>
+                            <p class="card-text fs-6 p-0 m-0">{{ user.email }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <hr>
+            <div class="org-level d-flex flex-row justify-content-around align-items-start w-100">
+                <div class="org-group text-center ">
+                    <h4 class="text-success fw-bold mb-3">Production
+                        <button class="btn btn-success btn-sm">+</button>
+                    </h4>
+                    <div class="d-flex flex-wrap justify-content-center">
+                        {% if production_users %}
+                            {% for user in production_users %}
+                            <div class="card p-2 m-2">
+                                <h5 class="fs-6 fw-bold m-0">{{ user.name }}</h5>
+                                <p class="card-text fs-6 m-0">{{ user.email }}</p>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted card p-2">No Production no found...</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="org-group text-center">
+                    <h4 class="text-warning fw-bold mb-3">Sales
+                        <button class="btn btn-warning btn-sm">+</button>
+                    </h4>
+                    <div class="d-flex flex-wrap justify-content-center">
+                        {% if Sales_users %}
+                            {% for user in Sales_users %}
+                            <div class="card p-2 m-2">
+                                <h5 class="fs-6 fw-bold m-0">{{ user.name }}</h5>
+                                <p class="card-text fs-6 m-0">{{ user.email }}</p>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted card p-2">No sales found...</p>
+                        {% endif %}
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+{% endblock %}

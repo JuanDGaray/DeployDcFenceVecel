@@ -20,7 +20,6 @@ class DriveService:
     @staticmethod
     def get_service():
         if DriveService._service is None:
-            print(os.getenv('GOOGLE_CREDENTIALS'))
             credentials_info = json.loads(os.getenv('GOOGLE_CREDENTIALS', '{}'))
             if 'private_key' in credentials_info:
                 credentials_info['private_key'] = credentials_info['private_key'].replace("\\n", "\n")

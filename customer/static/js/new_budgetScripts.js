@@ -593,59 +593,90 @@ function formatTotalCost(inputElement) {
     inputElement.value = number ? number.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
 }
 
-function toggleAddHole() {
-    // Retrieve the checkbox, table, and input values
-    var checkbox = $$$("Add-hole-check"); // Checkbox for activating/deactivating loans
-    var table = $$$("add-hole-to-item"); // The loans table element
-    var totalQTElement = parseFloat($$$("QT").value) || 0; // Total cost of the project
-    var percentCost = parseFloat($$$("cost-???").value) || 0; // Percentage of loans
-    var costPorHole = parseFloat($$$("cost-per-hole").value) || 0;
-    var totalPost = parseFloat($$$("total-posts").value) || 0; // Percentage of loans
-    var tbodymaterial= $$$('materials-section'); // Deductions section (table body)
-    const rowCountmaterial = tbodymaterial.querySelectorAll('tr').length; // Count of existing rows in the deductions section
-    
-
-    // If the checkbox is checked, display the loans table and calculate the deductions
-    if (checkbox.checked) {
-        table.style.display = "table"; // Show the loans table
+function updateAddHole(){
+    const addHoleChecked = document.getElementById('Add-hole-check');
+    if  (addHoleChecked.checked){
+        addHoleChecked.checked = false
+        toggleAddHole()
         
-        // Calculate the deduction amount based on the total cost and the loan percentage
-        var holeAmount = (totalQTElement * percentCost + totalPost*costPorHole).toFixed(2);
-        // Create a new row in the deductions section with the loan deduction details
-        var newRow = document.createElement("tr");
-        newRow.id = `holeItem`; // ID único para cada fila
-        newRow.className = "align-middle generated-by-utils";
-        newRow.innerHTML = `
-            <td class="text-center p-0"><strong>${rowCountmaterial}</strong></td>
-            <td class="p-0" colspan="2"> 
-                <div class="d-flex align-items-center">
-                    <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
-                        <option value="GENERAL">GENERAL</option> 
-                    </select>
-                    <input class="form-control-budget" type="text" id="materials_desc" name="materials_desc" value="Cost by hole">
-                </div>
-            </td>
-            <td class="p-0">
-                <input class="form-control-budget" type="number" name="materials_qt" step="0" value="${totalPost.toFixed(2)}">
-            </td>
-            <td class="p-0">
-                <div class="input-group p-0">
-                    <span class="money_simbol_input">$</span>
-                    <input class="form-control-budget text-end" type="text" name="materials_UnitCost" step="0.01" value="Null">
-                </div>
-            </td>
-            <td class="p-0"><input class="form-control-budget" type="text" name="materials_lead-time" value='8 days'></td>                             
-            <td class="p-0">
-            <div class="input-group p-0">
-                <span class="money_simbol_input">$</span>
-                <input class="form-control-budget text-end" type="number" name="materials_Cost" id="materials_Cost" step="0.01" value='${holeAmount}' readonly disabled>
-            </div>
-            </td>                            
-        `;
-        tbodymaterial.appendChild(newRow);
+        addHoleChecked.checked = true
+        toggleAddHole()
+    }
+    const addutilitiesperFT = document.getElementById('add-utilities-per-FT');
+    if  (addutilitiesperFT.checked){
+        addutilitiesperFT.checked = false
+        toggleUtilitiesPerFT()
+        
+        addutilitiesperFT.checked = true
+        toggleUtilitiesPerFT()
+    }
+
+    const addremovalperFT = document.getElementById('add-removal-per-FT');
+    if  (addremovalperFT.checked){
+        addremovalperFT.checked = false
+        toggleRemmovalPerFT()
+        
+        addremovalperFT.checked = true
+        toggleRemmovalPerFT()
+    }
+}
+
+function toggleAddHole() {
+    var checkbox = $$$("Add-hole-check");
+    var table = $$$("add-hole-to-item");
+    var totalQTElement = parseFloat($$$("QT").value) || 0;
+    var percentCost = parseFloat($$$("cost-???").value) || 0; 
+    var costPorHole = parseFloat($$$("cost-per-hole").value) || 0;
+    var tbodymaterial= $$$('materials-section');
+    const rowCountmaterial = tbodymaterial.querySelectorAll('tr').length;
+    
+    if (checkbox.checked) {
+        table.style.display = "table"; 
+        var tbodyFt_Post = $$$("tbodyFt&Post");
+        const checkboxes = tbodyFt_Post.querySelectorAll("input[type='checkbox']");
+        for (let checkbox of checkboxes) {
+            if (checkbox.checked) {
+                const fullName = checkbox.getAttribute('name');
+                const nameWithoutPrefix = fullName.replace('check-ftAndPost-', '');
+                const row = checkbox.closest('tr');
+                const totalPost = row.querySelector("input[name='posts']")?.value || '0';
+                var holeAmount = (totalQTElement * percentCost + totalPost*costPorHole).toFixed(2);
+                var newRow = document.createElement("tr");
+                newRow.id = `holeItem`; // ID único para cada fila
+                newRow.className = "align-middle generated-by-utils holeItems";
+                newRow.innerHTML = `
+                    <td class="text-center p-0"><strong>${rowCountmaterial}</strong></td>
+                    <td class="p-0" colspan="2"> 
+                        <div class="d-flex align-items-center">
+                            <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
+                                <option value="${nameWithoutPrefix}">${nameWithoutPrefix}</option> 
+                            </select>
+                            <input class="form-control-budget" type="text" id="materials_desc" name="materials_desc" value="Cost by hole">
+                        </div>
+                    </td>
+                    <td class="p-0">
+                        <input class="form-control-budget" type="number" name="materials_qt" step="0" value="${totalPost}">
+                    </td>
+                    <td class="p-0">
+                        <div class="input-group p-0">
+                            <span class="money_simbol_input">$</span>
+                            <input class="form-control-budget text-end" type="text" name="materials_UnitCost" step="0.01" value="Null">
+                        </div>
+                    </td>
+                    <td class="p-0"><input class="form-control-budget" type="text" name="materials_lead-time" value='8 days'></td>                             
+                    <td class="p-0">
+                    <div class="input-group p-0">
+                        <span class="money_simbol_input">$</span>
+                        <input class="form-control-budget text-end" type="number" name="materials_Cost" id="materials_Cost" step="0.01" value='${holeAmount}' readonly disabled>
+                    </div>
+                    </td>                            
+                `;
+                tbodymaterial.appendChild(newRow);
+            }
+        }
     } else {
-        table.style.display = "none";  
-        $$$("holeItem")?.remove();
+        const holeItems = document.querySelectorAll(".holeItems");
+        holeItems.forEach(item => item.remove());
     }
     updateTotalCost()
     updateValuesUI()
@@ -664,93 +695,74 @@ const totalPost = $$$("total-posts")
 const table = $$$("add-hole-to-item");
 
 
-totalQTElement?.addEventListener("input", updateHoleCost);
-percentCost?.addEventListener("input", updateHoleCost);
-costPorHole?.addEventListener("input", updateHoleCost);
-totalPost?.addEventListener("input", updateHoleCost);
+totalQTElement?.addEventListener("input", updateAddHole);
+percentCost?.addEventListener("input", updateAddHole);
+costPorHole?.addEventListener("input", updateAddHole);
+totalPost?.addEventListener("input", updateAddHole);
 
-function updateHoleCost(){
-    var totalQTElement = $$$("QT");
-    var percentCost = $$$("cost-???");
-    var costPorHole = $$$("cost-per-hole");
-    var table = $$$("add-hole-to-item");
-    var totalPost = $$$("total-posts") 
-    // Verifica si alguno de los elementos es null o no existe
-    if (totalQTElement || percentCost || costPorHole || totalPost) {
-        if (table) { // Solo manipula table si existe
-            table.style.display = "none";  
-        }
-        
-        var postCount = parseInt(totalPost.value) || 0;
-        var additionalMultiplier = Math.floor(postCount/ 50.01); // Calcula cuántos incrementos de 50 huecos han pasado desde los 45 iniciales
-        if (additionalMultiplier > 0) {
-            totalQTElement.value = additionalMultiplier + 1;  // Actualiza el costo
-        } else {
-            totalQTElement.value = 1;  // Si no se han superado los 45, el multiplicador es 0
-        }
-        $$$("holeItem")?.remove(); // Remueve solo si existe
-        toggleAddHole(); // Asegúrate de que esta función esté definida
-    }
 
-    // Aquí puedes añadir la lógica para actualizar el costo del agujero
-    
-}
 
 function toggleUtilitiesPerFT(){
     var checkbox = $$$("add-utilities-per-FT"); 
     var table = $$$("add-utilities-cost"); 
     var utilitiesCost = parseFloat($$$("utilities-cost").value) || 0;
-    var totalFT = parseFloat($$$("total-ft").value) || 0; 
     var tbodymaterial= $$$('materials-section'); 
     const rowCountmaterial = tbodymaterial.querySelectorAll('tr').length;
     if (checkbox.checked) {
         table.style.display = "table"; // Show the loans table
-        
-        // Calculate the deduction amount based on the total cost and the loan percentage
-        var utilitiesAmount = (totalFT * utilitiesCost).toFixed(2);
-        // Create a new row in the deductions section with the loan deduction details
-        var newRow = document.createElement("tr");
-        newRow.id = `utilitiesItem`; // ID único para cada fila
-        newRow.className = "align-middle generated-by-utils";
-        newRow.innerHTML = `
-            <td class="text-center p-0"><strong>${rowCountmaterial}</strong></td>
-            <td class="p-0" colspan="2"> 
-                <div class="d-flex align-items-center ">
-                    <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
-                        <option value="GENERAL">GENERAL</option> 
-                    </select>
-                    <input class="form-control-budget" type="text" id="materials_desc" name="materials_desc" value="Utility cost per square foot">
-                </div>
-            </td>
-            <td class="p-0">
-                <input class="form-control-budget" type="number" name="materials_qt" step="0" value="${totalFT.toFixed(2)}" readonly>
-            </td>
-            <td class="p-0">
+        var tbodyFt_Post = $$$("tbodyFt&Post");
+        const checkboxes = tbodyFt_Post.querySelectorAll("input[type='checkbox']");
+        for (let checkbox of checkboxes) {
+            if (checkbox.checked) {
+            const fullName = checkbox.getAttribute('name');
+            const nameWithoutPrefix = fullName.replace('check-ftAndPost-', '');
+            const row = checkbox.closest('tr');
+            const totalFT = row.querySelector("input[name='ft']")?.value || '0';
+            var utilitiesAmount = (totalFT * utilitiesCost).toFixed(2);
+            var newRow = document.createElement("tr");
+            newRow.id = `utilitiesItem`; // ID único para cada fila
+            newRow.className = "align-middle generated-by-utils utilitiesItems";
+            newRow.innerHTML = `
+                <td class="text-center p-0"><strong>${rowCountmaterial}</strong></td>
+                <td class="p-0" colspan="2"> 
+                    <div class="d-flex align-items-center ">
+                        <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
+                            <option value="${nameWithoutPrefix}">${nameWithoutPrefix}</option> 
+                        </select>
+                        <input class="form-control-budget" type="text" id="materials_desc" name="materials_desc" value="Utility cost per square foot">
+                    </div>
+                </td>
+                <td class="p-0">
+                    <input class="form-control-budget" type="number" name="materials_qt" step="0" value="${totalFT}" readonly>
+                </td>
+                <td class="p-0">
+                    <div class="input-group p-0">
+                        <span class="money_simbol_input">$</span>
+                        <input class="form-control-budget text-end" type="text" name="materials_UnitCost" step="0.01" value="${utilitiesCost}" readonly>
+                    </div>
+                </td>
+                <td class="p-0"><input class="form-control-budget" type="text" name="materials_lead-time" value='8 days'></td>                             
+                <td class="p-0">
                 <div class="input-group p-0">
                     <span class="money_simbol_input">$</span>
-                    <input class="form-control-budget text-end" type="text" name="materials_UnitCost" step="0.01" value="${utilitiesCost.toFixed(2)}" readonly>
+                    <input class="form-control-budget text-end" type="number" name="materials_Cost" id="materials_Cost" step="0.01" value='${utilitiesAmount}' readonly disabled>
                 </div>
-            </td>
-            <td class="p-0"><input class="form-control-budget" type="text" name="materials_lead-time" value='8 days'></td>                             
-            <td class="p-0">
-            <div class="input-group p-0">
-                <span class="money_simbol_input">$</span>
-                <input class="form-control-budget text-end" type="number" name="materials_Cost" id="materials_Cost" step="0.01" value='${utilitiesAmount}' readonly disabled>
-            </div>
-            </td>                            
-            <td class="p-0 text-center" style="width:0px">
-        </tr>        `;
-        tbodymaterial.appendChild(newRow); // Append the new row to the deductions section
-    } else {
-        // If the checkbox is unchecked, hide the loans table and remove the deduction row
-        table.style.display = "none";  
-        $$$("utilitiesItem")?.remove(); // Remove the row for loan deductions
-    }
-    updateTotalCost()
-    updateValuesUI()
-    updateSelectOptions()
-    updateRowNumbers(materialsSection)
-}
+                </td>                            
+                <td class="p-0 text-center" style="width:0px">
+            </tr>        `;
+            tbodymaterial.appendChild(newRow); }}
+                
+        } else {
+            // If the checkbox is unchecked, hide the loans table and remove the deduction row
+            table.style.display = "none";  
+            const utilitiesItems = document.querySelectorAll(".utilitiesItems");
+            utilitiesItems.forEach(item => item.remove());
+        }
+        
+        updateTotalCost()
+        updateValuesUI()
+        updateSelectOptions()
+        updateRowNumbers(materialsSection)}
 
 const elementUtilities = $$$("add-utilities-per-FT");
 elementUtilities.onclick = toggleUtilitiesPerFT;
@@ -758,76 +770,63 @@ elementUtilities.onclick = toggleUtilitiesPerFT;
 var utilitiesCost = $$$("utilities-cost")
 var totalFT = $$$("total-ft")
 
-utilitiesCost?.addEventListener("input", updateUtilitiesPerFT);
-totalFT?.addEventListener("input", updateUtilitiesPerFT);
-
-
-function updateUtilitiesPerFT(){
-    var utilitiesCost = parseFloat($$$("utilities-cost").value) || 0;
-    var totalFT = parseFloat($$$("total-ft").value) || 0; 
-    var table = $$$("add-utilities-cost"); 
-    // Verifica si alguno de los elementos es null o no existe
-    if (utilitiesCost || totalFT) {
-        if (table) { // Solo manipula table si existe
-            table.style.display = "none";  
-        }
-        $$$("utilitiesItem")?.remove(); // Remueve solo si existe
-        toggleUtilitiesPerFT(); // Asegúrate de que esta función esté definida
-    }
-
-    // Aquí puedes añadir la lógica para actualizar el costo del agujero
-    
-}
+utilitiesCost?.addEventListener("input", updateAddHole);
+totalFT?.addEventListener("input", updateAddHole);
 
 
 function toggleRemmovalPerFT(){
     var checkbox = $$$("add-removal-per-FT"); 
     var table = $$$("add-removal-cost"); 
     var removalCost = parseFloat($$$("removal-cost").value) || 0;
-    var totalFT = parseFloat($$$("total-ft").value) || 0; 
     var tbodymaterial= $$$('materials-section'); 
     const rowCountmaterial = tbodymaterial.querySelectorAll('tr').length;
 
     if (checkbox.checked) {
         table.style.display = "table"; // Show the loans table
-        // Calculate the deduction amount based on the total cost and the loan percentage
-        var removalAmount = (totalFT * removalCost).toFixed(2);
-        // Create a new row in the deductions section with the loan deduction details
-        var newRow = document.createElement("tr");
-        newRow.id = `removalItem`; // ID único para cada fila
-        newRow.className = "align-middle generated-by-utils";
-        newRow.innerHTML = `
-            <td class="text-center p-0"><strong>${rowCountmaterial}</strong></td>
-            <td class="p-0" colspan="2"> 
-                <div class="d-flex align-items-center ">
-                    <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
-                        <option value="GENERAL">GENERAL</option> 
-                    </select>
-                    <input class="form-control-budget" type="text" id="materials_desc" name="materials_desc" value="Cost to remove objects">
-                </div>
-            </td>
-            <td class="p-0">
-                <input class="form-control-budget" type="number" name="materials_qt" step="0" value="${totalFT.toFixed(2)}" readonly>
-            </td>
-            <td class="p-0">
-                <div class="input-group p-0">
-                    <span class="money_simbol_input">$</span>
-                    <input class="form-control-budget text-end" type="text" name="materials_UnitCost" step="0.01" value="${removalCost.toFixed(2)}" readonly>
-                </div>
-            </td>
-            <td class="p-0"><input class="form-control-budget" type="text" name="materials_lead-time" value='8 days'></td>                             
-            <td class="p-0">
-            <div class="input-group p-0">
-                <span class="money_simbol_input">$</span>
-                <input class="form-control-budget text-end" type="number" name="materials_Cost" id="materials_Cost" step="0.01" value='${removalAmount}' readonly disabled>
-            </div>
-            </td>                            
-        `;
-        tbodymaterial.appendChild(newRow);// Append the new row to the deductions section
-    } else {
-        // If the checkbox is unchecked, hide the loans table and remove the deduction row
-        table.style.display = "none";  
-        $$$("removalItem")?.remove();
+        var tbodyFt_Post = $$$("tbodyFt&Post");
+        const checkboxes = tbodyFt_Post.querySelectorAll("input[type='checkbox']");
+        for (let checkbox of checkboxes) {
+            if (checkbox.checked) {
+                table.style.display = "table"; // Show the loans table
+                const fullName = checkbox.getAttribute('name');
+                const nameWithoutPrefix = fullName.replace('check-ftAndPost-', '');
+                const row = checkbox.closest('tr');
+                const totalFT = row.querySelector("input[name='ft']")?.value || '0';
+                var removalAmount = (totalFT * removalCost).toFixed(2);
+                var newRow = document.createElement("tr");
+                newRow.id = `removalItem`; // ID único para cada fila
+                newRow.className = "align-middle generated-by-utils removalItems";
+                newRow.innerHTML = `
+                    <td class="text-center p-0"><strong>${rowCountmaterial}</strong></td>
+                    <td class="p-0" colspan="2"> 
+                        <div class="d-flex align-items-center ">
+                            <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
+                                <option value="${nameWithoutPrefix}">${nameWithoutPrefix}</option> 
+                            </select>
+                            <input class="form-control-budget" type="text" id="materials_desc" name="materials_desc" value="Cost to remove objects">
+                        </div>
+                    </td>
+                    <td class="p-0">
+                        <input class="form-control-budget" type="number" name="materials_qt" step="0" value="${totalFT}" readonly>
+                    </td>
+                    <td class="p-0">
+                        <div class="input-group p-0">
+                            <span class="money_simbol_input">$</span>
+                            <input class="form-control-budget text-end" type="text" name="materials_UnitCost" step="0.01" value="${removalCost}" readonly>
+                        </div>
+                    </td>
+                    <td class="p-0"><input class="form-control-budget" type="text" name="materials_lead-time" value='8 days'></td>                             
+                    <td class="p-0">
+                    <div class="input-group p-0">
+                        <span class="money_simbol_input">$</span>
+                        <input class="form-control-budget text-end" type="number" name="materials_Cost" id="materials_Cost" step="0.01" value='${removalAmount}' readonly disabled>
+                    </div>
+                    </td>                            
+                `;
+                tbodymaterial.appendChild(newRow);// Append the new row to the deductions section
+            }}} else {
+        const removalItems = document.querySelectorAll(".removalItems");
+        removalItems.forEach(item => item.remove());
     }
     updateTotalCost()
     updateValuesUI()
@@ -841,27 +840,8 @@ elementRemoval.onclick = toggleRemmovalPerFT;
 var removalCost = $$$("removal-cost")
 var totalFT = $$$("total-ft")
 
-removalCost?.addEventListener("input", updateRemovalPerFT);
-totalFT?.addEventListener("input", updateRemovalPerFT);
-
-
-function updateRemovalPerFT(){
-    var removalCost = parseFloat($$$("removal-cost").value) || 0;
-    var totalFT = parseFloat($$$("total-ft").value) || 0; 
-    var table = $$$("add-removal-cost"); 
-    // Verifica si alguno de los elementos es null o no existe
-    if (removalCost || totalFT) {
-        if (table) { // Solo manipula table si existe
-            table.style.display = "none";  
-        }
-        $$$("removalItem")?.remove(); // Remueve solo si existe
-        toggleRemmovalPerFT(); // Asegúrate de que esta función esté definida
-    }
-
-    // Aquí puedes añadir la lógica para actualizar el costo del agujero
-    
-}
-
+removalCost?.addEventListener("input", updateAddHole);
+totalFT?.addEventListener("input", updateAddHole);
 
 
 function toggleTable() {
@@ -979,6 +959,9 @@ function reoloadLoans(){
 
 
 // Function to toggle the visibility of the loans section
+
+
+
 function toggleAddLoans() {
     // Retrieve the checkbox, table, and input values
     var checkbox = $$$("cbox4"); // Checkbox for activating/deactivating loans
@@ -1082,6 +1065,7 @@ function addItem(input=null) {
     }
     const ItemsManufacturing = $$$("cost_per_manufacturing")
     const ItemsManufacturingMW = $$$("cost_per_manufacturingMW")
+    const tbodyFt_Post = $$$("tbodyFt&Post")
 
     if (inputValue === "") {
         alert("Please enter a valid item.");
@@ -1109,6 +1093,16 @@ function addItem(input=null) {
     const projectsCountSpan = document.getElementById('projects-count');
     projectsCountSpan.textContent = items.length - 1;
 
+    const newRowFT = document.createElement("tr");
+    newRowFT.classList.add('FT&Post'+idInput)
+    newRowFT.innerHTML = `
+    <td class="p-0">
+    <input class="text-end align-middle pr-2" type="checkbox" name="check-ftAndPost-${idInput}" id="check-ftAndPost-${idInput}" onclick="updateAddHole()"> ${idInput}
+    </td>
+    <td class="p-0"><input class="form-control-budget text-center" type="number" name="ft" step="0" value="0" onchange="updateAddHole()">></td>
+    <td class="p-0"><input class="form-control-budget text-center" type="number" name="posts" step="0" value="0" onchange="updateAddHole()"></td>
+    `;
+    tbodyFt_Post.appendChild(newRowFT);
     // Crear un nuevo span
     const newSpan = document.createElement("span");
     newSpan.className = "items_tag d-inline-flex align-items-center bg-light border rounded px-2 py-1";
@@ -1326,7 +1320,20 @@ function removeItem(element, value) {
     const itemMW = $$$(`manufacturingMW-${value.trim().replace(/\s+/g, '-')}`);
     var checkbox = $$$(`check-manufacturing-${value.trim().replace(/\s+/g, '-')}`)
     var checkboxMW = $$$(`check-manufacturingMW-${value.trim().replace(/\s+/g, '-')}`)
-             
+
+    var ischeckboxMW = $$$(`check-ftAndPost-${value.trim().replace(/\s+/g, '-')}`)
+    console.log(ischeckboxMW.checked)
+    ischeckboxMW.checked = false
+    updateAddHole()
+    var ischeckboxFtPost = document.querySelectorAll(`.FT\\&Post${value.trim().replace(/\s+/g, '-')}`);
+    if (ischeckboxFtPost.length > 0) {
+        ischeckboxFtPost.forEach((element) => {
+            element.remove();
+        });
+    }
+    
+    
+
     checkbox.checked = false
     checkManufacturingCosts(checkbox)
     checkboxMW.checked = false
@@ -1348,6 +1355,7 @@ function removeItem(element, value) {
     updateSelectOptions();
     updateValuesUI()
     reloadRowProfitManufacturingMW()
+    
     const projectsCountSpan = document.getElementById('projects-count');
     projectsCountSpan.textContent = items.length - 1;
 
@@ -1421,11 +1429,9 @@ function calculateTotalByItem() {
             descriptionByItem[selectedItem] = {};
         }
 
-        // Obtener el costo correspondiente según la sección
-        let cost = 0; // Inicializar cost
+        let cost = 0;
 
         if (select.closest('#materials-section')) {
-            // Usar querySelector en lugar de getElementById
             const materialCostInput = select.parentElement.parentElement.parentElement.querySelector("#materials_Cost");
             if(materialCostInput){
                 cost = parseFloat(materialCostInput.value)
@@ -2011,14 +2017,29 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 function getUtilsData() {
     // Obtener el checkbox y verificar si está marcado HOLE
+    const checkboxes = document.querySelectorAll('input[type="checkbox"][name^="check-ftAndPost"]');
     const addTotalFtPosts = document.getElementById('cbox1').checked;
     const addHoleChecked = document.getElementById('Add-hole-check').checked;
     const addUtilitiesChecked = document.getElementById('add-utilities-per-FT').checked;
     const addRemovalChecked = document.getElementById('add-removal-per-FT').checked;
+    const checkboxData = {};
+    checkboxes.forEach((checkbox) => {
+            const row = checkbox.closest('tr');
+            const ftInput = row.querySelector('input[name="ft"]')
+            const postsInput = row.querySelector('input[name="posts"]');
+
+            checkboxData[checkbox.id] = {
+                checkbox_id: checkbox.checked,
+                name: checkbox.name,
+                ft: ftInput ? parseFloat(ftInput.value) : 0,
+                posts: postsInput ? parseFloat(postsInput.value) : 0,
+            };
+    });
+    
 
     // Obtener los valores de los campos de texto y convertir a número
-    const totalFt = parseFloat(document.getElementById("total-ft").value.replace(/,/g, '')) || 0;
-    const totalPosts = parseFloat(document.getElementById("total-posts").value.replace(/,/g, '')) || 0;
+    const totalFtAdPPost = checkboxData || 0;
+
 
     // Obtener los valores de los campos relacionados con los agujeros
     const holeQuantity = parseFloat(document.getElementById("QT").value.replace(/,/g, '')) || 0;
@@ -2170,8 +2191,7 @@ function getUtilsData() {
         addHoleChecked: addHoleChecked,
         addUtilitiesChecked: addUtilitiesChecked,
         addRemovalChecked: addRemovalChecked,
-        totalFt: totalFt,
-        totalPosts: totalPosts,
+        totalFtAdPost: [totalFtAdPPost],
         holeQuantity: holeQuantity,
         holeCost: holeCost,
         costPerHole: costPerHole,
@@ -2180,9 +2200,9 @@ function getUtilsData() {
     };
 
     const dataUnitCostMi = {
-        addUnitCostMi: addUnitCostMi,  // Estado del checkbox
-        manufacturingData: tableData.manufacturingItems,  // Datos de la primera tabla
-        costData: tableData.costPerManufacturing  // Datos de la segunda tabla
+        addUnitCostMi: addUnitCostMi,
+        manufacturingData: tableData.manufacturingItems,
+        costData: tableData.costPerManufacturing
         
     };
 
@@ -2217,6 +2237,7 @@ function getUtilsData() {
         profitTotal:profitFTTotal,
         costTotal:costFTTotal,
     }
+    console.log()
     return data
 }
 
@@ -2256,7 +2277,6 @@ function getCostManagementData() {
     const deductsData = [];
     const profitData = [];
 
-    // Obtener datos de la sección de trabajo (labor)
     document.querySelectorAll('#labor-section tr').forEach((row, index) => {
         const cells = row.querySelectorAll('td');
         if (cells.length > 0) {
@@ -2455,8 +2475,6 @@ document.getElementById('save-btn').addEventListener('click', function(event) {
 });
 
 
-
-
 document.querySelectorAll('[data-bs-toggle="collapse"]').forEach((toggle) => {
     console.log('Se activo')
     toggle.addEventListener('click', function () {
@@ -2599,7 +2617,6 @@ function addDrawings() {
             id: drawingsId,
             isCheckList: true
         };
-
         createMaterialRow(drawingsDetails);
     }
 }

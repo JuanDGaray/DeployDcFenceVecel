@@ -7,6 +7,8 @@ from django.dispatch import receiver
 from django.db.models import Sum,Q
 from django.db.models.functions import Coalesce
 from django.db.models import DecimalField
+from django.contrib.auth.models import AbstractUser
+
 
 
 class Customer(models.Model):
@@ -240,8 +242,7 @@ class BudgetEstimateUtil(models.Model):
     add_hole_checked = models.BooleanField(default=False)
     add_utilities_checked = models.BooleanField(default=False)
     add_removal_checked = models.BooleanField(default=False)
-    total_ft = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_posts = models.IntegerField(default=0)
+    totalFtAdPost = models.JSONField(default=list, null=True )
     hole_quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0.96)
     hole_cost = models.DecimalField(max_digits=10, decimal_places=2, default=180)
     cost_per_hole = models.DecimalField(max_digits=10, decimal_places=2, default=3)
@@ -457,3 +458,46 @@ class RealCostProject(models.Model):
 
 
 
+from django.contrib.auth.models import AbstractUser
+from django.db import models
+
+class Role(models.Model):
+    ROLE_TYPES = [
+        ('admin', 'Administrador'),
+        ('sales', 'Vendedor'),
+        ('production', 'Producción'),
+        ('other', 'Otro'),
+    ]
+
+    name = models.CharField(max_length=50)
+    description = models.TextField(blank=True, null=True)
+    hierarchy_level = models.PositiveIntegerField(default=1)
+    role_type = models.CharField(max_length=20, choices=ROLE_TYPES, default='other')
+
+    def __str__(self):
+        return f"{self.name} (Nivel {self.hierarchy_level})"
+
+    class Meta:
+        ordering = ['hierarchy_level']
+
+
+class User(AbstractUser):
+    role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, related_name="users")
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    profile_picture = models.ImageField(upload_to="profile_pictures/", blank=True, null=True)
+
+    # Resolviendo conflictos con `related_name`
+    groups = models.ManyToManyField(
+        "auth.Group",
+        related_name="custom_user_set",  # Cambiar el related_name por uno único
+        blank=True,
+    )
+    user_permissions = models.ManyToManyField(
+        "auth.Permission",
+        related_name="custom_user_permissions_set",  # Cambiar el related_name por uno único
+        blank=True,
+    )
+
+    def __str__(self):
+        return f"{self.username} ({self.role.name if self.role else 'Sin Rol'})"

@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_head %}
+<style>
+    .card {
+        height: 100%; /* Asegura que las tarjetas ocupen el 100% del contenedor padre */
+        border-radius: 10px; /* Bordes redondeados */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Sombra suave */
+    }
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f8f9fa; /* Un gris claro para el fondo */
+        margin: 0;
+        padding: 0;
+    }
+    #costChart, #projectsChart {
+        height: 400px;
+        max-height: 400px;
+    }
+    
+    canvas {
+        max-width: 100%; 
+        max-height: 100%; 
+    }
+
+    .row {
+        margin-bottom: 20px; /* Espaciado entre filas */
+    }
+
+    .gap-3 > .col-6 {
+        margin-bottom: 10px; /* Espaciado adicional para columnas en pantallas pequeñas */
+    }
+
+    @media (max-width: 768px) {
+        .row {
+            margin-bottom: 15px; /* Menor espaciado en pantallas pequeñas */
+        }
+
+        .card {
+            padding: 10px; /* Ajusta el padding en pantallas pequeñas */
+        }
+    }
+
+    @media (min-width: 992px) {
+        .card {
+            padding: 15px; /* Más espacio interno en pantallas grandes */
+        }
+    }
+</style>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+{% block title %} Settings {% endblock %}
+{% block content %}
+<div class="d-flex flex-column min-vh-100 m-0 justify-content-center p-3 col-md-10 m-auto" >
+    <div class="container-fluid min-vh-100 p-3">
+        <div class="row mb-3">
+            <div class="col-12">
+                <div class="card bg-light p-3">
+                    <canvas id="costChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-3">
+                <div class="card bg-light p-3">
+                    <canvas id="statusChart" class="canvas-full"></canvas>
+                </div>
+            </div>
+            <div class="col-3">
+                <div class="card bg-light p-3">
+                    <canvas id="donutChart" class="canvas-full"></canvas>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="card bg-light p-3">
+                    <canvas id="salesPerformanceChart" class="canvas-full"></canvas>
+                </div>
+            </div>
+        </div>
+        <canvas id="projectsChart" class='card bg-light p-2 my-3'></canvas>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const stateColors = {
+                quote_sent: '#FBBD08',
+                in_negotiation: '#F2711C',
+                approved: '#21BA45',
+                not_approved: '#ba2121',
+                in_production: '#5718cc',
+                pending_payment: '#DB2828',
+                inactive: '#767676',
+                cancelled: '#1B1C1D',
+                contacted: '#ADD8E6',
+                new: '#FFD700',
+            };
+    
+            let chartInstances = {};
+    
+            function createChart(ctx, config) {
+                if (chartInstances[ctx]) chartInstances[ctx].destroy(); // Destruir gráfico previo
+                chartInstances[ctx] = new Chart(document.getElementById(ctx).getContext('2d'), config);
+            }
+    
+            function loadProjectStatusChart() {
+                fetch('/metrics/project-status-distribution/')
+                    .then(response => response.json())
+                    .then(data => {
+                        createChart('statusChart', {
+                            type: 'pie',
+                            data: {
+                                labels: data.labels,
+                                datasets: [{
+                                    label: 'Number of Projects',
+                                    data: data.data,
+                                    backgroundColor: data.labels.map(status => stateColors[status] || '#CCCCCC'),
+                                    borderColor: data.labels.map(status => stateColors[status] || '#000000'),
+                                    borderWidth: 1,
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    legend: { position: 'top' },
+                                    title: { display: true, text: 'Project Status Distribution', font: {size: 20} }
+                                },
+                            },
+                        });
+                    });
+            }
+    
+            function loadCostTrendChart() {
+                fetch('/metrics/cost-trend/')
+                    .then(response => response.json())
+                    .then(data => {
+                        createChart('costChart', {
+                            type: 'line',
+                            data: {
+                                labels: data.labels,
+                                datasets: [
+                                    {
+                                        label: 'Estimated Costs',
+                                        data: data.estimated,
+                                        borderColor: 'rgba(54, 162, 235, 1)',
+                                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                                        borderWidth: 2,
+                                        tension: 0.4,
+                                    },
+                                    {
+                                        label: 'Actual Costs',
+                                        data: data.actual,
+                                        borderColor: 'rgba(255, 99, 132, 1)',
+                                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                        borderWidth: 2,
+                                        tension: 0.4,
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    legend: { position: 'top' },
+                                    title: { display: true, text: 'Cost Trend Over Time', font: {size: 20} },
+                                    font: {
+                                        size: 20, 
+                                    },
+                                },
+                                scales: {
+                                    x: { title: { display: true, text: 'Date' } },
+                                    y: { title: { display: true, text: 'Cost (USD)' }, beginAtZero: true },
+                                },
+                            },
+                        });
+                    });
+            }
+    
+            function loadSalesPerformanceChart() {
+                fetch('/sales-performance/')
+                    .then(response => response.json())
+                    .then(data => {
+                        const labels = data.map(item => item.sales_advisor__username);
+                        const estimatedCosts = data.map(item => item.total_estimated_cost || 0);
+                        const actualCosts = data.map(item => item.total_actual_cost || 0);
+    
+                        createChart('salesPerformanceChart', {
+                            type: 'bar',
+                            data: {
+                                labels,
+                                datasets: [
+                                    {
+                                        label: 'Estimated Cost',
+                                        data: estimatedCosts,
+                                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                                        borderColor: 'rgba(54, 162, 235, 1)',
+                                        borderWidth: 1,
+                                    },
+                                    {
+                                        label: 'Actual Cost',
+                                        data: actualCosts,
+                                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                                        borderColor: 'rgba(255, 99, 132, 1)',
+                                        borderWidth: 1,
+                                    },
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    title: { display: true, text: 'Sales Performance by Advisor', font: {size: 20} }
+                                },
+                                scales: {
+                                    x: { stacked: true },
+                                    y: { stacked: true, beginAtZero: true },
+                                },
+                            },
+                        });
+                    });
+            }
+    
+            function loadProjectsByCreationChart(group_by = 'month') {
+                fetch(`/metrics/projects-by-creation-date?group_by=${group_by}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        createChart('projectsChart', {
+                            type: 'line',
+                            data,
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    legend: { display: true },
+                                    title: { display: true, text: 'Project Creation by Period', font: {size: 20} }
+                                },
+                                scales: {
+                                    x: { title: { display: true, text: 'Period' } },
+                                    y: { title: { display: true, text: 'Projects Created' } },
+                                },
+                            },
+                        });
+                    });
+            }
+
+            function loadDonutProposalChhart(){
+                fetch("{% url 'proposals_donut_chart' %}")  // Ajusta la URL a tu vista
+                .then(response => response.json())
+                .then(data => {
+                    const ctx = document.getElementById('donutChart').getContext('2d');
+                    new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Total Billed', 'Total Proposals - Billed Difference'],
+                            datasets: [{
+                                data: [data.total_billed, data.total_proposals - data.total_billed],
+                                backgroundColor: ['#36A2EB', '#FFCE56'],
+                                hoverBackgroundColor: ['#36A2EB', '#FFCE56']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Approved Proposals - Total vs Billed',
+                                    font: {size: 20}
+
+                                }
+                            }
+                        }
+                    });
+                });
+            }
+    
+            // Llamadas a funciones
+            loadProjectStatusChart();
+            loadCostTrendChart();
+            loadSalesPerformanceChart();
+            loadProjectsByCreationChart();
+            loadDonutProposalChhart();
+        });
+    </script>
+    
+</div>
+{% endblock %}

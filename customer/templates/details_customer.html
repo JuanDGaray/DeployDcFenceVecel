@@ -1,5 +1,6 @@
 {% extends "base.html" %} {% load static %} {% block content %}
 <div class="d-flex justify-content-center p-4">
+  {% include "modal_delete.html" %}
   <div class="row">
     <!-- Customer Card -->
     <div class="col-md-3">
@@ -52,11 +53,15 @@
                 <i class="bi bi bi-pencil-fill text-light fs-6"></i>
               </button>
             </a>
-              <a href="{% url 'delete_customer' client.id %}">
-                <button class="btn bg-danger">
-                  <i class="bi bi bi-trash3-fill text-light fs-6"></i>
-                </button>
-              </a>
+            <button 
+              class="btn bg-danger" 
+              type="button" 
+              data-bs-toggle="modal" 
+              data-bs-target="#deleteConfirmationModal"
+              data-client-id="{{ client.id }}">
+              <i class="bi bi-trash3-fill text-light fs-6"></i>
+            </button>
+
             </div>
             </div>
             <div class="card-body mx-4 my-2">
@@ -73,8 +78,7 @@
                     </span>
                   </p>
                   <p>
-                    <strong>Customer admitted: </strong>{{ client.date_created
-                    }}
+                    <strong>Customer admitted: </strong>{{client.date_created}}
                   </p>
                   <p><strong>Last update: </strong>{{ client.date_created }}</p>
                   <p>
@@ -100,9 +104,6 @@
               class="card-header d-flex justify-content-between  p-3 border-bottom bg-gray"
             >
               <h1 class="card-header fs-4 rounded-4">Projects</h1>
-              <button class="btn bg-primary">
-                <i class="bi bi-plus-circle text-light fs-6"></i>
-              </button>
             </div>
             <div class="card-body">
               <table class="table table-striped">
@@ -117,7 +118,7 @@
                 <tbody>
                   {% for project in projects %}
                   <tr>
-                    <td>{{ project.project_name }}</td>
+                    <td><a href='/project/{{project.id}}/'>{{ project.project_name }} </a></td>
                     <td>{{ project.status }}</td>
                     <td>{{ project.start_date }}</td>
                     <td>{{ project.end_date }}</td>
@@ -142,9 +143,6 @@
               class="card-header d-flex justify-content-between  p-3 border-bottom bg-gray"
             >
               <h1 class="card-header fs-4 rounded-4">Invoices</h1>
-              <button class="btn bg-primary">
-                <i class="bi bi-plus-circle text-light fs-6"></i>
-              </button>
             </div>
             <div class="card-body">
               <table class="table table-striped">
@@ -178,6 +176,22 @@
         </div>
       </div>
     </div>
-    {% endblock %}
   </div>
 </div>
+<script>
+  console.log("Inicio del script para manejar el modal");
+  document.addEventListener("DOMContentLoaded", function () {
+    console.log("Script cargado correctamente");
+    const deleteConfirmationModal = document.getElementById("deleteConfirmationModal");
+    deleteConfirmationModal.addEventListener("show.bs.modal", function (event) {
+      const button = event.relatedTarget;
+      const clientId = button.getAttribute("data-client-id");
+      const confirmDeleteButton = document.getElementById("confirmDeleteBtn");
+      confirmDeleteButton.onclick = function () {
+        console.log('CLick')
+        window.location.href = `{% url 'delete_customer' 0 %}`.replace("0", clientId);
+      };
+    });
+  });
+</script>
+{% endblock %}

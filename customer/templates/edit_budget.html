@@ -351,19 +351,16 @@
                     <input type="checkbox" id="cbox1" value="second_checkbox" onclick="toggleTable()" />                                
                     <strong>Add total Ft & posts</strong> 
                 </h2>
-                <div id="table_ftandPost" style="width:90%; display:none" class= bg-light bg-gradient mx-auto p-2 rounded-3">
-                    <table class="table  table-bordered mx-auto my-2" >
+                <div id="table_ftandPost" style="width:90%; display:none" class="bg-light bg-gradient mx-auto p-2 rounded-3">
+                    <table class="table  table-bordered mx-auto my-2"  >
                         <thead class="table-secondary">
                             <tr class="p-0">
-                                <th class="py-0 fs-6 text-center">Total Ft</th>
-                                <th class="py-0 fs-6  text-center">Total Posts</th>
+                                <th class="py-0 fs-6 text-center">Items</th>
+                                <th class="py-0 fs-6 text-center" style='width:25%'>Ft</th>
+                                <th class="py-0 fs-6  text-center" style='width:25%'>Posts</th>
                             </tr>
                         </thead>
-                        <tbody class="table-striped">
-                            <tr>
-                                <td class="p-0"><input class="form-control-budget text-center" type="number" id="total-ft" name="total-ft" step="0" value="0"></td>
-                                <td class="p-0"><input class="form-control-budget text-center" type="number" id="total-posts" name="total-posts" step="0" value="0"></td>                          
-                            </tr>
+                        <tbody class="table-striped" id='tbodyFt&Post'>
                         </tbody>
                         
                     </table>
@@ -771,14 +768,11 @@
 <script src="{% static 'js/addDetailsBudget.js' %}"></script>
 <script>
     const dataC = {{ data|safe }};
-
     const toggleButton = document.getElementById('toggle-button');
     const toolsContainer = document.getElementById('tools-container');
-
     toggleButton.addEventListener('click', () => {
     toolsContainer.classList.toggle('active');
     });
-
 </script>
 
 {% endblock %}

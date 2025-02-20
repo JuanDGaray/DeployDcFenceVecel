@@ -2,18 +2,17 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.apps import apps
 from django.core.serializers import serialize
-
+from django.contrib.auth.models import Group
 from ..models import (Customer, Project, User,
                       BudgetEstimate, BudgetEstimateMaterialData, BudgetEstimateDeductsData,
                       BudgetEstimateLaborData, BudgetEstimateContractorData,
                       BudgetEstimateMiscData, BudgetEstimateProfitData, BudgetEstimateUtil, InvoiceProjects, ProposalProjects, ProjectBudgetXLSX)
 from django.db.models import Max
-from ..form import CustomerForm, ProjectsForm  # Ensure the correct import for the form
+from ..form import CustomerForm, ProjectsForm 
 from django.core.paginator import Paginator
 from django.utils.text import capfirst
 from decimal import Decimal
 from django.db.models import Sum, F
-from django.template.loader import render_to_string
 from django.http import HttpResponse, JsonResponse, request
 from datetime import date, timedelta
 from django.utils import timezone
@@ -29,7 +28,7 @@ from datetime import datetime
 
 
 from groq import Groq
-from ..promts import basePromt, QueryReviewPrompt, ModelReviewPrompt, AnalysiData, SystemPromtReviewData
+from ..promts import basePromt, AsisPromt,  QueryReviewPrompt, ModelReviewPrompt, AnalysiData, SystemPromtReviewData
 import re, traceback
 from typing import Optional, List
 from pydantic import BaseModel
@@ -212,7 +211,11 @@ def detail_project(request, project_id):
             budgets_dict[related_id]['budget'].insert(0, budget)
     productionUsers = None  
     if project.status == 'approved':
-        productionUsers = User.objects.all()
+        groups = Group.objects.prefetch_related("user_set").all()
+        for group in groups:
+            productionUsers = [[user.first_name + user.last_name] for user in group.user_set.all()]
+
+
         
     if project.project_manager and project.status != 'in_production':
         project.status = 'in_production'
@@ -310,7 +313,6 @@ def new_budget(request, project_id):
                 'dateCreated': timezone.now(),  
             }
             save_budget_data_from_dict(dataBudget, data)
-            return redirect('detail_project', project_id=project.id)
         except json.JSONDecodeError:
             return JsonResponse({'status': 'error', 'message': 'Error al procesar los datos.'})
     
@@ -325,7 +327,6 @@ def view_changeOrder(request, project_id,  budget_id):
             'budget': budget,
             'qtChangeOrder': len(qtCHO),
         })
-
 
 
 def view_budget(request, project_id, budget_id): 
@@ -375,7 +376,6 @@ def new_change_order(request, project_id, proposal_id):
             }
             save_budget_data_from_dict(dataBudget, data)
             return redirect('detail_project', project_id=project.id)
-
 
 @login_required 
 def edit_budget(request, project_id, budget_id):
@@ -594,8 +594,7 @@ def save_budget_data_from_dict(dataBudget,data):
                 add_hole_checked=util_data_hole.get('addHoleChecked'),
                 add_utilities_checked=util_data_hole.get('addUtilitiesChecked'),
                 add_removal_checked=util_data_hole.get('addRemovalChecked'),
-                total_ft=util_data_hole.get('totalFt'),
-                total_posts=util_data_hole.get('totalPosts'),
+                totalFtAdPost=util_data_hole.get('totalFtAdPost'),
                 hole_quantity=util_data_hole.get('holeQuantity'),
                 hole_cost=util_data_hole.get('holeCost'),
                 cost_per_hole=util_data_hole.get('costPerHole'),
@@ -753,7 +752,7 @@ def extract_data_budget(budget):
         )),
         "utils": list(budget.util_data.values(
             'id', 'add_hole_checked', 'add_utilities_checked', 'add_removal_checked',
-            'total_ft', 'total_posts', 'hole_quantity', 'hole_cost', 'cost_per_hole',
+            'totalFtAdPost', 'hole_quantity', 'hole_cost', 'cost_per_hole',
             'utilities_cost', 'removal_cost', 'add_unit_cost_mi', 'add_unit_cost_mw', 'manufacturing_data',
             'cost_data', 'data_unit_cost_mw', 'data_unit_cost_mw_items', 'add_data_profit_by_daymw','data_profit_by_daymw', 'add_data_profit_by_day','add_post_and_hole',
             'days', 'profit_value', 'use_day_in_items_manufacturing', 'add_loans', 'percentage'
@@ -828,7 +827,14 @@ def chat_with_groq(request):
         dataPromt = json.loads(request.body)
         user_message =dataPromt.get("message", "")
         context_message =dataPromt.get("messageHistory", "")
-        promt = basePromt.replace('{user_question}', user_message)
+        context_message =dataPromt.get("messageHistory", "")
+        typeMessage =dataPromt.get("type", "")
+        typeTable=dataPromt.get("table", "")
+        if typeMessage == 'consulta':
+            promt = basePromt.replace('{user_question}', user_message)
+            promt = promt.replace('{table}', typeTable)
+        else:
+            promt = AsisPromt.replace('{user_question}', user_message)
         promt = promt.replace('{user_id}', str(request.user.id))
         promt = promt.replace('{user_name}', str(request.user))
         if context_message:
@@ -848,8 +854,7 @@ def chat_with_groq(request):
             ],
             stream=False,
             response_format={"type": "json_object"},
-            model="deepseek-r1-distill-llama-70b",
-        )
+            model="deepseek-r1-distill-llama-70b",)
             response_message = Recipe.model_validate_json(chat_completion.choices[0].message.content)
             data = response_message
             print(data)
@@ -862,7 +867,7 @@ def chat_with_groq(request):
                 response_message = RecipeGeneral.model_validate_json(chat_completion.choices[0].message.content)
                 return JsonResponse({"response": data.content}) 
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+            return JsonResponse({"Puedes reformular tu pregunta por favor!!"}, status=500)
 
     return JsonResponse({"error": "Invalid request method"}, status=405)
 
@@ -889,7 +894,8 @@ def QueryIA(query, table_name, model_name):
     except Exception as e:
         print("Ocurrió un error:")
         traceback.print_exc()
-        return {"error": str(e)}
+        return {"error": 'Lo Lamento actualmente no cuento con sufiencientes datos para hacer consultas, solo te puedo asistir'}
+
     
 def ReviewQueryIA(query, model):
     nameModel = model.__name__
@@ -911,11 +917,12 @@ def ReviewQueryIA(query, model):
         print(match)
         return match.group(1) 
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"error": 'Lo Lamento actualmente no cuento con sufiencientes datos para hacer consultas, solo te puedo asistir'}, status=400)
     
     
 def ReviewAnalisisIA(json, model, context):
     if context:
+        response_data = analisys.model_dump()
         promt = AnalysiData.replace('{context}', str(context))
         promt = promt.replace('{json_data}', json)
     else:
@@ -939,7 +946,7 @@ def ReviewAnalisisIA(json, model, context):
         print(response_message)
         return response_message
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"error": 'Lo Lamento actualmente no cuento con sufiencientes datos para hacer consultas, solo te puedo asistir'}, status=400)
     
     
 def ReviewModelIA(query, table_model):
@@ -958,7 +965,7 @@ def ReviewModelIA(query, table_model):
         )
         response_message = chat_completion.choices[0].message.content
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+        return JsonResponse({"error": 'Lo Lamento actualmente no cuento con sufiencientes datos para hacer consultas, solo te puedo asistir'}, status=400)
     
 
 

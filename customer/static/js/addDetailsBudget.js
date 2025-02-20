@@ -65,7 +65,6 @@ function updateManufacturingMWTable(data) {
 }
 
 function populateUtils(data) {
-    console.log(data)
     const utilsData = data[0];
     utilsData.cost_data.forEach(entry => addItem(entry.item));
     document.getElementById("assistantCostByDay").value = utilsData.data_unit_cost_mw[0].value;;
@@ -82,8 +81,40 @@ function populateUtils(data) {
     updateManufacturingTable(utilsData.cost_data)
     updateManufacturingMWTable(utilsData.data_unit_cost_mw_items)
 
-    document.getElementById("total-ft").value = utilsData.total_ft;
-    document.getElementById("total-posts").value = utilsData.total_posts;
+    const totalFtAdPost = document.getElementById('tbodyFt&Post')
+    utilsData.totalFtAdPost.forEach((obj) => {
+        // Asegúrate de que es un objeto y no vacío
+        if (obj && typeof obj === "object") {
+            Object.keys(obj).forEach((key) => {
+                const entry = obj[key]; // Accede al contenido del objeto por la clave
+                const element = document.getElementById(key); // Busca el elemento en el DOM
+    
+                if (element) {
+                    console.log(`Elemento encontrado para ID: ${key}`);
+
+                    const ft = entry.ft || 0;
+                    const posts = entry.posts || 0;
+                    const checkboxStatus = entry.checkbox_id ;
+                    element.checked = checkboxStatus;
+                    const ftInput = element.closest('tr').querySelector('input[name="ft"]');
+                    const postsInput = element.closest('tr').querySelector('input[name="posts"]');
+                    if (ftInput) {
+                        ftInput.value = ft;
+                    }
+                    if (postsInput) {
+                        postsInput.value = posts;
+                    }
+                } else {
+                    console.warn(`No se encontró ningún elemento con ID: ${key}`);
+                }
+            });
+        } else {
+            console.warn("El objeto dentro de utilsData.totalFtAdPost no es válido.");
+        }
+    });
+    
+
+
     document.getElementById("QT").value = utilsData.hole_quantity;
     document.getElementById("cost-???").value = utilsData.hole_cost;
     document.getElementById("cost-per-hole").value = utilsData.cost_per_hole;
@@ -159,7 +190,6 @@ function toggleCheckboxesInChecklist(data) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    console.log(dataC)
     populateUtils(dataC.utils);
     addManualData(dataC)
     toggleAddHole()

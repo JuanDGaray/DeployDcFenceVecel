@@ -29,6 +29,7 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*', '.vercel.app']
 GOOGLE_CREDENTIALS = os.getenv('GOOGLE_CREDENTIALS')
+
 # Application definition
 
 INSTALLED_APPS = [
@@ -74,29 +75,29 @@ TEMPLATES = [
 WSGI_APPLICATION = 'dcfence.wsgi.application'
 
 
-# # Database
-# # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+# # # Database
+# # # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',
-        'USER': 'postgres.tlxqprpsepzdgnupyroa',
-        'HOST': os.environ.get("SUPABASE_HOST"),
-        'PASSWORD': os.environ.get("SUPABASE_PASSWORD"),
-        'PORT': '6543',
-        'OPTIONS': {
-            'sslmode': 'verify-full',
-            'sslrootcert': os.path.join(BASE_DIR, 'prod-ca-2021.crt'),
-        },
-    }
-}
+     'default': {
+         'ENGINE': 'django.db.backends.postgresql',
+         'NAME': 'postgres',
+         'USER': 'postgres.tlxqprpsepzdgnupyroa',
+         'HOST': os.environ.get("SUPABASE_HOST"),
+         'PASSWORD': os.environ.get("SUPABASE_PASSWORD"),
+         'PORT': '6543',
+         'OPTIONS': {
+             'sslmode': 'verify-full',
+             'sslrootcert': os.path.join(BASE_DIR, 'prod-ca-2021.crt'),
+         },
+     }
+ }
 
 #Database local
-#DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": "DataBaseLocal",
-#     }}
+# DATABASES = {
+#      "default": {
+#          "ENGINE": "django.db.backends.sqlite3",
+#          "NAME": "db.sqlite3",
+#      }}
 
 
 LOGIN_URL = '/login/'

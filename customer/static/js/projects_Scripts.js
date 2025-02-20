@@ -14,18 +14,15 @@ document.addEventListener('DOMContentLoaded', function () {
     );
     const submitBtn = document.getElementById('submit-btn');
 
-    // Función para comprobar si todos los campos requeridos están llenos
     function checkFormCompletion() {
         let allFieldsFilled = true;
 
         requiredFields.forEach(function (field) {
             if (field.tagName === 'SELECT') {
-                // Si es un campo select, comprobar si tiene un valor seleccionado
                 if (field.value === '') {
                     allFieldsFilled = false;
                 }
             } else {
-                // Para otros campos, comprobar si el valor no está vacío
                 if (field.value.trim() === '') {
                     allFieldsFilled = false;
                 }
@@ -35,7 +32,6 @@ document.addEventListener('DOMContentLoaded', function () {
         submitBtn.disabled = !allFieldsFilled;
     }
 
-    // Añadir eventos de escucha a los campos requeridos
     requiredFields.forEach(function (field) {
         field.addEventListener('input', checkFormCompletion);
     });
@@ -43,19 +39,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
-    // Restaurar la posición de desplazamiento
     const savedScrollTop = localStorage.getItem('scrollTop');
     if (savedScrollTop) {
         window.scrollTo(0, savedScrollTop);
         localStorage.removeItem('scrollTop');
     }
 
-    // Guardar la posición de desplazamiento antes de cambiar de página
     const saveScrollPosition = () => {
         localStorage.setItem('scrollTop', window.scrollY);
     };
 
-    // Guardar la posición de desplazamiento cuando se hace clic en enlaces de paginación
     document.querySelectorAll('.page-link').forEach(link => {
         link.addEventListener('click', saveScrollPosition);
     });
@@ -159,7 +152,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    // Función de debounce para limitar el número de solicitudes
     function debounce(func, wait) {
         let timeout;
         return function (...args) {
@@ -167,8 +159,6 @@ document.addEventListener('DOMContentLoaded', function () {
             timeout = setTimeout(() => func.apply(this, args), wait);
         };
     }
-
-    // Agregar eventos para realizar la búsqueda cuando cambie el input, con debounce
     document.querySelectorAll('.form-control-search').forEach(input => {
         input.addEventListener('input', debounce(searchProjects, 300));  // 300ms debounce
     });

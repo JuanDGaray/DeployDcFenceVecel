@@ -33,32 +33,40 @@ a{
   background-position: center;
   background-size: cover;
   filter: brightness(1.2);
-  transition: all 2s ease;
+
 }
-.chat-bubble:hover {
-  background-color: #cfcfcf;
-  filter: brightness(1.6);
-}
+
 .chat-box {
   position: fixed;
   bottom: 110px;
   right: 20px;
   width: 400px;
-  height: 400px;
+  height: 500px;
   background-color: #fff;
-  border: 1px solid #ddd;
+  border: 4px solid #2e2e2e;;
   border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-  display: none;
+  box-shadow: 0px 1px 1000px 2000px rgba(0, 0, 0, 0.2);
+  opacity: 0; /* Oculto por defecto */
+  transform: translateY(20px); /* Ligeramente hacia abajo */
+  display: none; /* Inicialmente no visible */
   flex-direction: column;
-  padding: 0px;
+  padding: 0;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  z-index: 1000;
 }
+
+/* Cuando está activo */
+.chat-box.show {
+  display: flex; /* Se muestra como flexbox */
+  opacity: 1; /* Totalmente visible */
+  transform: translateY(0); /* En su posición final */
+  
+}
+
 .chat-box-header {
-  background-color: #007bff;
+  background-color: #2e2e2e;
   color: #fff;
   padding: 10px;
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
 }
 .chat-box-body {
   display: flex;
@@ -66,7 +74,6 @@ a{
   height: 100%;
   overflow-y: auto;
   padding: 10px;
-  gap: 10px;
   background-color: #f4f4f4;
   border: 1px solid #ccc;
 }
@@ -83,7 +90,7 @@ a{
   margin-right: 5px;
 }
 .chat-box-footer button {
-  background-color: #007bff;
+  background-color: #03db8f;
   color: #fff;
   border: none;
   padding: 5px 10px;
@@ -91,7 +98,7 @@ a{
   cursor: pointer;
 }
 .chat-box-footer button:hover {
-  background-color: #0056b3;
+  background-color: #03ad72;
 }
 
 

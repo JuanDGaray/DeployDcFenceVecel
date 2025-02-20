@@ -1,17 +1,49 @@
 {% load static%}
 <body>
 <button class="chat-bubble" id="chatBubble"></button>
-<div class="chat-box" id="chatBox">
-    <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}" />
-    <div class="chat-box-header">Fenci | Bot IA (Beta)</div>
-    <div class="chat-box-body" id="chatBody"></div>
-    <div class="chat-box-footer">
-    <input type="text" id="chatInput" placeholder="Escribe tu mensaje" />
-    <button id="sendMessage">Enviar</button>
-    </div>
+        <div class="chat-box" id="chatBox">
+        <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}" />
+        <div class="chat-box-header">Fenci</div>
+        <div class="chat-box-body" id="chatBody">
+            <div class="bubble-ia message-bubble">
+                Hola, ¿en qué puedo ayudarte hoy?
+            </div>
+        </div>
+        <div class="chat-box-footer d-flex flex-column">
+            <div class="d-flex align-items-center mb-2">
+                <select id="promptType" class="form-select me-2 bg-primary text-light fw-bold" style="font-size:.6rem; width: auto;">
+                    <option value="asistencia">Asistencia</option>
+                    <option value="consulta">Consulta</option>
+                </select>
+                
+                <!-- Selector de opciones de consulta (se oculta inicialmente) -->
+                <select id="consultaOptions" class="form-select me-2 bg-success text-light fw-bold" style="font-size:.6rem; width: auto; display:none;">
+                    <option value="budgetestimate">Presupuestos</option>
+                    <option value="projects">Clientes</option>
+                    <option value="proposal">Proposal</option>
+                    <option value="invoice">Facturas</option>
+                    <option value="projects">Proyectos</option>
+                </select>
+            </div>
+            <div class='d-flex flex-row'>
+            <!-- Área de texto para el mensaje -->
+            <textarea class="form-control me-2" style="font-size:.8rem; resize: none;" id="chatInput" rows="3" placeholder="Escribe tu mensaje..."></textarea>
+            <button id="sendMessage" class="btn btn-primary m-0">Enviar</button>
+            </div>
+        </div>
 </div>
 
+
 <script>
+    document.getElementById('promptType').addEventListener('change', function () {
+        const consultaOptions = document.getElementById('consultaOptions');
+        if (this.value === 'consulta') {
+            consultaOptions.style.display = 'inline-block'; // Mostrar las opciones de consulta
+        } else {
+            consultaOptions.style.display = 'none'; // Ocultar las opciones de consulta
+        }
+    });
+    
     const chatBubble = document.getElementById("chatBubble");
     const chatBox = document.getElementById("chatBox");
     const chatInput = document.getElementById("chatInput");
@@ -20,11 +52,47 @@
 
     let messageHistory = [];
 
-    chatBubble.addEventListener("click", () => {
-    chatBox.style.display =
-        chatBox.style.display === "flex" ? "none" : "flex";
+
+    chatBubble.style.cursor = "move";
+
+    // Variables para el arrastre
+    let offsetX = 0;
+    let offsetY = 0;
+    let isDragging = false;
+
+    // Eventos de arrastre
+    chatBubble.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        offsetX = e.clientX - chatBubble.offsetLeft;
+        offsetY = e.clientY - chatBubble.offsetTop;
     });
 
+    document.addEventListener("mousemove", (e) => {
+        if (isDragging) {
+            const x = e.clientX - offsetX;
+            const y = e.clientY - offsetY;
+            chatBubble.style.left = `${x}px`;
+            chatBubble.style.top = `${y}px`;
+        }
+    });
+
+    document.addEventListener("mouseup", () => {
+        isDragging = false;
+    });
+
+    chatBubble.addEventListener('click', () => {
+        if (chatBox.classList.contains('show')) {
+            chatBox.classList.remove('show');
+            setTimeout(() => {
+                chatBox.style.display = 'none'; // Esconde después de la transición
+            }, 400); // Duración de la transición
+        } else {
+            chatBox.style.display = 'flex'; // Mostrar antes de la transición
+            setTimeout(() => {
+                chatBox.classList.add('show');
+            }, 10); // Pequeño retraso para activar la transición
+        }
+    });
     let lastSender = null;
     
     function saveMessageToHistory(sender, message) {
@@ -114,7 +182,12 @@
     }
 
     sendMessage.addEventListener("click", async () => {
+    const promptType = document.getElementById('promptType').value;
     const message = chatInput.value.trim();
+    let tabla = null;
+    if (promptType === 'consulta') {
+        tabla = document.getElementById('consultaOptions').value;
+    }
     const csrftoken = document.getElementById("csrf-token").dataset.csrf;
     if (message) {
         addMessage("Usuario", message);
@@ -139,6 +212,8 @@
             body: JSON.stringify({
             message: message,
             messageHistory: messageHistory,
+            type: promptType,
+            table: tabla
             }),
         });
 

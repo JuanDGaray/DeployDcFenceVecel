@@ -74,7 +74,15 @@ urlpatterns = [
     path('production/<int:project_id>/save_gantt_data/', views.save_gantt_data, name='save_gantt_data'),
     path('production/<int:project_id>/save_real_cost_by_items/', views.save_real_cost_by_items, name='save_real_cost_by_items'),
     path('api/chat/', views.chat_with_groq, name='chat_with_groq'),
-
+    path('settings/', views.settings, name='settings'),
+    path('metrics/', views.metrics, name='metrics'),
+    path('metrics/cost-trend/',views.cost_trend, name='cost_trend'),
+    path('metrics/project-status-distribution/',views.project_status_distribution, name='project_status_distribution'),
+    path('sales-performance/', views.sales_performance_view, name='sales_performance'),
+    path('metrics/projects-by-creation-date/', views.projects_by_creation_date, name='projects_by_creation_date'),
+    path('metrics/proposals_donut_chart/', views.proposals_donut_chart, name='proposals_donut_chart'),
 ]
 
-urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+if settings.DEBUG is False:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

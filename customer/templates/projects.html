@@ -38,7 +38,7 @@
                 <option value="{{ seller.username }}">{{ seller.username }}</option>
             {% endfor %}
       </select>      
-      <input type="date" name="date" id="searchInputDate" class="form-control form-control-search form-filter me-2">
+      <input type="date" name="date" id="searchInputDate" class="form-control form-control-search form-filter me-2 d-none">
     </div>
     <div class="card table-responsive rounded-0 border-0 ">
       <table class="table">
@@ -139,11 +139,9 @@
         </ul>
     </div>
   </div>
-  <div id="loader" class="d-none">Loading...</div>
 </div>
-{% else %}
-    <p>No customers found.</p>
 {% endif %}
+<div id="loader" class="d-none">Loading...</div>
 
 <div id="customer-form" class="offcanvas-form ">
   <form action="/projects/" method="POST">

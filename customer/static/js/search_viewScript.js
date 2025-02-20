@@ -26,35 +26,34 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     submitBtn.disabled = !allFieldsFilled;
-    document.getElementById('id_email').addEventListener('input', function() {
-        const emailInput = this.value;
+    document.getElementById('id_email').addEventListener('change', function () {
+        const emailInput = this.value.trim();
         const emailError = document.getElementById('email-error');
+        const submitBtn = document.getElementById('submit-btn'); 
+        const allFieldsFilled = true; 
+        const toggleError = (show, disableButton) => {
+            emailError.style.display = show ? 'inline' : 'none';
+            submitBtn.disabled = disableButton;
+        };
     
-        if (emailInput.trim() !== '') {
-        fetch(`/check-email/?email=${emailInput}`)
-            .then(response => response.json())
-            .then(data => {
-            if (data.exists) { 
-                emailError.style.display = 'inline';
-                submitBtn.disabled = true
-            } else {
-                emailError.style.display = 'none'; 
-                submitBtn.disabled = !allFieldsFilled;
-            }
-            })
-            .catch(error => {
-            console.error('Error checking email:', error);
-            });
+        if (emailInput !== '') {
+            fetch(`/check-email/?email=${emailInput}`)
+                .then(response => response.json())
+                .then(data => toggleError(data.exists, data.exists || !allFieldsFilled))
+                .catch(error => {
+                    console.error('Error checking email:', error);
+                    toggleError(false, !allFieldsFilled);
+                });
         } else {
-        emailError.style.display = 'none';
+            toggleError(false, false);
         }
     });
-
+    
     }
 
     // Escuchar cambios en los campos requeridos
     requiredFields.forEach(function(field) {
-    field.addEventListener('input', checkFormCompletion);
+        field.addEventListener('input', checkFormCompletion);
     });
 
 
@@ -88,8 +87,12 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    addButton.addEventListener("click", toggleFormVisibility);
-    closeForm.addEventListener("click", toggleFormVisibility);
+    if (addButton && closeForm) {
+        addButton.addEventListener("click", toggleFormVisibility);
+        closeForm.addEventListener("click", toggleFormVisibility);
+    } else {
+        console.warn("Los botones para abrir/cerrar el formulario no están presentes.");
+    }
 
     function searchCustomers() {
     const nameInput = document.getElementById('searchInputName');
@@ -199,35 +202,35 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 
-const ctx = document.getElementById('historyChart').getContext('2d');
-const historyChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], // Puedes poner fechas aquí
-        datasets: [{
-            label: 'Customer Registrations',
-            data: [12, 19, 8, 25, 17, 21, 15], // Datos de ejemplo, ajusta según tu histórico diario
-            borderColor: 'rgba(75, 192, 192, 1)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            tension: 0.4, // Para darle el efecto de onda
-            fill: true
-        }]
-    },
-    options: {
-        scales: {
-            y: {
-                beginAtZero: true
-            }
-        },
-        responsive: true,
-        plugins: {
-            legend: {
-                display: true,
-                position: 'top'
-            },
-            tooltip: {
-                enabled: true
-            }
-        }
-    }
-});
+// const ctx = document.getElementById('historyChart').getContext('2d');
+// const historyChart = new Chart(ctx, {
+//     type: 'line',
+//     data: {
+//         labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], // Puedes poner fechas aquí
+//         datasets: [{
+//             label: 'Customer Registrations',
+//             data: [12, 19, 8, 25, 17, 21, 15], // Datos de ejemplo, ajusta según tu histórico diario
+//             borderColor: 'rgba(75, 192, 192, 1)',
+//             backgroundColor: 'rgba(75, 192, 192, 0.2)',
+//             tension: 0.4, // Para darle el efecto de onda
+//             fill: true
+//         }]
+//     },
+//     options: {
+//         scales: {
+//             y: {
+//                 beginAtZero: true
+//             }
+//         },
+//         responsive: true,
+//         plugins: {
+//             legend: {
+//                 display: true,
+//                 position: 'top'
+//             },
+//             tooltip: {
+//                 enabled: true
+//             }
+//         }
+//     }
+// });
