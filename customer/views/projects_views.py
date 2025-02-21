@@ -3,7 +3,8 @@ from django.contrib.auth.decorators import login_required
 from django.apps import apps
 from django.core.serializers import serialize
 from django.contrib.auth.models import Group
-from ..models import (Customer, Project, User,
+from django.contrib.auth.models import User
+from ..models import (Customer, Project, 
                       BudgetEstimate, BudgetEstimateMaterialData, BudgetEstimateDeductsData,
                       BudgetEstimateLaborData, BudgetEstimateContractorData,
                       BudgetEstimateMiscData, BudgetEstimateProfitData, BudgetEstimateUtil, InvoiceProjects, ProposalProjects, ProjectBudgetXLSX)
@@ -210,13 +211,18 @@ def detail_project(request, project_id):
         else:
             budgets_dict[related_id]['budget'].insert(0, budget)
     productionUsers = None  
+
     if project.status == 'approved':
         groups = Group.objects.prefetch_related("user_set").all()
+        admin_users = []
+        production_users = []
         for group in groups:
-            productionUsers = [[user.first_name + user.last_name] for user in group.user_set.all()]
-
-
-        
+            if group.name == "ADMIN":
+                admin_users = [{"name": user.first_name + user.last_name, "email": user.email, "id":  user.id} for user in group.user_set.all()]
+            elif group.name == "PRODUCTION":
+                production_users = [{"name": user.first_name + user.last_name, "email": user.email, "id":  user.id} for user in group.user_set.all()]
+        productionUsers = {'Admins': admin_users, 'Managers':production_users}
+    print()
     if project.project_manager and project.status != 'in_production':
         project.status = 'in_production'
         project.save()
@@ -250,7 +256,7 @@ def detail_project(request, project_id):
                 updateStatusProject(new_status, project)
                 status_choices = Project.STATUS_CHOICES
                 timeline_steps = get_timeline_steps(project)
-                productionUsers = User.objects.all()
+
                 
             return render(request, 'details_project.html', {
                 'project': project,
@@ -280,6 +286,9 @@ def detail_project(request, project_id):
 def select_Manager(request, project_id):
     project = get_object_or_404(Project, id=project_id)
     manager_id = request.GET.get('manager_id')
+    user_ids = User.objects.values_list('id', flat=True)
+    print(list(user_ids))
+    print(manager_id)
     manager = get_object_or_404(User, id=manager_id)
     project.project_manager = manager
     project.status = 'in_production'

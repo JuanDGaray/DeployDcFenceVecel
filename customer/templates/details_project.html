@@ -107,11 +107,16 @@
               <a class="productionButton" id="sendToProductionBtn">
                 <i class="bi bi-wrench-adjustable-circle-fill"></i> Send to production
               </a>
-              <select id='selectManager'>
-                  {% for person in productionUsers %}
-                    <option value="{{ person.id }}">{{ person.username }} 📧 {{ person.email }}</option> <!-- Cambié {{person}} por {{person.username}} asumiendo que estás mostrando el nombre de usuario -->
-                  {% endfor %}
+              <select id="selectManager">
+                {% for group, users in productionUsers.items %}
+                  <optgroup label="{% if group == 'Admins' %}Administradores{% elif group == 'Managers' %}Managers{% endif %}">
+                    {% for person in users %}
+                      <option value="{{ person.id }}">{{ person.name }} 📧 {{ person.email }}</option>
+                    {% endfor %}
+                  </optgroup>
+                {% endfor %}
               </select>
+                            
           {% elif project.project_manager %}
             <a class="productionButton">
               <i class="bi bi-wrench-adjustable-circle-fill"></i> Manager
@@ -611,7 +616,162 @@
           </div>
         </div>
           </div>
+      </div>      
+      <div class="col-md-12 mt-4">
+        <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
+          <div class="card-header d-flex justify-content-between p-3 border-bottom bg-dark">
+            <h1 class="card-header fs-4 rounded-4 px-2">Change Order Proposals</h1>
+          </div>
+          <div class="card-body">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Proposal ID</th>
+                  <th>Budget ID</th>
+                  <th>Date</th>
+                  <th>Due Date</th>
+                  <th>Tracking ID</th>
+                  <th>Create by</th>
+                  <th>Status</th>
+                  <th>Amount</th>
+                  <th>Billed</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for proposal in proposals %}
+                <tr style="vertical-align: middle;">
+                  <td>{{ proposal.id }}</td>
+                  <td>{{ proposal.budget.id }}</td>
+                  <td>{{ proposal.date_created | date:'M/d/y' }}</td>
+                  <td>{{ proposal.due_date | date:'M/d/y' }}</td>
+                  <td>{{ proposal.tracking_id }}</td>
+                  <td>{{ proposal.sales_advisor.username }}</td>
+                  <td class="d-flex"> 
+                    <form method="post" class='m-0'>
+                      {% csrf_token %}
+                      <input type="hidden" name="proposal_id" value="{{ proposal.id }}" style='display:none'>
+                      <input type="hidden" name="budget_id" value="{{ proposal.budget.id }}" style='display:none'>
+                      <select name="status" class="status status-{{ proposal.status }}" onchange="this.form.submit()">
+                        {% for value, label in proposal.STATUS_CHOICES %}
+                          <option value="{{ value }}" {% if proposal.status == value %}selected{% endif %}>
+                            {{ label }}
+                          </option>
+                        {% endfor %}
+                      </select>
+                    </form>
+                    {% if proposal.status == 'new' %}
+                        <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                            data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                            data-bs-title="The proposal is new. You cannot create an invoice for it." 
+                            aria-label="Info" data-bs-original-title="New Proposal">
+                            <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                        </a>
+                    {% elif proposal.status == 'sent' %}
+                        <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                            data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                            data-bs-title="The proposal has been sent. It cannot be deleted or have an invoice created." 
+                            aria-label="Info" data-bs-original-title="Sent Proposal">
+                            <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                        </a>
+                    {% elif proposal.status == 'pending' %}
+                        <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                            data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                            data-bs-title="The proposal is pending. It cannot be deleted or have an invoice created." 
+                            aria-label="Info" data-bs-original-title="Pending Proposal">
+                            <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                        </a>
+                    {% elif proposal.status == 'approved' %}
+                        <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                            data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                            data-bs-title="The proposal is approved. It cannot be deleted, but you can create an invoice for it." 
+                            aria-label="Info" data-bs-original-title="Approved Proposal">
+                            <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                        </a>
+                    {% elif proposal.status == 'rejected' %}
+                        <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                            data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                            data-bs-title="The proposal has been rejected. It can be deleted, but you cannot create an invoice for it." 
+                            aria-label="Info" data-bs-original-title="Rejected Proposal">
+                            <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                        </a>
+                    {% endif %}
+                  </td>
+                  <td>{{ proposal.total_proposal | currency_usd }}</td>
+                  <td>{{ proposal.billed_proposal | currency_usd }}</td>
+                  <td style='width:120px' class="p-0">
+                    <div class="d-inline-flex gap-2 align-items-center p-1">
+                    <a class="btn bg-light border border-2 btn-sm rounded-2" 
+                    href="{% url 'pdf_proposal' project_id=project.id proposal_id=proposal.id %}" target='_blank'
+                    role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="View">
+                    <i class="bi bi-eye-fill" style="font-size: 15px;"></i>
+                    </a>
+                    <div class="dropdown d-flex">
+                      <button 
+                        class="btn bg-light border border-2 btn-sm rounded-2 px-1 py-0 dropdown-toggle  {% if proposal.status == 'new' or proposal.status == 'sent' or proposal.status == 'pending'  or proposal.status == 'rejected' or  proposal.total_proposal <=  proposal.billed_proposal %}disabled{% endif %}" 
+                        type="button" 
+                        id="dropdownMenuButton" 
+                        data-bs-toggle="dropdown" 
+                        aria-expanded="false" 
+                        title="Make Budget" 
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="bottom" 
+                        data-bs-custom-class="custom-tooltip" 
+                        data-bs-title="Make invoice">
+                        <i class="bi bi-cash-stack" style="font-size: 15px;"
+                        > </i>
+                      </button class='p-0'>
+                      <ul class="dropdown-menu p-0" aria-labelledby="dropdownMenuButton">
+                        <li><a class="dropdown-item" href="{% url 'mdcpInvoice' project_id=project.id invoice_id=proposal.id %}" target='_blank'>Invoice MDCP</a></li>
+                        <li><a class="dropdown-item" href="{% url 'broadInvoice10' project_id=project.id invoice_id=proposal.id %}"  target='_blank'>Invoice BROD</a></li>
+                        <li><a class="dropdown-item" href="{% url 'aiaInvoice5' project_id=project.id invoice_id=proposal.id %}"  target='_blank'>Invoice AIA 5%</a></li>
+                        <li><a class="dropdown-item" href="{% url 'aiaInvoice10' project_id=project.id invoice_id=proposal.id %}"  target='_blank'>Invoice AIA 10%</a></li>
+                      </ul>
+                      {% if proposal.status == 'new' or proposal.status == 'sent' or proposal.status == 'pending'  or proposal.status == 'rejected' %}
+                      <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                          data-bs-title="Invoice creation is disabled because the proposal is in Pending, New, Rejected, or Sent status." 
+                          aria-label="Info" data-bs-original-title="Rejected Proposal">
+                          <i class="bi bi-info-circle text-danger" style="font-size: 15px;"></i>
+                      </a>
+                      {% elif  proposal.total_proposal <=  proposal.billed_proposal %}
+                      <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                          data-bs-title="You cannot add more invoices because the total of the proposal has already been invoiced." 
+                          aria-label="Info" data-bs-original-title="Rejected Proposal">
+                          <i class="bi bi-info-circle text-success" style="font-size: 15px;"></i>
+                      </a>
+                      
+                      {% endif %}
+                    </div>
+                    
+                    <a class="btn btn-danger btn-sm rounded-2 p-1 {% if proposal.status == 'approved' or proposal.status == 'sent' or proposal.status == 'pending' %}disabled{% endif %}" 
+                      href="{% url 'delete_proposal' project.id proposal.id %}"
+                      role="button" title="Delete Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-delete-action data-bs-title="Delete">
+                      <i class="bi bi-trash" style="font-size: 15px;"></i>
+                    </a>
+                    {% if proposal.status == 'approved' %}
+
+                        <a class="btn btn-sm rounded-2 p-1 bg-warning" role="button" data-bs-toggle="tooltip" 
+                            data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                            data-bs-title="Change order requested by the client after approval, modifying scope, cost, or timeline."
+                            aria-label="Info" data-bs-original-title="Approved Proposal"
+                            href="{% url 'new_change_order' project.id proposal.id %}">
+                            ChangeOrder
+                        </a>
+                      {% endif %}
+                </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="9">No proposals found for this project.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
+    
       <!-- Project Invoices -->
       <div class="col-md-12 mt-4">
         <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
@@ -1278,7 +1438,7 @@ document.getElementById("sendToProductionBtn").addEventListener("click", functio
   var selectedPersonId = selectElement.value;
 
   if (selectedPersonId) {
-    window.location.href = "{% url 'select_manager' project.id  %}?manager_id=" + selectedPersonId;
+    window.location.href = "{% url 'select_manager' project.id %}?manager_id=" + encodeURIComponent(selectedPersonId);
   } else {
     alert("Please select a manager before sending to production.");
   }

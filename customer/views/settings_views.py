@@ -16,7 +16,7 @@ def settings(request):
             sales_users = [{"name": user.first_name + user.last_name, "email": user.email} for user in group.user_set.all()]
         elif group.name == "PRODUCTION":
             production_users = [{"name": user.first_name + user.last_name, "email": user.email} for user in group.user_set.all()]
-
+    print(admin_users)
     return render(request, "settings.html", {
         "admin_users": admin_users,
         "sales_users": sales_users,
