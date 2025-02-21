@@ -40,7 +40,13 @@ def production_project(request, project_id):
     RealCostByItems = None
     if RealCost.exists():
         RealCostItems = RealCost.get()
-        RealCostByItems = json.dumps(RealCostByItems.items)
+        if RealCostItems:  # Verifica que no sea None
+            RealCostByItems = json.dumps(RealCostItems.items)
+        else:
+            print("RealCost.get() no contiene datos.")
+    else:
+        print("RealCost no existe.")
+
         
 
     proposal = project.get_approved_proposal()

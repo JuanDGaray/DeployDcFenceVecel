@@ -110,29 +110,45 @@
 </div>
 <script>
     function showUpdateCostModal(name, value) {
-        
         const updateCostModal = new bootstrap.Modal(document.getElementById('UpdateCostSpent'));
         const modalBody = document.querySelector('#UpdateCostSpent .modal-body');
-        const realValue =  JSON.parse("{{ realCostItems|escapejs }}");
+    
+        // Manejar realCostItems
+        let realValue = {};
+        try {
+            const rawRealCostItems = "{{ realCostItems|escapejs }}";
+            realValue = rawRealCostItems ? JSON.parse(rawRealCostItems) : {};
+        } catch (error) {
+            console.error("Error parsing realCostItems:", error);
+        }
         const totalValue = realValue[name]?.total !== undefined ? realValue[name].total : 0;
-        // Pass the correct data to the modal template
-        const costConcepts = JSON.parse('{{ costData|escapejs }}'); 
-        const optionsHTML = costConcepts[name].content
-            .map(concept => `<option value="${concept}">${concept}</option>`)
-            .join('');
-        
-        
+    
+        // Manejar costData
+        let costConcepts = {};
+        try {
+            const rawCostData = "{{ costData|escapejs }}";
+            costConcepts = rawCostData ? JSON.parse(rawCostData) : {};
+        } catch (error) {
+            console.error("Error parsing costData:", error);
+        }
+    
+        // Generar opciones si costConcepts[name] existe
+        const optionsHTML = costConcepts[name]?.content
+            ? costConcepts[name].content.map(concept => `<option value="${concept}">${concept}</option>`).join('')
+            : '<option value="" disabled>No concepts available</option>';
+    
+        // Contenido del modal
         modalBody.innerHTML = `
             <form id="costForm">
                 <div class="d-flex justify-content-between align-items-center p-2 border border-2" style="background-color: #f1f1f1; border-radius: 8px;">
-                    <label for="itemName" class="form-label d-flex align-items-center justify-content-center" id='NameCost'>
+                    <label for="itemName" class="form-label d-flex align-items-center justify-content-center" id="NameCost">
                         <strong>${name}</strong>
                     </label>
-                    <label for="costEstimate" class="form-label border px-2 bg-secondary text-white w-30 text-center  m-0">
+                    <label for="costEstimate" class="form-label border px-2 bg-secondary text-white w-30 text-center m-0">
                         ${value}
                         <div class="m-0 p-0 fs-7" style="font-size: 0.75rem;">Costo Estimated</div>
                     </label>
-                    <label for="costSpend" class="form-label border px-2 bg-info text-white w-30 text-center m-0" >
+                    <label for="costSpend" class="form-label border px-2 bg-info text-white w-30 text-center m-0">
                         $${totalValue}
                         <div class="m-0 p-0 fs-7" style="font-size: 0.75rem;">Costo Spend</div>
                     </label>
@@ -142,38 +158,29 @@
                         <label for="costValue" class="form-label mx-1 my-0 w-50"><strong> Cost to Invoice:</strong></label>
                         <input type="number" class="form-control p-0 px-1 m-0" id="costValue" placeholder="Enter cost value">
                     </div>
-                        <hr style="border: 2px solid rgb(124, 124, 124);" class="w-100">
-                        <div class="d-flex  flex-column align-items-center justify-content-center w-100">
-                            <label for="descriptionValue" class="form-label mx-1 my-0 w-50"><strong> Description:</strong></label>
-                            <textarea id="descriptionValue" name="story" rows="3" cols="10"></textarea>
-                        </div>
-                        <label for="concept" class="form-label">Choose or Add a Concept</label>
-                        <select class="form-select" id="concept" aria-label="Select a concept">
-                            <option selected
-                        </select> Choose a concept</option>
-                            ${optionsHTML}
-                        <input type="text" class="form-control d-none m-0 " id="newConceptInput" placeholder="Write new concept" disabled>
-                        <div class="form-check d-flex flex-row w-100 align-items-center">
-                            <input class="form-check-input"   style="width: 20px; height: 20px;" type="checkbox" id="addNewConcept" onchange=enableNewConcept()>
-                            <label class="form-check-label px-2 m-0" for="addNewConcept">
-                                Add a new concept
-                            </label>
-                        </div>
+                    <hr style="border: 2px solid rgb(124, 124, 124);" class="w-100">
+                    <div class="d-flex flex-column align-items-center justify-content-center w-100">
+                        <label for="descriptionValue" class="form-label mx-1 my-0 w-50"><strong> Description:</strong></label>
+                        <textarea id="descriptionValue" name="story" rows="3" cols="10"></textarea>
                     </div>
-                        <div class="mt-3" id="newConceptField" style="display: none;">
-                            <label for="newConcept" class="form-label">New Concept</label>
-                            <input type="text" class="form-control" id="newConcept" placeholder="Enter new concept">
-                        </div>
-                    {% comment %} <div class="d-flex flex-column mt-3 justify-content-center align-items-center p-2 border border-2" style="background-color: #f1f1f1; border-radius: 8px;">
-                        <div class="file-drop-area">
-                            <span class="btn btn-primary">Choose files</span>
-                            <span class="file-message">or drag and drop files here</span>
-                            <input class="file-input" type="file" multiple>
-                        </div>
-                    </div> {% endcomment %}
-            </form>`;
+                    <label for="concept" class="form-label">Choose or Add a Concept</label>
+                    <select class="form-select" id="concept" aria-label="Select a concept">
+                        <option selected>Choose a concept</option>
+                        ${optionsHTML}
+                    </select>
+                    <input type="text" class="form-control d-none m-0" id="newConceptInput" placeholder="Write new concept" disabled>
+                    <div class="form-check d-flex flex-row w-100 align-items-center">
+                        <input class="form-check-input" style="width: 20px; height: 20px;" type="checkbox" id="addNewConcept" onchange="enableNewConcept()">
+                        <label class="form-check-label px-2 m-0" for="addNewConcept">
+                            Add a new concept
+                        </label>
+                    </div>
+                </div>
+            </form>
+        `;
         updateCostModal.show();
     }
+    
     function enableNewConcept() {
         const addNewConceptCheckbox = document.getElementById('addNewConcept');
         const newConceptInput = document.getElementById('newConceptInput');
@@ -218,7 +225,7 @@
             body: JSON.stringify(formData),
         })
         .then(() => {
-            
+            alert('Guardado')
         })
         .catch((error) => {
             console.error('Error:', error);
