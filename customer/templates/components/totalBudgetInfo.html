@@ -1,0 +1,62 @@
+<section class="d-flex flex-row justify-content-between">
+
+        <table class="my-auto">
+            <tr>
+                <td colspan="1" class="p-0 d-flex flex-row">
+                    <h2 class="section-header card-header fs-6 text-end p-2 m-0 ">Total cost without Loans</h2>
+                </td> 
+                <td colspan="2">
+                    <div class="input-group p-0">
+                        <span class="money_simbol_input fs-6 ">$</span>
+                        <input class="form-control-budget text-end fs-6" type="text" name="total_Cost" step="0.01" id="total_Cost" value="0" class=" text-center"  readonly disabled>
+                    </div>
+                </td>                        
+            </tr>
+            <tr class="bg-danger">
+                <td colspan="6" class="p-0 bg-danger d-flex flex-row">
+                    <span class="fs-3 text-light p-2 d-flex align-items-center justify-content-center fw-bold" id='percentage-cost' style='background-color:#700901'>
+                        0%
+                    </span>
+                    <h2 class="section-header card-header fs-5 text-end p-2 m-0 bg-danger  text-light">Total Cost</h2>
+                </td> 
+                <td colspan="2" class="bg-dark">
+                    <div class="input-group p-0">
+                        <span class="money_simbol_input bg-danger fs-5 text-light">$</span>
+                        <input class="form-control-budget text-light text-end bg-danger text-light fs-5" type="text" name="grand_Cost" step="0.01" id="grand_Cost" value="0" class="border-0 text-center bg-secondary text-light"  readonly disabled>
+                    </div>
+                </td>                        
+            </tr>
+        </table>
+
+    <span class="text-1 m-4 fw-bold fs-1">+</span>
+    <table class="my-auto">
+        <tr class="bg-secondary">
+            <td colspan="6" class="p-0 bg-success d-flex flex-row">
+                <span class="fs-3 text-light p-2 d-flex align-items-center justify-content-center fw-bold" id='percentage-profit' style='background-color:#035c02'>
+                   0%
+                </span>
+                <h2 class="section-header card-header fs-5 text-end p-2 m-0 bg-success  text-light"> Total Profit</h2>
+            </td> 
+            <td colspan="2" class="bg-dark">
+                <div class="input-group p-0">
+                    <span class="money_simbol_input bg-success fs-5 text-light">$</span>
+                    <input class="form-control-budget text-light text-end bg-success text-light fs-5" type="text" name="total_profit" value="0" step="0.01" id="total_profit" class="border-0 text-center bg-secondary text-light" readonly>
+                </div>
+            </td>                        
+        </tr>
+    </table>
+    <span class="text-1 my-auto  fw-bold fs-1">=</span>
+    <table class="my-auto">
+        <tr class="bg-warning">
+            <td colspan="6" class="p-0 bg-warning">
+                <h2 class="section-header card-header fs-5 text-end p-2 m-0 bg-warning  text-dark">Project Value</h2>
+            </td> 
+            <td colspan="2" class="bg-dark">
+                <div class="input-group p-0">
+                    <span class="money_simbol_input bg-warning fs-5 text-dark">$</span>
+                    <input class="form-control-budget text-light text-end bg-warning text-dark fs-5" type="text" name="Value_Project" step="0.01" id="Value_Project" value="0" class="border-0 text-center bg-secondary text-light"  readonly disabled>
+                </div>
+            </td>                        
+        </tr>
+    </table>
+</section>

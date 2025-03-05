@@ -390,7 +390,7 @@ def new_change_order(request, project_id, proposal_id):
 def edit_budget(request, project_id, budget_id):
     project = get_object_or_404(Project, pk=project_id)
     budget = get_object_or_404(BudgetEstimate, pk=budget_id)
-    
+    budgetRelated = budget.id_related_budget
     if request.method == 'GET':
         data = extract_data_budget(budget)
         print(data)
@@ -404,10 +404,10 @@ def edit_budget(request, project_id, budget_id):
     else:
         try:
             data = json.loads(request.body)
-            if data['primaryBudget']:
-                budgetRelated = get_object_or_404(BudgetEstimate, pk=data['primaryBudget'])
-            else:
+            
+            if not budgetRelated:
                 budgetRelated = budget
+                
             dataBudget = {
                 'project': project, 
                 'projectedCost': data['utilsData']['costTotal'], 
@@ -566,7 +566,6 @@ def save_budget_data_from_dict(dataBudget,data):
     :param data: Diccionario con los datos a guardar.
     """
     try:
-        # Crear una nueva instancia de BudgetEstimate
         related_budget = None
         if dataBudget.get('related_budget'):
             related_budget = dataBudget.get('related_budget')  # Ajusta esto si necesitas buscar un objeto relacionado
@@ -604,7 +603,6 @@ def save_budget_data_from_dict(dataBudget,data):
                 add_utilities_checked=util_data_hole.get('addUtilitiesChecked'),
                 add_removal_checked=util_data_hole.get('addRemovalChecked'),
                 totalFtAdPost=util_data_hole.get('totalFtAdPost'),
-                hole_quantity=util_data_hole.get('holeQuantity'),
                 hole_cost=util_data_hole.get('holeCost'),
                 cost_per_hole=util_data_hole.get('costPerHole'),
                 utilities_cost=util_data_hole.get('utilitiesCost'),
@@ -613,6 +611,8 @@ def save_budget_data_from_dict(dataBudget,data):
                 add_unit_cost_mi = util_data_MI.get('addUnitCostMi'),
                 manufacturing_data = util_data_MI.get('manufacturingData'),
                 cost_data = util_data_MI.get('costData'),
+                profit_value_installation_check = util_data_MI.get('profitValueInstallationCheck'),
+                profit_value_installation = util_data_MI.get('profitValueInstallation'),
                 #####
                 add_unit_cost_mw = util_data_MW.get('addUnitCostMW'),
                 data_unit_cost_mw = util_data_MW.get('dataUnitCostMWCost'),
@@ -761,7 +761,7 @@ def extract_data_budget(budget):
         )),
         "utils": list(budget.util_data.values(
             'id', 'add_hole_checked', 'add_utilities_checked', 'add_removal_checked',
-            'totalFtAdPost', 'hole_quantity', 'hole_cost', 'cost_per_hole',
+            'totalFtAdPost', 'hole_cost', 'cost_per_hole', 'profit_value_installation_check', 'profit_value_installation',
             'utilities_cost', 'removal_cost', 'add_unit_cost_mi', 'add_unit_cost_mw', 'manufacturing_data',
             'cost_data', 'data_unit_cost_mw', 'data_unit_cost_mw_items', 'add_data_profit_by_daymw','data_profit_by_daymw', 'add_data_profit_by_day','add_post_and_hole',
             'days', 'profit_value', 'use_day_in_items_manufacturing', 'add_loans', 'percentage'

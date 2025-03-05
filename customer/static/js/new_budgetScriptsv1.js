@@ -63,7 +63,7 @@ function createMiscRow(data = null) {
                 <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
                     <option value="${data ? data.item_value : 'GENERAL'}">${data ? data.item_value : 'GENERAL'}</option>
                 </select>
-                <input class="form-control-budget" type="text" name="misc_desc" value="${data?.description || data?.misc_description || ''}">
+                <input class="form-control-budget" type="text" name="misc_desc" value="${data ? data.misc_description : ''}">
             </div>
         </td>            
         <td class="text-center p-0">
@@ -101,6 +101,23 @@ function createMaterialRow(data = null) {
     const rowCountMaterial = tbodyMaterial.querySelectorAll('tr').length;
     const newRowMaterial = document.createElement('tr');
     
+    // Asigna el id único si se proporciona
+
+    if (data && data.id_generated_by_checklist && data.id_generated_by_checklist != 'null') {
+        newRowMaterial.id = data.id_generated_by_checklist
+        newRowMaterial.classList.add('AutoCheckList')
+    } else if (data && data.id) {
+        newRowMaterial.id = data.id;
+    }
+    if (data && data.isCheckList){
+        newRowMaterial.classList.add('AutoCheckList')
+    }
+
+
+    
+
+
+
     newRowMaterial.innerHTML = `
         <td class="text-center p-0"><strong>${rowCountMaterial}</strong></td>
         <td colspan="2" class="p-0">
@@ -108,7 +125,7 @@ function createMaterialRow(data = null) {
                 <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
                     <option value="${data ? data.item_value : 'GENERAL'}">${data ? data.item_value : 'GENERAL'}</option>
                 </select>
-                <input class="form-control-budget" type="text" name="materials_desc" value="${data?.description || data?.material_description || ''}">
+                <input class="form-control-budget" type="text" name="materials_desc" value="${data ? data.material_description : ''}">
             </div>
         </td>
         <td class="p-0"  style="max-width:40px;"><input class="form-control-budget" type="number" name="materials_qt" step="0" value="${data ? data.quantity : ''}"></td>
@@ -125,9 +142,14 @@ function createMaterialRow(data = null) {
                 <input class="form-control-budget text-end" type="number" name="materials_Cost" id="materials_Cost" step="0.01" value="${data ? data.cost : ''}" readonly disabled>
             </div>
         </td>
-        <td class="p-0 text-center" style="width:0px"><button type="button" id="remove-materials-btn" class="btn btn-danger border-0 text-center remove_btn p-1" aria-label="Remove materials">
-            <i class="bi bi-trash3"></i>
-        </button>
+        <td class="p-0 text-center" style="width:0px">
+                    ${
+                        data 
+                        ? ''
+                        : `<button type="button" id="remove-materials-btn" class="btn btn-danger border-0 text-center remove_btn p-1" aria-label="Remove materials">
+                            <i class="bi bi-trash3"></i>
+                        </button>`
+                    }
         </td>`;
     tbodyMaterial.appendChild(newRowMaterial);
     updateSelectOptions();
@@ -155,11 +177,11 @@ function createContractorRow(data = null) {
                 <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
                     <option value="${data ? data.item_value : 'GENERAL'}">${data ? data.item_value : 'GENERAL'}</option>
                 </select>
-                <input class="form-control-budget" type="text" name="contractor_desc" value="${data?.description ||  data?.contractor_description || ''}">
+                <input class="form-control-budget" type="text" name="contractor_desc" value="${data ? data.contractor_description : ''}">
             </div>
         </td>
         <td class="text-center p-0">
-            <input class="form-control-budget" type="text" name="contractor_lead-time" value="${ data?.lead_time || ''}">
+            <input class="form-control-budget" type="text" name="contractor_lead-time" value="${data ? data.lead_time : ''}">
         </td>
         <td class="p-0">
             <div class="input-group p-0">
@@ -561,16 +583,6 @@ function updateTotalCost() {
     Value_Project.value = totalProfit;
     formatTotalCost(Value_Project)
 
-
-    percentageGrandCost = ( granTotalCosto/ (profitTotal + granTotalCosto))*100
-    let labelPercentaCost = $('#percentage-cost'); 
-    labelPercentaCost.textContent = percentageGrandCost.toFixed(0) + '%';
-
-    percentageProfit = ( profitTotal/ (profitTotal + granTotalCosto))*100
-    let labelPercentaProfit = $('#percentage-profit'); 
-    labelPercentaProfit.textContent = percentageProfit.toFixed(0) + '%';
-    
-
     return total
 }
 
@@ -583,8 +595,6 @@ function formatTotalCost(inputElement) {
 
 function updateAddHole(){
     const addHoleChecked = document.getElementById('Add-hole-check');
-    updateMultp()
-
     if  (addHoleChecked.checked){
         addHoleChecked.checked = false
         toggleAddHole()
@@ -611,61 +621,57 @@ function updateAddHole(){
     }
 }
 
-function updateMultp(){
-    var tbodyFt_Post = $$$("tbodyFt&Post");
-    const checkboxesItems = tbodyFt_Post.querySelectorAll("input[type='checkbox']");
-    for (let checkbox of checkboxesItems){
-        const row = checkbox.closest('tr');
-        const totalPost = row.querySelector("input[name='posts']")?.value || '0';
-        const MultiplierInput = row.querySelector("input[name='Multiplier']")
-        const multiplier = Math.ceil(totalPost / 45);
-        MultiplierInput.value = multiplier;
-    }
-}
-
 function toggleAddHole() {
     var checkbox = $$$("Add-hole-check");
     var table = $$$("add-hole-to-item");
+    var totalQTElement = parseFloat($$$("QT").value) || 0;
     var percentCost = parseFloat($$$("cost-???").value) || 0; 
     var costPorHole = parseFloat($$$("cost-per-hole").value) || 0;
-    var tbodySubcontracting= $$$('contractor-section');
-    const rowCountmaterial = tbodySubcontracting.querySelectorAll('tr').length;
-    var tbodyFt_Post = $$$("tbodyFt&Post");
-    const checkboxesItems = tbodyFt_Post.querySelectorAll("input[type='checkbox']");
-
+    var tbodymaterial= $$$('materials-section');
+    const rowCountmaterial = tbodymaterial.querySelectorAll('tr').length;
     
     if (checkbox.checked) {
         table.style.display = "table"; 
-        for (let checkbox of checkboxesItems) {
+        var tbodyFt_Post = $$$("tbodyFt&Post");
+        const checkboxes = tbodyFt_Post.querySelectorAll("input[type='checkbox']");
+        for (let checkbox of checkboxes) {
             if (checkbox.checked) {
-                const row = checkbox.closest('tr');
                 const fullName = checkbox.getAttribute('name');
-                const totalPost = row.querySelector("input[name='posts']")?.value || '0';
                 const nameWithoutPrefix = fullName.replace('check-ftAndPost-', '');
-                const Multiplier = row.querySelector("input[name='Multiplier']")?.value || '0';
-                var holeAmount = (Multiplier * percentCost + totalPost*costPorHole).toFixed(2);
+                const row = checkbox.closest('tr');
+                const totalPost = row.querySelector("input[name='posts']")?.value || '0';
+                var holeAmount = (totalQTElement * percentCost + totalPost*costPorHole).toFixed(2);
                 var newRow = document.createElement("tr");
-                newRow.id = `holeItem`;
+                newRow.id = `holeItem`; // ID único para cada fila
                 newRow.className = "align-middle generated-by-utils holeItems";
                 newRow.innerHTML = `
-                    <td class="text-center p-0"><strong>${rowCountmaterial +1}</strong></td>
-                    <td class="p-0" colspan="4"> 
+                    <td class="text-center p-0"><strong>${rowCountmaterial}</strong></td>
+                    <td class="p-0" colspan="2"> 
                         <div class="d-flex align-items-center">
                             <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
                                 <option value="${nameWithoutPrefix}">${nameWithoutPrefix}</option> 
                             </select>
-                            <input class="form-control-budget" type="text" id="materials_desc" name="materials_desc" value="Cost by hole (Post ${totalPost} )">
+                            <input class="form-control-budget" type="text" id="materials_desc" name="materials_desc" value="Cost by hole">
+                        </div>
+                    </td>
+                    <td class="p-0">
+                        <input class="form-control-budget" type="number" name="materials_qt" step="0" value="${totalPost}">
+                    </td>
+                    <td class="p-0">
+                        <div class="input-group p-0">
+                            <span class="money_simbol_input">$</span>
+                            <input class="form-control-budget text-end" type="text" name="materials_UnitCost" step="0.01" value="Null">
                         </div>
                     </td>
                     <td class="p-0"><input class="form-control-budget" type="text" name="materials_lead-time" value='8 days'></td>                             
-                    <td class="p-0"  colspan="2">
-                        <div class="input-group p-0">
-                            <span class="money_simbol_input">$</span>
-                            <input class="form-control-budget text-end" type="number" name="contractor_UnitCost" id="contractor_UnitCost" step="0.01" value='${holeAmount}' readonly disabled>
-                        </div>
-                    </td>                             
+                    <td class="p-0">
+                    <div class="input-group p-0">
+                        <span class="money_simbol_input">$</span>
+                        <input class="form-control-budget text-end" type="number" name="materials_Cost" id="materials_Cost" step="0.01" value='${holeAmount}' readonly disabled>
+                    </div>
+                    </td>                            
                 `;
-                tbodySubcontracting.appendChild(newRow);
+                tbodymaterial.appendChild(newRow);
             }
         }
     } else {
@@ -675,13 +681,13 @@ function toggleAddHole() {
     updateTotalCost()
     updateValuesUI()
     updateSelectOptions()
-    updateRowNumbers(contractorSection)
+    updateRowNumbers(materialsSection)
 }
 
 const element = $$$("Add-hole-check");
 element.onclick = toggleAddHole;
 
-
+const totalQTElement = $$$("QT")
 const percentCost = $$$("cost-???")
 const costPorHole = $$$("cost-per-hole")
 const totalPost = $$$("total-posts") 
@@ -689,7 +695,7 @@ const totalPost = $$$("total-posts")
 const table = $$$("add-hole-to-item");
 
 
-
+totalQTElement?.addEventListener("input", updateAddHole);
 percentCost?.addEventListener("input", updateAddHole);
 costPorHole?.addEventListener("input", updateAddHole);
 totalPost?.addEventListener("input", updateAddHole);
@@ -772,8 +778,8 @@ function toggleRemmovalPerFT(){
     var checkbox = $$$("add-removal-per-FT"); 
     var table = $$$("add-removal-cost"); 
     var removalCost = parseFloat($$$("removal-cost").value) || 0;
-    var tbodySubcontracting= $$$('contractor-section'); 
-    const rowCountmaterial = tbodySubcontracting.querySelectorAll('tr').length;
+    var tbodymaterial= $$$('materials-section'); 
+    const rowCountmaterial = tbodymaterial.querySelectorAll('tr').length;
 
     if (checkbox.checked) {
         table.style.display = "table"; // Show the loans table
@@ -791,24 +797,33 @@ function toggleRemmovalPerFT(){
                 newRow.id = `removalItem`; // ID único para cada fila
                 newRow.className = "align-middle generated-by-utils removalItems";
                 newRow.innerHTML = `
-                    <td class="text-center p-0"><strong>${rowCountmaterial + 1}</strong></td>
-                    <td class="p-0" colspan="4"> 
+                    <td class="text-center p-0"><strong>${rowCountmaterial}</strong></td>
+                    <td class="p-0" colspan="2"> 
                         <div class="d-flex align-items-center ">
                             <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
                                 <option value="${nameWithoutPrefix}">${nameWithoutPrefix}</option> 
                             </select>
-                            <input class="form-control-budget" type="text" id="materials_desc" name="materials_desc" value="Cost to remove objects  (Total Posts ${totalFT} & Cost $${removalAmount})">
+                            <input class="form-control-budget" type="text" id="materials_desc" name="materials_desc" value="Cost to remove objects">
+                        </div>
+                    </td>
+                    <td class="p-0">
+                        <input class="form-control-budget" type="number" name="materials_qt" step="0" value="${totalFT}" readonly>
+                    </td>
+                    <td class="p-0">
+                        <div class="input-group p-0">
+                            <span class="money_simbol_input">$</span>
+                            <input class="form-control-budget text-end" type="text" name="materials_UnitCost" step="0.01" value="${removalCost}" readonly>
                         </div>
                     </td>
                     <td class="p-0"><input class="form-control-budget" type="text" name="materials_lead-time" value='8 days'></td>                             
-                    <td  colspan="2" class="p-0">
-                        <div class="input-group p-0">
-                            <span class="money_simbol_input">$</span>
-                            <input class="form-control-budget text-end" type="number" name="contractor_UnitCost" id="contractor_UnitCost" step="0.01" value='${removalAmount}' readonly disabled>
-                        </div>
+                    <td class="p-0">
+                    <div class="input-group p-0">
+                        <span class="money_simbol_input">$</span>
+                        <input class="form-control-budget text-end" type="number" name="materials_Cost" id="materials_Cost" step="0.01" value='${removalAmount}' readonly disabled>
+                    </div>
                     </td>                            
                 `;
-                tbodySubcontracting.appendChild(newRow);// Append the new row to the deductions section
+                tbodymaterial.appendChild(newRow);// Append the new row to the deductions section
             }}} else {
         const removalItems = document.querySelectorAll(".removalItems");
         removalItems.forEach(item => item.remove());
@@ -816,7 +831,7 @@ function toggleRemmovalPerFT(){
     updateTotalCost()
     updateValuesUI()
     updateSelectOptions()
-    updateRowNumbers(contractorSection)
+    updateRowNumbers(materialsSection)
 }
 
 const elementRemoval = $$$("add-removal-per-FT");
@@ -860,26 +875,18 @@ function toggleTable() {
 function toggleUnitCostCLF() {
     var checkbox = $$$("cbox2");
     var table = $$$("table_UnitCostCLF");
+
+    if (checkbox.checked) {
+    table.style.display = "table"; // Muestra la tabla cuando el checkbox está activado
+    } else {
+    table.style.display = "none";  // Oculta la tabla cuando el checkbox está desactivado
     const tbody = document.getElementById('cost_per_manufacturing');
     const checkboxes = tbody.querySelectorAll('input[type="checkbox"]');
 
-    if (checkbox.checked) {
-    table.style.display = "table";
     checkboxes.forEach(checkbox => {
-        checkbox.checked = true;
+        checkbox.checked = false; // Desactivar el checkbox
         checkManufacturingCosts(checkbox)
         
-    });
-    } else {
-    table.style.display = "none"; 
-    checkboxes.forEach(checkbox => {
-        var checkbox = $$$('use-day-in-itemsManufacturing');
-        if (checkbox.checked){
-            checkbox.checked = !checkbox.checked;
-            useDaysInMF()
-            }
-        checkbox.checked = false;
-        checkManufacturingCosts(checkbox)
     });
 
     }
@@ -888,6 +895,8 @@ function toggleUnitCostCLF() {
 function toggleProfitByDay() {
     var checkbox = $$$("cbox3");
     var table = $$$("table_ProfitByDay");
+
+
     if (checkbox.checked) {
         table.style.display = "table";
         var days = table.querySelector('#days-per-profit')
@@ -923,6 +932,11 @@ function toggleProfitByDay() {
     tbodyProfit.appendChild(newRow); 
     updateTotalCost()
     }else {
+        var checkbox = $$$('use-day-in-itemsManufacturing');
+        if (checkbox.checked){
+            checkbox.checked = !checkbox.checked;
+            useDaysInMF()
+        }
         const fila = document.getElementById("automaticProfitperDay");
         if (fila) {
             fila.remove();
@@ -932,7 +946,6 @@ function toggleProfitByDay() {
         table.style.display = "none";  // Oculta la tabla cuando el checkbox está desactivado
         updateTotalCost()
     }
-    updateRowNumbers(profitSection)
 }
 
 
@@ -1084,17 +1097,10 @@ function addItem(input=null) {
     newRowFT.classList.add('FT&Post'+idInput)
     newRowFT.innerHTML = `
     <td class="p-0">
-        <input class="text-end align-middle pr-2" type="checkbox" name="check-ftAndPost-${idInput}" id="check-ftAndPost-${idInput}" onclick="updateAddHole()"> ${idInput}
+    <input class="text-end align-middle pr-2" type="checkbox" name="check-ftAndPost-${idInput}" id="check-ftAndPost-${idInput}" onclick="updateAddHole()"> ${idInput}
     </td>
-    <td class="p-0">
-        <input class="form-control-budget text-center" type="number" name="ft" step="0" value="0" onchange="updateAddHole()">
-    </td>
-    <td class="p-0">
-        <input class="form-control-budget text-center" type="number" name="posts" step="0" value="0" onchange="updateAddHole()">
-    </td>
-    <td class="p-0">
-        <input class="form-control-budget text-center" type="number" name="Multiplier" step="0" value="0" readonly disabled>
-    </td>
+    <td class="p-0"><input class="form-control-budget text-center" type="number" name="ft" step="0" value="0" onchange="updateAddHole()">></td>
+    <td class="p-0"><input class="form-control-budget text-center" type="number" name="posts" step="0" value="0" onchange="updateAddHole()"></td>
     `;
     tbodyFt_Post.appendChild(newRowFT);
     // Crear un nuevo span
@@ -1110,7 +1116,7 @@ function addItem(input=null) {
     newRowIMF = `
         <tr id="manufacturing-${idInput}">
             <td class="p-0 border text-center px-2 checkManufacturingCost">
-                <input class="text-end align-middle pr-2" type="checkbox" name="check-manufacturing-${idInput}" id="check-manufacturing-${idInput}" onclick="checkManufacturingCosts(this)"  style="opacity: 0;position: absolute; pointer-events: none;"> ${inputValue}
+                <input class="text-end align-middle pr-2" type="checkbox" name="check-manufacturing-${idInput}" id="check-manufacturing-${idInput}" onclick="checkManufacturingCosts(this)"> ${inputValue}
             </td>                      
             <td class="p-0 border text-center">
                 <input class="form-control-budget text-end days-manufacturing" type="number" name="days-manufacturing-${idInput}" value="0" id="days-manufacturing-${idInput}" step="0.5" style="width:80px">
@@ -1160,6 +1166,7 @@ function checkManufacturingCostsMW(checkbox) {
 };
 
 function addRowCostManufacturingMW(valueItem){
+    console.log(valueItem)
     const tbodyLabor = $$$('labor-section');
     const rowCountLabor = tbodyLabor.querySelectorAll('tr').length; 
     const days = $$$('days-manufacturingMW-'+valueItem.trim().replace(/\s+/g, '-')).value
@@ -1259,6 +1266,7 @@ function addRowProfitManufacturingMW(checkbox, days, title){
 
 function removeRowProfitManufacturingMW() {
     const rows = document.querySelectorAll('[id^="profit-row-manufacturingMW"]');
+    console.log(rows)
     rows.forEach(row => row.remove());
 }
 
@@ -1308,19 +1316,13 @@ function reloadDataManufacturingMWAll() {
 // Función para eliminar un item (span) y actualizar todos los selects
 function removeItem(element, value) {
     const span = element.parentElement;
-    const targetValue = value.trim().replace(/\s+/g, '-')
-    const item = $$$(`manufacturing-${targetValue}`);
-    const itemMW = $$$(`manufacturingMW-${targetValue}`);
-    var checkbox = $$$(`check-manufacturing-${targetValue}`)
-    var checkboxMW = $$$(`check-manufacturingMW-${targetValue}`)
-    var ischeckboxMW = $$$(`check-ftAndPost-${targetValue}`)
-    const sections = [
-        "#labor-section",
-        "#materials-section",
-        "#deducts-section",
-        "#misc-section",
-        "#contractor-section"
-    ];
+    const item = $$$(`manufacturing-${value.trim().replace(/\s+/g, '-')}`);
+    const itemMW = $$$(`manufacturingMW-${value.trim().replace(/\s+/g, '-')}`);
+    var checkbox = $$$(`check-manufacturing-${value.trim().replace(/\s+/g, '-')}`)
+    var checkboxMW = $$$(`check-manufacturingMW-${value.trim().replace(/\s+/g, '-')}`)
+
+    var ischeckboxMW = $$$(`check-ftAndPost-${value.trim().replace(/\s+/g, '-')}`)
+    console.log(ischeckboxMW.checked)
     ischeckboxMW.checked = false
     updateAddHole()
     var ischeckboxFtPost = document.querySelectorAll(`.FT\\&Post${value.trim().replace(/\s+/g, '-')}`);
@@ -1329,11 +1331,8 @@ function removeItem(element, value) {
             element.remove();
         });
     }
-    loansActive = document.getElementById('cbox4').checked
-    if (loansActive){
-        document.getElementById('cbox4').checked = false
-        toggleAddLoans()
-    }
+    
+    
 
     checkbox.checked = false
     checkManufacturingCosts(checkbox)
@@ -1341,38 +1340,21 @@ function removeItem(element, value) {
     checkManufacturingCostsMW(checkboxMW)
     span.remove();
     item.remove();
-    // Recorre cada sección
-    sections.forEach(section => {
-        const rows = document.querySelectorAll(`${section} tr`);
-        rows.forEach(row => {
-            if (!row.classList.contains("generated-by-utils")) {
-                const select = row.querySelector("select.innerSelect");
-                if (select && select.value === targetValue) {
-                    row.remove()
-                }
-            }
-        });
-    });
     itemMW.remove()
     const index = items.indexOf(value);
     if (index > -1) {
         items.splice(index, 1);
     }
-    if (document.getElementById('cbox2').checked){ 
-        toggleCheckboxes(false);
-        toggleCheckboxes(true);
-    }
-    updatePorfitInstallations()
+    var checkbox = $$$('use-day-in-itemsManufacturing');
+    if (checkbox.checked){
+        checkbox.checked = !checkbox.checked;
+        useDaysInMF()
+        checkbox.checked = true;
+        useDaysInMF()}
     removeAllElemetsByItems(value)
-    reloadRowProfitManufacturingMW()
-    updateValuesUI()
-    if (loansActive){
-        document.getElementById('cbox4').checked = true
-        toggleAddLoans()
-    }
     updateSelectOptions();
-    calculateProfitByItem()
-    
+    updateValuesUI()
+    reloadRowProfitManufacturingMW()
     
     const projectsCountSpan = document.getElementById('projects-count');
     projectsCountSpan.textContent = items.length - 1;
@@ -1523,6 +1505,7 @@ function calculateTotalByItem() {
 function updateValuesUI() {
     calculateTotalByItem();
     var checkbox = $$$("cbox4");
+    console.log(checkbox)
     if (checkbox.checked == true){
         reoloadLoans();
     }
@@ -1535,12 +1518,13 @@ costInputs.forEach(input => input.addEventListener('input', updateValuesUI));
 
 updateValuesUI()
 
+
 function checkManufacturingCosts(checkbox) {
 const isChecked = checkbox.checked;
 const valueItem = checkbox.parentElement.textContent
 if (isChecked) {
     addRowCostManufacturing(valueItem);
-    var lastProfits = $$('.automaticProfit-installation');
+    var lastProfits = $$('.automaticProfit');
     if (lastProfits) {
         lastProfits.forEach(profit => {
             profit.remove();
@@ -1548,14 +1532,8 @@ if (isChecked) {
     }
     useDaysInMF()
     updateRowNumbers(profitSection)
-} else {    
-    console.log('Quitando')
-    var items = $$('.installations-utils');
-    if (items) {
-        items.forEach(item => {
-            item.remove();
-        });
-    }
+} else {
+    
     removeRowCostManufacturing(valueItem);
 }
 updateRowNumbers(laborSection)
@@ -1569,10 +1547,10 @@ const rowCountLabor = tbodyLabor.querySelectorAll('tr').length;
 const days = $$$('days-manufacturing-'+stringIdItem).value
 const CostByDay = $$$("Labor_Total").value
 const TotlaCostByItems = CostByDay * days
+// Create a new table row for labor input
 const newRowLabor = document.createElement('tr');
 newRowLabor.id = valueItem.trim().replace(/\s+/g, '-')
 newRowLabor.classList.add('generated-by-utils');
-newRowLabor.classList.add('installations-utils');
 
 newRowLabor.innerHTML = `
         <td class="text-center p-0"><strong>${rowCountLabor}</strong></td>
@@ -1611,7 +1589,7 @@ updateTotalCost()
 
 function removeRowCostManufacturing(valueItem){
     const tbodyLabor = $$$('labor-section');
-    console.log('Quitando akjsbndla', valueItem)
+    // Create a new table row for labor input
     const RowLabor = document.getElementById(valueItem.trim().replace(/\s+/g, '-'));
     if (RowLabor){
         RowLabor.remove()
@@ -1656,11 +1634,20 @@ checkboxitemsManufacturing.addEventListener('change', useDaysInMF);
 function useDaysInMF() {
     try {
         var checkbox = $$$('use-day-in-itemsManufacturing');
-        var valuePr = $$$('profit-value-installation');
+        var profitTr = $$$('automaticProfitperDay');
+        var profitPerDay = $('#profit-value');
         var daysPerItems = $$('.days-manufacturing');
         var namePerItems = $$('.checkManufacturingCost');
 
         if (checkbox.checked) {
+            try {
+                if (profitTr) {
+                    profitTr.remove();
+                }
+            } catch (error) {
+                console.error("Error removing 'automaticProfitperDay' row:", error);
+            }
+
             daysPerItems.forEach((day, index) => {
                 try {
                     // Obtener el checkbox correspondiente a esta fila
@@ -1672,8 +1659,8 @@ function useDaysInMF() {
                         const rowCountProfit = tbodyProfit.querySelectorAll('tr').length; // Correct row counT
 
                         var newRow = document.createElement("tr");
-                        newRow.id = `automaticProfit-installation`; // ID único para cada fila
-                        newRow.className = "align-middle generated-by-utils automaticProfit-installation";
+                        newRow.id = `automaticProfit`; // ID único para cada fila
+                        newRow.className = "align-middle generated-by-utils automaticProfit";
                         newRow.innerHTML = `
                             <td class="text-center p-0"><strong>${rowCountProfit}</strong></td>
                             <td colspan="4"  class="p-0">
@@ -1688,7 +1675,7 @@ function useDaysInMF() {
                                 <input class="form-control-budget" type="text" name="profit_lead-time" value="Inmediate" step="0.01">
                             </td>
                             <td class="p-0" style="width:200px">
-                                <input class="form-control-budget profit_item'" type="number" name="Profit_UnitCost" step="1"   id="profit_item" value="${day.value * valuePr.value}" readonly>
+                                <input class="form-control-budget profit_item'" type="number" name="Profit_UnitCost" step="1"   id="profit_item" value="${day.value * profitPerDay.value}" readonly>
                             </td>`;
                         // Agregar la nueva fila al tbody solo si el checkbox está marcado\
                         tbodyProfit.appendChild(newRow);
@@ -1707,12 +1694,13 @@ function useDaysInMF() {
 
         } else {
             try {
-                var lastProfits = $$('.automaticProfit-installation');
+                var lastProfits = $$('.automaticProfit');
                 if (lastProfits) {
                     lastProfits.forEach(profit => {
                         profit.remove();
                     });
                 }
+                toggleProfitByDay()
             } catch (error) {
                 console.error("Error removing rows with class 'automaticProfit':", error);
             }
@@ -1826,7 +1814,9 @@ function calculateProfitAndCostByItem() {
             totalCostWithoutDeductionsByItem[selectedItem] = 0;
         }
     
-        let cost = 0; 
+    
+        // Obtener el costo correspondiente según la sección
+        let cost = 0; // Inicializar cost
         if (select.closest('#materials-section')) {
             // Usar querySelector en lugar de getElementById
             const materialCostInput = select.parentElement.parentElement.parentElement.querySelector("#materials_Cost");
@@ -1885,6 +1875,7 @@ function calculateProfitAndCostByItem() {
     // Obtener las claves (nombres de los ítems) y ordenarlas alfabéticamente
     const sortedItems = Object.keys(totalsByItem).sort();
     let costByItems = {}
+    console.log('totalCostWithoutDeductionsByItem', totalCostWithoutDeductionsByItem)
     // Iterar sobre los ítems ordenados
     sortedItems.forEach(item => {
         if (totalsByItem.hasOwnProperty(item)) {
@@ -1963,32 +1954,21 @@ function toggleCheckboxes(enable) {
     });
 }
 
-function updatePorfitInstallations() {
-    var checkbox = $$$('use-day-in-itemsManufacturing');
-    if (checkbox.checked){
-        checkbox.checked = !checkbox.checked;
-        useDaysInMF()
-        checkbox.checked = true;
-        useDaysInMF()
-    }
-}
-
 document.addEventListener("DOMContentLoaded", function() {
     const costPerManufacturing = document.getElementById("cost_per_manufacturing");
-    costPerManufacturing.addEventListener("input", updateTotalDays);
-    const daysInput = document.getElementById("days-per-profit");
-    const profitInput = document.getElementById("profit-value");
-
     function updateTotalDays(event) {
         if (event.target.classList.contains('days-manufacturing')) {
             toggleCheckboxes(false);
             toggleCheckboxes(true);
             try {
-                const usedayinitemsManufacturing = document.getElementById("use-day-in-itemsManufacturing");
-                usedayinitemsManufacturing.checked = false
-                useDaysInMF()
-                usedayinitemsManufacturing.checked = true
-                useDaysInMF()
+                var lastProfits = $$('.automaticProfit');
+                if (lastProfits) {
+                    lastProfits.forEach(profit => {
+                        profit.remove();
+                    });
+                    useDaysInMF()
+                }
+                
             } catch (error) {
                 console.error("Error removing rows with class 'automaticProfit':", error);
             }
@@ -1996,24 +1976,45 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
+    costPerManufacturing.addEventListener("input", updateTotalDays);
+
+    const daysInput = document.getElementById("days-per-profit");
+    const profitInput = document.getElementById("profit-value");
+
     daysInput.addEventListener("input", () => {
-        updateProfitByDay()
-        updateRowNumbers(laborSection)
+        var checkbox = $$$('use-day-in-itemsManufacturing');
+        if (checkbox.checked){
+            checkbox.checked = !checkbox.checked;
+            useDaysInMF()
+            checkbox.checked = true;
+            useDaysInMF()
+        }else {
+            var checkbox = $$$("cbox3");
+            checkbox.checked = !checkbox.checked;
+            toggleProfitByDay()
+            checkbox.checked = true;
+            toggleProfitByDay()
+        }
     });
 
     profitInput.addEventListener("input", () => {
-        updateProfitByDay()
-        });
+        
+        var checkbox = $$$('use-day-in-itemsManufacturing');
+        if (checkbox.checked){
+            checkbox.checked = !checkbox.checked;
+            useDaysInMF()
+            checkbox.checked = true;
+            useDaysInMF()
+        }else {
+            var checkbox = $$$("cbox3");
+            checkbox.checked = !checkbox.checked;
+            toggleProfitByDay()
+            checkbox.checked = true;
+            toggleProfitByDay()
+        }
+        
+    });
 });
-
-function updateProfitByDay(){
-    var checkbox = $$$("cbox3");
-    checkbox.checked = !checkbox.checked;
-    toggleProfitByDay()
-    checkbox.checked = true;
-    toggleProfitByDay()
-}
-
 function getUtilsData() {
     // Obtener el checkbox y verificar si está marcado HOLE
     const checkboxes = document.querySelectorAll('input[type="checkbox"][name^="check-ftAndPost"]');
@@ -2026,14 +2027,12 @@ function getUtilsData() {
             const row = checkbox.closest('tr');
             const ftInput = row.querySelector('input[name="ft"]')
             const postsInput = row.querySelector('input[name="posts"]');
-            const Multiplier = row.querySelector('input[name="Multiplier"]');
 
             checkboxData[checkbox.id] = {
                 checkbox_id: checkbox.checked,
                 name: checkbox.name,
                 ft: ftInput ? parseFloat(ftInput.value) : 0,
                 posts: postsInput ? parseFloat(postsInput.value) : 0,
-                Multiplier: Multiplier ? parseFloat(Multiplier.value) : 0,
             };
     });
     
@@ -2043,6 +2042,7 @@ function getUtilsData() {
 
 
     // Obtener los valores de los campos relacionados con los agujeros
+    const holeQuantity = parseFloat(document.getElementById("QT").value.replace(/,/g, '')) || 0;
     const holeCost = parseFloat(document.getElementById("cost-???").value.replace(/,/g, '')) || 0;
     const costPerHole = parseFloat(document.getElementById("cost-per-hole").value.replace(/,/g, '')) || 0;
 
@@ -2086,9 +2086,6 @@ function getUtilsData() {
             days: daysValue
         });
     });
-
-    const profitValueInstallationCheck  = document.getElementById('use-day-in-itemsManufacturing').checked;
-    const profitValueInstallation = document.getElementById('profit-value-installation').value;
 
     const addUnitCostMW = document.getElementById('cboxMW').checked;
     const dataUnitCostMWItems = [];
@@ -2136,8 +2133,8 @@ function getUtilsData() {
     const valueProfitByDayMW = document.getElementById('profitByDay').value;
 
     const dataProfitByDay = {
-        days: 0,
-        profitValue: 0,
+        days: null,
+        profitValue: null,
         useDayInItemsManufacturing: false
     };
     
@@ -2195,6 +2192,7 @@ function getUtilsData() {
         addUtilitiesChecked: addUtilitiesChecked,
         addRemovalChecked: addRemovalChecked,
         totalFtAdPost: [totalFtAdPPost],
+        holeQuantity: holeQuantity,
         holeCost: holeCost,
         costPerHole: costPerHole,
         utilitiesCost: utilitiesCost,
@@ -2204,9 +2202,7 @@ function getUtilsData() {
     const dataUnitCostMi = {
         addUnitCostMi: addUnitCostMi,
         manufacturingData: tableData.manufacturingItems,
-        costData: tableData.costPerManufacturing,
-        profitValueInstallation:profitValueInstallation,
-        profitValueInstallationCheck:profitValueInstallationCheck,
+        costData: tableData.costPerManufacturing
         
     };
 
@@ -2227,8 +2223,8 @@ function getUtilsData() {
         addLoans: addLoans,  // Estado del checkbox
         dataLoansToProject: dataLoansToProject,  // Datos de la primera tabla
     };
-    const profitTotal = $$$("total_profit").value || '0'; // Si es null o vacío, se asigna 0
-    const costTotal = $$$("grand_Cost").value ||'0'; // Si es null o vacío, se asigna 0    
+    const profitTotal = $$$("total_profit").value;
+    const costTotal = $$$("grand_Cost").value
     const profitFTTotal = parseFloat(profitTotal.replace(/,/g, ''));
     const costFTTotal = parseFloat(costTotal.replace(/,/g, ''));
 
@@ -2241,6 +2237,7 @@ function getUtilsData() {
         profitTotal:profitFTTotal,
         costTotal:costFTTotal,
     }
+    console.log()
     return data
 }
 
@@ -2405,7 +2402,7 @@ function getCostManagementData() {
     if (hiddenDataElementCO) {
         isChangeOrder = hiddenDataElementCO.getAttribute('data-change-order') === 'true';
         budgetId = hiddenDataElementCO.getAttribute('data-budget-id');
-        } 
+        console.log(budgetId)} 
 
     if (isChangeOrder) {
         fetch(`/projects/${projectId}/new_change_order/${budgetId}`, {
@@ -2479,6 +2476,7 @@ document.getElementById('save-btn').addEventListener('click', function(event) {
 
 
 document.querySelectorAll('[data-bs-toggle="collapse"]').forEach((toggle) => {
+    console.log('Se activo')
     toggle.addEventListener('click', function () {
         const icon = this; // El ícono que se hizo clic
         const targetId = this.getAttribute('data-bs-target'); // Obtiene el ID del colapso
@@ -2522,23 +2520,132 @@ validateInputs();
 
 
 
-function addRowCheckList(section, text) {
-    const checkDetails = {
-        description: text, 
-        quantity: 0, 
-        unit_cost: 0, 
-        lead_time: "N/A", 
-        cost: 0, 
-    };
-    if (section == 'Material'){
-        createMaterialRow(checkDetails);
-    }    
-    if (section == 'Miscellanous'){
-        createMiscRow(checkDetails);
+function addPaintRow() {
+    const paintId = "paint_Automatic"; // ID único para la fila de pintura
+    const tbodyMaterial = document.getElementById('materials-section');
+    const existingRow = document.getElementById(paintId);
+
+    if (existingRow) {
+        tbodyMaterial.removeChild(existingRow);
+        updateValuesUI()
+        updateRowNumbers(materialsSection)
+    } else {
+        const paintDetails = {
+            item_value: "Paint", 
+            material_description: "General painting for the project", 
+            quantity: 0, 
+            unit_cost: 0, 
+            lead_time: "N/A", 
+            cost: 0, 
+            id: paintId ,
+            isCheckList: true
+        };
+
+        // Llama a la función para crear la fila del material pasando los datos
+        createMaterialRow(paintDetails);
     }
-    if (section == 'Subcontracting'){
-        createContractorRow(checkDetails);
+}
+
+
+function addConcrete() {
+    const concreteId = "concrete_Automatic"; // ID único para la fila de concreto
+    const tbodyMaterial = document.getElementById('materials-section');
+    const existingRow = document.getElementById(concreteId);
+
+    if (existingRow) {
+        tbodyMaterial.removeChild(existingRow);
+        updateValuesUI()
+        updateRowNumbers(materialsSection);
+    } else {
+        const concreteDetails = {
+            item_value: "Concrete", 
+            material_description: "General concrete for the project", 
+            quantity: 0, 
+            unit_cost: 0, 
+            lead_time: "N/A", 
+            cost: 0, 
+            id: concreteId,
+            isCheckList: true
+        };
+
+        createMaterialRow(concreteDetails);
     }
+}
+
+function addWelding() {
+    const weldingId = "welding_Automatic"; // ID único para la fila de soldadura
+    const tbodyMaterial = document.getElementById('materials-section');
+    const existingRow = document.getElementById(weldingId);
+
+    if (existingRow) {
+        tbodyMaterial.removeChild(existingRow);
+        updateValuesUI()
+        updateRowNumbers(materialsSection);
+    } else {
+        const weldingDetails = {
+            item_value: "Welding Ext.", 
+            material_description: "Welding extension for the project", 
+            quantity: 0, 
+            unit_cost: 0, 
+            lead_time: "N/A", 
+            cost: 0, 
+            id: weldingId,
+            isCheckList: true
+        };
+
+        createMaterialRow(weldingDetails);
+    }
+}
+
+function addDrawings() {
+    const drawingsId = "drawings_Automatic"; // ID único para la fila de dibujos
+    const tbodyMaterial = document.getElementById('materials-section');
+    const existingRow = document.getElementById(drawingsId);
+
+    if (existingRow) {
+        tbodyMaterial.removeChild(existingRow);
+        updateValuesUI()
+        updateRowNumbers(materialsSection);
+    } else {
+        const drawingsDetails = {
+            item_value: "Drawings", 
+            material_description: "Architectural drawings for the project", 
+            quantity: 0, 
+            unit_cost: 0, 
+            lead_time: "N/A", 
+            cost: 0, 
+            id: drawingsId,
+            isCheckList: true
+        };
+        createMaterialRow(drawingsDetails);
+    }
+}
+
+function addWindscreen() {
+    const windscreenId = "windscreen_Automatic"; // ID único para la fila de parabrisas
+    const tbodyMaterial = document.getElementById('materials-section');
+    const existingRow = document.getElementById(windscreenId);
+
+    if (existingRow) {
+        tbodyMaterial.removeChild(existingRow);
+        updateValuesUI()
+        updateRowNumbers(materialsSection);
+    } else {
+        const windscreenDetails = {
+            item_value: "Windscreen", 
+            material_description: "Windscreen for the project", 
+            quantity: 0, 
+            unit_cost: 0, 
+            lead_time: "N/A", 
+            cost: 0, 
+            id: windscreenId,
+            isCheckList: true 
+        };
+
+        createMaterialRow(windscreenDetails);
+    }
+    updateTotalCost()
+    updateValuesUI()
 }
 
 

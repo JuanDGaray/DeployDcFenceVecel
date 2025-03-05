@@ -243,7 +243,6 @@ class BudgetEstimateUtil(models.Model):
     add_utilities_checked = models.BooleanField(default=False)
     add_removal_checked = models.BooleanField(default=False)
     totalFtAdPost = models.JSONField(default=list, null=True )
-    hole_quantity = models.DecimalField(max_digits=10, decimal_places=2, default=0.96)
     hole_cost = models.DecimalField(max_digits=10, decimal_places=2, default=180)
     cost_per_hole = models.DecimalField(max_digits=10, decimal_places=2, default=3)
     utilities_cost = models.DecimalField(max_digits=10, decimal_places=2, default=1.5)
@@ -254,6 +253,8 @@ class BudgetEstimateUtil(models.Model):
     add_unit_cost_mi = models.BooleanField(default=False)
     manufacturing_data = models.JSONField(default=list)
     cost_data = models.JSONField(default=list)
+    profit_value_installation_check = models.BooleanField(default=False)
+    profit_value_installation = models.DecimalField(max_digits=10, decimal_places=2, default=140)
 
     # Costos de manufactura (MW)
     add_unit_cost_mw = models.BooleanField(default=False)

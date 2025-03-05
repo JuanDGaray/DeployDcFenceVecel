@@ -1,0 +1,270 @@
+<div class="d-flex flex-column m-0 position-fixed vh-100 end-0 top-0 bg-secondary py-2 px-3 border-0" style="--bs-bg-opacity: .8;" id="tools-container">
+    <button id="toggle-button" class=" text-light position-relative w-5 h-5 bg-secondary border  border-0" style="width: 80px; height: 50px; padding: 0 6px; transform: translateX(-120%);--bs-bg-opacity: .8; border-radius: 18px 0px 0px 18px">
+        <i class="bi bi-gear-wide-connected text-light"></i> Utils
+      </button>
+    <div class="card" style="max-height:  90%; overflow: auto;">
+        <h2 class="card-header fs-6 text-center py-1">Utils</h2>
+        <h2 class="fs-6 py-1 mx-2">
+            <input type="checkbox" id="cbox1" value="second_checkbox" onclick="toggleTable()" />                                
+            <strong>Add total Ft & posts</strong> 
+        </h2>
+        <div id="table_ftandPost" style="width:90%; display:none" class="bg-light bg-gradient mx-auto p-2 rounded-3">
+            <table class="table  table-bordered mx-auto my-2"  >
+                <thead class="table-secondary">
+                    <tr class="p-0">
+                        <th class="py-0 fs-6 text-center" style='width:50%'>Items</th>
+                        <th class="py-0 fs-6 text-center" style='width:15%%'>Fts</th>
+                        <th class="py-0 fs-6  text-center" style='width20px'>Pos</th>
+                        <th class="py-0 fs-6  text-center" style='width:20px'>Mul</th>
+                    </tr>
+                </thead>
+                <tbody class="table-striped" id='tbodyFt&Post'>
+                </tbody>
+                
+            </table>
+            <h2 class="fs-6 py-1 mx-2">
+                <input type="checkbox" id="Add-hole-check" value="second_checkbox"/>                                
+                <strong>Add hole to items
+                    <button type="button" class="tooltip-formula"
+                        data-bs-toggle="tooltip" data-bs-placement="left"
+                        data-bs-custom-class="formula-tooltip"
+                        data-bs-title="P = (TotalPost * CostPerHole) + (CostTotal * Multiplier)">
+                        π
+                    </button>
+                </strong> 
+            </h2>
+            <div class="d-block px-4 py-auto">
+                <table id="add-hole-to-item" class="table-striped mx-auto my-2 bg-white">
+                    <tr>
+                        <td class="p-0 border text-center  px-2">Cost</td>
+                        <td class="p-0 border text-center">
+                            $<input class="form-control-budget text-end" type="number" name="cost-???" id="cost-???" step="1" value="180" style="width:80px">
+                        </td>                          
+                    </tr>
+                    <tr>
+                        <td class="p-0 border text-center px-2">Cost per hole</td>
+                        <td class="p-0 border text-center">
+                            $<input class="form-control-budget text-end" type="number" name="cost-per-hole" id="cost-per-hole" step="1" value="3" style="width:80px">
+                        </td>                          
+                    </tr>
+                </table>
+            </div>   
+            <h2 class="fs-6 py-1 mx-2">
+                <input type="checkbox" id="add-utilities-per-FT" />                                
+                <strong>Add utilities per FT
+                    <button type="button" class="tooltip-info"
+                        data-bs-toggle="tooltip" data-bs-placement="left"
+                        data-bs-custom-class="info-tooltip"
+                        data-bs-title="Includes the addition of necessary utilities based on the footage.">
+                        ?
+                    </button>
+                </strong> 
+            </h2>
+            <div class="d-block px-4 py-auto">
+                <table id="add-utilities-cost" class="table-striped mx-auto my-2 bg-white">
+                    <tr>
+                        <td class="p-0 border text-center  px-2"">Cost</td>
+                        <td class="p-0 border text-center">
+                            <input class="form-control-budget text-end" type="number" name="utilities-cost" id="utilities-cost" step="0.01" value="1.5" style="width:80px">
+                        </td>                          
+                    </tr>
+                </table>
+            </div>
+            <h2 class="fs-6 py-1 mx-2">
+                <input type="checkbox" id="add-removal-per-FT" value="add-removal-per-FT" onclick="" />                                
+                <strong>Add cost of removal per FT
+                    <button type="button" class="tooltip-info"
+                        data-bs-toggle="tooltip" data-bs-placement="left"
+                        data-bs-custom-class="info-tooltip"
+                        data-bs-title=" Includes the cost associated with removing materials or structures, calculated per foot of footage">
+                        ?
+                    </button>
+                </strong> 
+            </h2>
+            <div class="d-block px-4 py-auto">
+                <table id="add-removal-cost" class="table-striped mx-auto my-2 bg-white">
+                    <tr>
+                        <td class="p-0 border text-center  px-2"">Cost</td>
+                        <td class="p-0 border text-center">
+                            <input class="form-control-budget text-end" type="number" name="removal-cost" id="removal-cost" step="0.01" value="1" style="width:80px">
+                        </td>                          
+                    </tr>
+                </table>
+            </div>     
+        </div>
+        <!-- Utils Form -  Modify unit cost CLF-->
+        <h2 class="fs-6 py-1 mx-2">
+            <input type="checkbox" id="cbox2" value="second_checkbox" onclick="toggleUnitCostCLF()" />                                
+            <strong>Add unit cost per installation items and profit
+                <button type="button" class="tooltip-info"
+                    data-bs-toggle="tooltip" data-bs-placement="left"
+                    data-bs-custom-class="info-tooltip"
+                    data-bs-title="Daily labor costs are based on items like gas, water, auxiliary materials, and installer work. These costs are multiplied by the project duration to determine the total expense.">
+                    ?
+                </button>
+
+            </strong> 
+        </h2>
+        <div id="table_UnitCostCLF" style="width:90%; display:none" class="bg-light bg-gradient mx-auto p-2 rounded-3">
+            <table class="table  table-bordered mx-auto my-2" >
+                <thead class="table-secondary">
+                    <tr class="p-0">
+                        <th class="py-0 fs-6 text-center">Item</th>
+                        <th class="py-0 fs-6  text-center">Value</th>
+                    </tr>
+                </thead>
+                <tbody id="manufacturingItems" class="table-striped">
+                    <tr>
+                        <td class="p-0 text-center bg-gray">Gas</td>
+                        <td class="p-0"><input class="form-control-budget text-center" type="number" name="Labor_gas" id="Labor_gas" step="0" value="15"></td>                          
+                    </tr>
+                    <tr>
+                        <td class="p-0 text-center ">Water</td>
+                        <td class="p-0"><input class="form-control-budget text-center" type="number" name="Labor_water" id="Labor_water" step="0" value="15"></td>                          
+                    </tr>
+                    <tr>
+                        <td class="p-0 text-center ">Auxiliary</td>
+                        <td class="p-0"><input class="form-control-budget text-center" type="number" name="Labor_Auxiliary" id="Labor_Auxiliary" step="0" value="130"></td>                          
+                    </tr>
+                    <tr>
+                        <td class="p-0 text-center ">Installer</td>
+                        <td class="p-0"><input class="form-control-budget text-center" type="number" name="Labor_Installer" id="Labor_Installer" step="0" value="200"></td>                          
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr class="bg-secondary">
+                        <td class="p-0 text-center bg-secondary text-light">Total</td>
+                        <td class="p-0 bg-secondary text-light"><input class="form-control-budget text-center text-light" type="number" name="Labor_Total"  id="Labor_Total" step="0" value="360" readonly></td>                          
+                    </tr>
+                </tfoot>
+            </table>
+            <div class="d-block px-4 py-auto">
+                <table class="table-striped mx-auto my-2 bg-white">
+                    <tr class=>
+                        <th class="p-0 border text-center px-2">Item</td>                      
+                        <th class="p-0 border text-center  px-2"">Days</th>                       
+                    </tr>
+                    <tbody id="cost_per_manufacturing" >
+
+                    </tbody>
+                </table>
+            </div>
+                <input class="text-center" type="checkbox" name="use-day-in-itemsManufacturing" id="use-day-in-itemsManufacturing">
+                <strong>Add daily profit by installation 
+                    $<input class="form-control-budget text-center bg-white" id="profit-value-installation" style="width:30%" type="number" name="profitByDay" step="0" value="140" oninput="updatePorfitInstallations()">
+                </strong>
+        </div> 
+
+        
+        <!-- table taller manufacturing-->
+        <h2 class="fs-6 py-1 mx-2">
+            <input type="checkbox" id="cboxMW" value="second_checkboxMW" onclick="toggleUnitCostMW()" />                                
+            <strong>Add daily fabrication cost and profit
+                <button type="button" class="tooltip-info"
+                    data-bs-toggle="tooltip" data-bs-placement="left"
+                    data-bs-custom-class="info-tooltip"
+                    data-bs-title="Daily workshop labor costs are calculated based on roles such as welder and assistant. These costs are adjusted according to the quantity of work and the duration of the project, ensuring accurate manufacturing expense and profit estimation.">
+                    ?
+                </button>
+            </strong> 
+        </h2>
+        <div id="table_UnitCostMW" style="width:90%; display:none" class="bg-light bg-gradient mx-auto p-2 rounded-3">
+            <table class="table  table-bordered mx-auto my-2" >
+                <thead class="table-secondary">
+                    <tr class="p-0">
+                        <th class="py-0 fs-6 text-center">Item</th>
+                        <th class="py-0 fs-6  text-center">Value</th>
+                    </tr>
+                </thead>
+                <tbody id="manufacturingItemsMW" class="table-striped">
+                    <tr>
+                        <td class="p-0 text-center bg-gray">Welder</td>
+                        <td class="p-0"><input class="form-control-budget text-center" id='assistantCostByDay' type="number" name="Labor_gas" step="0" value="140" oninput="reloadDataManufacturingMWAll()""></td>        
+                    <tr>
+                        <td class="p-0 text-center ">Assistant</td>
+                        <td class="p-0"><input class="form-control-budget text-center"  id='welderCostByDay' type="number" name="Labor_water" step="0" value="130" oninput="reloadDataManufacturingMWAll()"></td>                          
+                    </tr>
+                </tbody>
+            </table>
+            <div class="d-block py-auto">
+                <table class="table-striped mx-auto my-2 bg-white">
+                    <tr>
+                        <th rowspan="2" class="p-0 border text-center px-4">Concept</th>
+                        <th class="p-0 border text-center px-2" colspan="2">Qty</th>  
+                        <th rowspan="2" class="p-0 border text-center px-2">Days</th>
+                    </tr>
+                    <tr>
+                        <th class="p-0 border text-center px-2">WLD</th>
+                        <th class="p-0 border text-center px-2">Asst</th>
+                    </tr>
+                    
+                    <tbody id="cost_per_manufacturingMW" >
+
+                    </tbody>
+                </table>
+            </div>
+            <h2 class="fs-6 py-1 mx-2">
+                <input type="checkbox" id="cboxMWadd" value="second_checkboxMW" onclick="activeRowProfitManufacturingMW(this)" />                                
+                <strong>Add daily profit
+                    <button type="button" class="tooltip-info"
+                        data-bs-toggle="tooltip" data-bs-placement="left"
+                        data-bs-custom-class="info-tooltip"
+                        data-bs-title="Daily profit in workshop is calculated by subtracting the total daily workshop costs from the daily revenue generated.">
+                        ?
+                    </button>
+                    $<input class="form-control-budget text-center bg-white" id='profitByDay' style='width:30%' type="number" name="profitByDay" step="0" value="140" oninput="reloadRowProfitManufacturingMW()">
+                </strong> 
+            </h2>
+        </div> 
+        <!-- Utils Form -  Modify Profit By Day-->
+        <h2 class="fs-6 py-1 mx-2">
+            <input type="checkbox" id="cbox3" value="second_checkbox" onclick="toggleProfitByDay()" />                                
+            <strong>Add profit general per day
+                <button type="button" class="tooltip-info"
+                    data-bs-toggle="tooltip" data-bs-placement="left"
+                    data-bs-custom-class="info-tooltip"
+                    data-bs-title="Profit per day is determined by multiplying the number of production days by the daily profit.">
+                    ?
+                </button>
+            </strong> 
+        </h2>
+        <table class="table  table-bordered mx-auto my-2" id="table_ProfitByDay" style="width:90%; display:none">
+            <thead class="table-secondary">
+                <tr class="p-0">
+                    <th class="py-0 fs-6 text-center">Days</th>
+                    <th class="py-0 fs-6  text-center">Profit by day</th>
+                </tr>
+            </thead>
+            <tbody class="table-striped">
+                <tr>
+                    <td class="p-0">
+                        <input class="form-control-budget text-center" type="number" name="days-per-profit" id="days-per-profit" step="0" value="15">
+                    </td>                          
+                    <td class="p-0">
+                        <input class="form-control-budget text-center" type="number" name="profit-value" id="profit-value" step="0" value="100">
+                    </td>                          
+                </tr>
+            </tbody>
+        </table>
+        
+        <h2 class="fs-6 py-1 mx-2">
+            <input type="checkbox" id="cbox4" value="second_checkbox" onclick="toggleAddLoans()" />                                
+            <strong>Add loans to the project
+                <button type="button" class="tooltip-info"
+                    data-bs-toggle="tooltip" data-bs-placement="left"
+                    data-bs-custom-class="info-tooltip"
+                    data-bs-title="Add financial loans to this project to manage related costs.">
+                    ?
+                </button>
+            </strong> 
+        </h2>
+        <table class="table  table-bordered mx-auto my-2"  id="loans-to-the-project" style="width:90%; display:none">
+            <tr>
+                <td class="p-0 border text-center  px-2"">percentage</td>
+                <td class="p-0 border text-center">
+                    <input class="form-control-budget text-end" type="number" name="percentage-loans" id="percentage-loans" step="0.1" value="0.1" style="width:80px">
+                </td>                          
+            </tr>
+        </table>
+    </div>
+</div>

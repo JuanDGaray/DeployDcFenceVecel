@@ -172,8 +172,9 @@ document.addEventListener('DOMContentLoaded', function () {
                                         <strong>•</strong> ${client.status}
                                     </span>
                                 </td>
-                                <td>${client.email}</td>
-                                <td>${client.phone}</td>
+                                <td><a  href="https://mail.google.com/mail/?view=cm&fs=1&to={{ client.email }}"  target="_blank"   class='btn btn-sm btn-primary p-1'><i class="bi bi-envelope-arrow-down"></i></a> ${client.email}</td>
+                                <td><a href="https://wa.me/+{{client.phone}}" target="_blank" class='btn btn-sm border border-2 border-success font-light p-1'>
+                                    <i class="bi bi-whatsapp text-success"   style="color: rgb(250,250,250));"></i></a> ${client.phone}</td>
                                 <td>${client.date_created}</td>
                                 <td>${client.sales_advisor}</td>
                             </tr>

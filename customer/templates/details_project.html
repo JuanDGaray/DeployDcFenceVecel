@@ -199,7 +199,7 @@
                             </a>
                         {% endif %}
                     <td style="width:80px">
-                      <div class="d-inline-flex gap-2 ">
+                      <div class="d-inline-flex gap-2 align-items-center p-0">
                         <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 {% if budget.latest_version.status == 'complete' or budget.latest_version.status == 'approved' %}disabled{% endif %}" 
                         href="{% url 'edit_budget' project.id budget.latest_version.id %}" 
                         role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit">
@@ -254,7 +254,11 @@
                                 <td  class='p-1'>{{ budgetVersion.total_value|currency_usd }}</td> 
                                 <td  class='p-1'>
                                   <span class="status-empty">
-                                    Version  {{ forloop.counter }}
+                                    {% if forloop.counter == 1 %}
+                                        Last Version
+                                    {% else %}
+                                        Version {{ forloop.counter }}
+                                    {% endif %}
                                   </span>
                                 </td>
                                 <td style="width:40px"  class='px-auto py-1'>
@@ -356,13 +360,13 @@
                       role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Print">
                       <i class="bi bi-printer-fill" style="font-size: 15px;"></i>
                       </a>
-                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 {% if budget.status == 'complete' or budget.status == 'approved' or budget.status == 'rejected' %}disabled{% endif %}" 
+                      <a class="btn  bg-success border text-light border-2 btn-sm rounded-2 p-1 {% if budget.status == 'complete' or budget.status == 'approved' or budget.status == 'rejected' %}disabled{% endif %}" 
                       href="{% url 'view_budgetSimple' project.id budget.id %}"
                       role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Make invoice">
                       <i class="bi bi-receipt" style="font-size: 15px;"></i>
                       </a>
                       <!-- Botón para Eliminar -->
-                      <a class="btn btn-danger btn-sm rounded-2 
+                      <a class="btn btn-danger btn-sm rounded-2 p-1 
                         {% if budget.status == 'complete' or budget.status == 'approved' %}disabled{% endif %}" 
                         href="{% url 'delete_budget' project.id budget.id %}"                         
                         role="button" title="Delete Budget" 

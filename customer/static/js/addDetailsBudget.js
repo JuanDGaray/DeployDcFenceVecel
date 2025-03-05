@@ -83,7 +83,6 @@ function populateUtils(data) {
 
     const totalFtAdPost = document.getElementById('tbodyFt&Post')
     utilsData.totalFtAdPost.forEach((obj) => {
-        // Asegúrate de que es un objeto y no vacío
         if (obj && typeof obj === "object") {
             Object.keys(obj).forEach((key) => {
                 const entry = obj[key]; // Accede al contenido del objeto por la clave
@@ -94,17 +93,19 @@ function populateUtils(data) {
 
                     const ft = entry.ft || 0;
                     const posts = entry.posts || 0;
+                    const Multiplier = entry.Multiplier || 0;
                     const checkboxStatus = entry.checkbox_id ;
                     element.checked = checkboxStatus;
                     const ftInput = element.closest('tr').querySelector('input[name="ft"]');
                     const postsInput = element.closest('tr').querySelector('input[name="posts"]');
+                    const MultiplierInput = element.closest('tr').querySelector('input[name="Multiplier"]');
                     if (ftInput) {
                         ftInput.value = ft;
                     }
                     if (postsInput) {
                         postsInput.value = posts;
+                        MultiplierInput.value = Multiplier
                     }
-                } else {
                     console.warn(`No se encontró ningún elemento con ID: ${key}`);
                 }
             });
@@ -115,7 +116,6 @@ function populateUtils(data) {
     
 
 
-    document.getElementById("QT").value = utilsData.hole_quantity;
     document.getElementById("cost-???").value = utilsData.hole_cost;
     document.getElementById("cost-per-hole").value = utilsData.cost_per_hole;
     document.getElementById("utilities-cost").value = utilsData.utilities_cost;
@@ -123,19 +123,18 @@ function populateUtils(data) {
     document.getElementById("profitByDay").value = utilsData.data_profit_by_daymw;
     document.getElementById("profit-value").value = utilsData.profit_value;
     document.getElementById("days-per-profit").value = utilsData.days;
-
+    document.getElementById("profit-value-installation").value = utilsData.profit_value_installation;
 
     
     document.getElementById("cbox1").checked = utilsData.add_post_and_hole;
     document.getElementById("cbox2").checked = utilsData.add_unit_cost_mi;
     document.getElementById("cboxMW").checked = utilsData.add_unit_cost_mw;
     document.getElementById("cbox3").checked = utilsData.add_data_profit_by_day;
+    document.getElementById("use-day-in-itemsManufacturing").checked = utilsData.profit_value_installation_check;
     document.getElementById("Add-hole-check").checked = utilsData.add_hole_checked;
     document.getElementById("add-utilities-per-FT").checked = utilsData.add_utilities_checked;
     document.getElementById("add-removal-per-FT").checked = utilsData.add_removal_checked;
-    document.getElementById("cboxMWadd").checked = utilsData.add_data_profit_by_day;
-    document.getElementById("use-day-in-itemsManufacturing").checked = utilsData.use_day_in_items_manufacturing
-    document.getElementById("add-utilities-per-FT").checked = utilsData.add_utilities_checked;
+    document.getElementById("cboxMWadd").checked = utilsData.add_data_profit_by_daymw;
     document.getElementById("cbox4").checked = utilsData.add_loans;
 
 }
@@ -190,6 +189,7 @@ function toggleCheckboxesInChecklist(data) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    console.log(dataC)
     populateUtils(dataC.utils);
     addManualData(dataC)
     toggleAddHole()
@@ -203,4 +203,8 @@ document.addEventListener("DOMContentLoaded", () => {
     useDaysInMF()
     toggleCheckboxesInChecklist(dataC.materials)
     reloadRowProfitManufacturingMW()
+    updatePorfitInstallations()
+    toggleCheckboxes(false);
+    toggleCheckboxes(true);
+    updateRowNumbers(laborSection);
 });

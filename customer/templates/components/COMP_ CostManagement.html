@@ -1,0 +1,275 @@
+<div class="col d-flex flex-column flex-wrap px-2  py-4 rounded-2 border border-2 border-dark" style='background-color:#cfd4d0'>
+    <h2 class="fs-6 m-0 fw-bold px-2">COST MANAGEMENT
+        <button id="toggleDisplayButton" class="btn btn-secondary p-1" style='z-index:100'><i class="bi bi-file-spreadsheet-fill" id="DisplayButton"></i></button>
+    </h2>
+    <div class="col d-flex flex-row flex-wrap justify-content-center" id="cost-management" >
+        <!-- Materials -->
+        <div class="col-md-6 p-1 costTable">
+            <table class="table  table rounded-4" >
+                <tbody>
+                    <tr>
+                        <td colspan="8" class="p-0 border">
+                            <h2 class=" d-flex justify-content-between cost-color-label card-header fs-6 py-0 ps-2 text-light pl-100" role="button" 
+                                data-bs-toggle="collapse" href="#materials-section" aria-expanded="false" aria-controls="materials-section"
+                                onclick="toggleIcon(this)">
+                                Materials 
+                                <span class="arrow-icon ms-2">
+                                    <i class="bi bi-chevron-up bg-light px-1 m-0 text-dark"></i>
+                                </span>
+                            </h2>
+                        </td>                        
+                    </tr>
+                </tbody>
+                <tbody class="table-secondary">            
+                    <tr>
+                        <th style="font-size:0.8rem; width:2%" class="py-0">#</th>
+                        <th colspan="2" style="font-size:0.8rem;  width:40%" class="py-0" >Description</th>
+                        <th style="font-size:0.8rem; width:10%" class="py-0 ">QT</th>
+                        <th style="font-size:0.8rem;width:10%" class="py-0">Units cost</th>
+                        <th style="font-size:0.8rem; width:10%;" class="py-0" >Lead time</th>
+                        <th colspan="2" style="font-size:0.8rem;" class="py-0">Cost</th>
+                    </tr>
+                </tbody>
+                <tbody class='collapse show' id="materials-section">
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td colspan="6" class="p-0 border border-0" style="background-color:#cfd4d0">
+                            <button type="button" id="add-materials-btn"  class="btn btn-success add-btn">+ Add materials</button>
+                        </td>
+                        <td Colspan="2" class="p-0 table-secondary border-2">
+                            <span class="money_simbol_input">$</span>
+                            <input class="form-control-budget text-end " type="text" name="total_materials_cost" value='0' id="total_materials_cost" step="0.01" readonly disabled>
+                        </td>
+                    </tr>
+                </tbody>
+
+            </table>
+        </div>
+        <!-- WorkShops -->
+        <div class="col-md-6 p-1 costTable">
+            <table class="table rounded-4" >
+                <tbody>
+                    <tr>
+                        
+                        <td colspan="8" class="p-0 border">
+                            <h2 class=" d-flex justify-content-between cost-color-label card-header fs-6 py-0 ps-2 text-light pl-100" role="button" 
+                                data-bs-toggle="collapse" href="#labor-section" aria-expanded="false" aria-controls="labor-section"
+                                onclick="toggleIcon(this)">
+                                Manufacturing 
+                                <span class="arrow-icon ms-2">
+                                    <i class="bi bi-chevron-up bg-light px-1 m-0 text-dark"></i>
+                                </span>
+                            </h2>
+                        </td>
+                    </tr>
+                </tbody>
+                <tbody class="table-secondary">
+                    <tr class="p-0">
+                        <th style="font-size:0.8rem;  width:2%" class="py-0">#</th>
+                        <th colspan="2" class="py-0 " style="font-size:0.8rem; width:40%;">Description</th> <!-- Usamos porcentaje para hacerlo relativo -->
+                        <th class="py-0 " style="font-size:0.8rem; width:10%;">CostByDay</th>
+                        <th class="py-0 " style="font-size:0.8rem; width:10%;">Days</th>
+                        <th class="py-0 " style="font-size:0.8rem; width:10%;">Lead time</th>
+                        <th class="py-0 " colspan="2" style="font-size:0.8rem;">Cost</th>
+                    </tr>
+                </tbody>
+                <tbody id="labor-section" class='collapse show'>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td colspan="6" class="p-0  border border-0" style="background-color:#cfd4d0">
+                            <button type="button" id="add-labor-btn" class="btn btn-success add-btn">+ Add labor</button>
+                        </td>
+                        <td Colspan="2" class="p-0 table-secondary border-2">
+                            <span class="money_simbol_input">$</span>
+                            <input class="form-control-budget text-end" type="text" name="total_labor_cost" value='0' id="total_labor_cost" step="0.01" readonly disabled>
+                        </td>
+                    </tr>
+                </tbody> 
+            </table>
+        </div>
+
+        <!-- Subcontractor -->
+        <div class="col-md-6 p-1 costTable">
+            <table class="table rounded-4" >
+                <tbody>
+                    <tr>
+                        <td colspan="8" class="p-0 border">
+                            <h2 class=" d-flex justify-content-between cost-color-label card-header fs-6 py-0 ps-2 text-light pl-100" role="button" 
+                                data-bs-toggle="collapse" href="#contractor-section" aria-expanded="false" aria-controls="contractor-section"
+                                onclick="toggleIcon(this)">
+                                Subcontracting 
+                                <span class="arrow-icon ms-2">
+                                    <i class="bi bi-chevron-up bg-light px-1 m-0 text-dark"></i>
+                                </span>
+                            </h2>
+                        </td>
+                    </tr>
+                </tbody>
+                <tbody class="table-secondary">
+                    <tr>
+                        <th style="font-size:0.8rem;width:2%;" class="py-0">#</th>
+                        <th colspan="4" style="font-size:0.8rem;width:60%;" class="py-0">Description</th>
+                        <th style="font-size:0.8rem; width:10%;" class="py-0">Lead time</th>
+                        <th  colspan="2" style="font-size:0.8rem" class="py-0">Cost</th>
+                    </tr>
+                </tbody>
+                <tbody id="contractor-section" class='collapse show'>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td colspan="6" class="p-0 border border-0" style="background-color:#cfd4d0">
+                            <button type="button" id="add-contractor-btn"  class="btn btn-success add-btn">+ Add Contractor</button>
+                        </td>
+                        <td Colspan="2" class="p-0 table-secondary border-2">
+                            <span class="money_simbol_input">$</span>
+                            <input class="form-control-budget text-end text-dark" type="text" value='0'  name="total_contractor_cost" id="total_contractor_cost" step="0.01" readonly disabled>
+                        </td>
+                    </tr>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- Misc -->
+        <div class="col-md-6 p-0 costTable">
+            <table class="table rounded-4" >
+                <tbody>
+                    <tr>
+                        <td colspan="8" class="p-0 border">
+                            <h2 class=" d-flex justify-content-between cost-color-label card-header fs-6 py-0 ps-2 text-light pl-100" role="button" 
+                                data-bs-toggle="collapse" href="#misc-section" aria-expanded="false" aria-controls="misc-section"
+                                onclick="toggleIcon(this)">
+                                Miscellanous 
+                                <span class="arrow-icon ms-2">
+                                    <i class="bi bi-chevron-up bg-light px-1 m-0 text-dark"></i>
+                                </span>
+                            </h2>
+                        </td>
+                    </tr>
+                </tbody>
+                    <tbody class="table-secondary">
+                        <tr>
+                            <th style="font-size:0.8rem; width:2%;" class="py-0">#</th>
+                            <th colspan="4" style="font-size:0.8rem; width:60%;" class="py-0">Description</th>
+                            <th style="font-size:0.8rem; width:10%;" class="py-0">Lead time</th>
+                            <th  colspan="2" style="font-size:0.8rem" class="py-0">Cost</th>
+                        </tr>
+                    </tbody>
+                    <tbody id="misc-section" class='collapse show'>
+                    </tbody>
+                    <tbody >
+                        <tr >
+                            <td colspan="6" class="p-0 border border-0" style="background-color:#cfd4d0">
+                                <button type="button" id="add-misc-btn"  class="btn btn-success add-btn">+ Add misc</button>
+                            </td>
+                            <td Colspan="2" class="p-0 table-secondary  border-2">
+                                <span class="money_simbol_input">$</span>
+                                <input class="form-control-budget text-end" type="text" value='0'  name="total_misc_cost" id="total_misc_cost" step="0.01" readonly disabled>
+                            </td>
+                        </tr>
+                    </tbody>
+            </table>            
+        </div>
+
+        <div class="col-md-6 p-1 costTable">
+            <table class="table rounded-4 col-md-6" >
+                <tbody>
+                <tr>
+                    <td colspan="8" class="p-0 border">
+                        <h2 class=" d-flex justify-content-between cost-color-label card-header fs-6 py-0 ps-2 text-light pl-100" role="button" 
+                                data-bs-toggle="collapse" href="#deducts-section" aria-expanded="false" aria-controls="deducts-section"
+                                onclick="toggleIcon(this)">
+                                Loans 
+                                <span class="arrow-icon ms-2">
+                                    <i class="bi bi-chevron-up bg-light px-1 m-0 text-dark"></i>
+                                </span>
+                            </h2>
+                    </td>
+                </tr>
+                </tbody>                        
+                <tbody class="table-secondary">
+                    <tr>
+                        <th style="font-size:0.8rem; width:2%;" class="py-0">#</th>
+                        <th colspan="4" style="font-size:0.8rem; width:60%;" class="py-0">Description</th>
+                        <th style="font-size:0.8rem; width:10%;" class="py-0">Lead time</th>
+                        <th  colspan="2" style="font-size:0.8rem" class="py-0">Cost</th>
+                    </tr>
+                </tbody>
+                <tbody id="deducts-section" class='collapse show'>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td colspan="6" class="p-0 border border-0" style="background-color:#cfd4d0">
+                            <button type="button" id="add-deducts-btn"  class="btn btn-success add-btn">+ Add deducts</button>
+                        </td>
+                        <td Colspan="2" class="p-0 table-secondary border-2">
+                            <span class="money_simbol_input">$</span>
+                            <input class="form-control-budget text-end" type="text" value='0'  name="total_contractor_cost" id="total_deducts_cost" step="0.01" readonly disabled>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+    <hr class="my-3 border border-4 border-black rounded-4 ">
+    <div class="W-100 p-1 profitManagement px-2  py-4 rounded-2  border border-2 border-dark"  style='background-color:#ebeff7'>
+        <h2 class="fs-6 m-0 fw-bold py-2">PROFIT MANAGEMENT</h2>
+        <table class="table table-bordered rounded-4 col-md-1" style="width: 100%">
+            <tbody>
+                <tr>
+                    <td colspan="8" class="p-0 border">
+                        <h2 class="card-header fs-6 py-0 px-2 text-center text-secondary bg-primary bg-gradient text-white">Profit</h2>
+                    </td>
+                </tr>
+            </tbody>
+            <tbody class="table-secondary">
+                <tr class="p-0">
+                    <th class="py-0">#</th>
+                    <th colspan="4" class="py-0">Description</th>
+                    <th class="py-0" style="width:20%">Lead time</th>
+                    <th class="py-0"  colspan="2" style="width:20%">Value</th>
+                </tr>
+            </tbody>
+            <tbody id="profit-section" class="table-striped">
+                
+            </tbody>
+            <tbody>
+                <tr>
+                    <td colspan="6" class="p-0" style="background-color:#cfd4d0">
+                        <button type="button" id="add-profit-btn" class="btn btn-success add-btn">+ Add profit</button>
+                    </td>
+                    <td Colspan="2" class="p-0 table-secondary border-2">
+                        <span class="money_simbol_input">$</span>
+                        <input class="form-control-budget text-end bg-primary bg-gradient text-white" value='0'  type="text" name="total_profit_cost" id="total_profit_cost" step="0.01" readonly disabled>
+                    </td>
+                </tr>
+        </table>
+    </div>
+
+<style>
+    .cost-color-label{
+        background-color: #4e7a51; 
+      }
+      .toggle-icon {
+        transition: transform 0.3s ease;
+    }
+    .toggle-icon.rotate {
+        transform: rotate(180deg);
+    }
+</style>
+
+<script>
+    function toggleIcon(element) {
+        const icon = element.querySelector(".arrow-icon i");
+        if (icon.classList.contains("bi-chevron-down")) {
+            icon.classList.remove("bi-chevron-down");
+            icon.classList.add("bi-chevron-up");
+        } else {
+            icon.classList.remove("bi-chevron-up");
+            icon.classList.add("bi-chevron-down");
+        }
+    }
+    ;
+</script>
