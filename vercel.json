@@ -1,6 +1,6 @@
 {
     "builds" : [
-        {
+        {   "cache": false,
             "src": "dcfence/wsgi.py",
             "use": "@vercel/python",
             "config":{
