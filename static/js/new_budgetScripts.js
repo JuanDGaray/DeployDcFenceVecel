@@ -1429,6 +1429,26 @@ let costManagement = $('#cost-management')
 let itemSelects = costManagement.querySelectorAll('#itemsSelect');
 let costInputs = costManagement.querySelectorAll('#total_Cost');
 
+function checkItemHasFts(itemName) {
+    // Selecciona todas las filas del cuerpo de la tabla
+    const rows = document.querySelectorAll("#tbodyFt\\&Post tr");
+    let ftsValue = 0;
+
+    rows.forEach(row => {
+        const itemCell = row.querySelector("td:first-child input[type='checkbox']");
+        const ftsInput = row.querySelector("input[name='ft']");
+
+        // Verifica si el nombre del ítem coincide
+        if (itemCell && itemCell.id.includes(itemName)) {
+            // Verifica si el valor en 'Fts' es mayor que 0
+            if (ftsInput && ftsInput.value) {
+                ftsValue = parseFloat(ftsInput.value);
+            }
+        }
+    });
+
+    return ftsValue;
+}
 
 function calculateTotalByItem() {
     let itemSelects = costManagement.querySelectorAll('#itemsSelect');
@@ -1481,44 +1501,41 @@ function calculateTotalByItem() {
         nameDesc = select.parentElement.querySelector("input").value
         totalsByItem[selectedItem] += cost; 
         descriptionByItem[selectedItem]['ID'+(index+1) + '- ' + nameDesc] = cost
-        
-        // Para depuración: mostrar el total actual por cada elemento
     });
+
     // Mostrar todos los totales al final
-    // Obtener la referencia al cuerpo de la tabla
     const tableBody = document.querySelector('#cost_per_items tbody');
-    // Limpiar el contenido de la tabla (en caso de que ya existan datos)
     tableBody.innerHTML = '';
-    // Obtener las claves (nombres de los ítems) y ordenarlas alfabéticamente
     const sortedItems = Object.keys(totalsByItem).sort();
 
-    // Iterar sobre los ítems ordenados
     sortedItems.forEach(item => {
         if (totalsByItem.hasOwnProperty(item)) {
-            // Crear una nueva fila
-            row = `
-            <tr >
-                <td class="p-0  px-2">${item}</td>
-                <td class="p-0  px-2">$${totalsByItem[item].toFixed(2)}</td>
-            </tr>`
-            // Añadir la fila al cuerpo de la tabla
-            tableBody.insertAdjacentHTML('beforeend', row);
-            // Añadir las celdas a la fila
+            const totalCost = totalsByItem[item];
+            const ftsValue = checkItemHasFts(item);
+            const costPerFoot = ftsValue > 0 ? totalCost / ftsValue : 0;
+
+            let row = `
+            <tr>
+                <td class="p-0 px-2">${item}</td>
+                <td class="p-0 px-2">$${totalCost.toFixed(2)}${ftsValue > 0 ? ` ($${costPerFoot.toFixed(2)}/ft)` : ''}</td>
+            </tr>`;
             
+            tableBody.insertAdjacentHTML('beforeend', row);
 
             Object.entries(descriptionByItem[item]).forEach(([subKey, subValue]) => {
+                if (subKey !== 'Fts') {
                     row = `
                     <tr class="table-secondary p-4" style="font-size:0.8rem">
                         <td colspan="2" class="p-0 border px-4">${subKey} - (${subValue})</td>
                     </tr>`;
-                tableBody.insertAdjacentHTML('beforeend', row);
-                });
-                
+                    tableBody.insertAdjacentHTML('beforeend', row);
+                }
+            });
         }
     });
     calculateProfitByItem()
     calculateProfitAndCostByItem()
-    }
+}
 
 function updateValuesUI() {
     calculateTotalByItem();
@@ -1739,6 +1756,7 @@ function calculateProfitByItem() {
     
     itemSelects.forEach((select, index) => {
         const selectedItem = select.value;
+
     
         // Inicializar el total si no existe
         if (!totalsByItem[selectedItem]) {
@@ -1765,7 +1783,6 @@ function calculateProfitByItem() {
         nameDesc = select.parentElement.querySelector("input").value
         totalsByItem[selectedItem] += cost; 
         descriptionByItem[selectedItem]['ID'+(index+1) + '- ' +nameDesc] = cost
-        
     });
     
     // Mostrar todos los totales al final
@@ -1781,11 +1798,13 @@ function calculateProfitByItem() {
     // Iterar sobre los ítems ordenados
     sortedItems.forEach(item => {
         if (totalsByItem.hasOwnProperty(item)) {
+
+            const ftsValue = checkItemHasFts(item);
             // Crear una nueva fila
             row = `
             <tr >
                 <td class="p-0  px-2">${item}</td>
-                <td class="p-0  px-2">$${totalsByItem[item].toFixed(2)}</td>
+                <td class="p-0  px-2">$${totalsByItem[item].toFixed(2)}${ftsValue > 0 ? ` ($${(totalsByItem[item]/ftsValue).toFixed(2)}/ft)` : ''}</td>
             </tr>`
             // Añadir la fila al cuerpo de la tabla
             tableBody.insertAdjacentHTML('beforeend', row);
@@ -1888,11 +1907,12 @@ function calculateProfitAndCostByItem() {
     // Iterar sobre los ítems ordenados
     sortedItems.forEach(item => {
         if (totalsByItem.hasOwnProperty(item)) {
+            const ftsValue = checkItemHasFts(item);
             // Crear una nueva fila
             row = `
             <tr >
                 <td class="p-0  px-2">${item}</td>
-                <td class="p-0  px-2">$${totalsByItem[item].toFixed(2)}</td>
+                <td class="p-0  px-2">$${totalsByItem[item].toFixed(2)}${ftsValue > 0 ? ` ($${(totalsByItem[item]/ftsValue).toFixed(2)}/ft)` : ''}</td>
             </tr>`
             // Añadir la fila al cuerpo de la tabla
             tableBody.insertAdjacentHTML('beforeend', row);
