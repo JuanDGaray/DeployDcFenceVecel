@@ -228,9 +228,11 @@
                                         oninput="autoResize(this)" 
                                         placeholder="Enter the materials here...">{{ data.materials|join:', ' }}</textarea>
                                 </div>
-                                <div class="text-end mt-2">
-                                    <strong>Price: ${{ proposal.scope_prices|get_item:key|default:"0.00"|floatformat:2 }}</strong>
-                                </div>
+                                {% if proposal.scope_prices|get_item:key|default:"0.00"|floatformat:2 != "0.00" %}
+                                    <div class="text-end mt-2">
+                                        <strong>Price: ${{ proposal.scope_prices|get_item:key|default:"0.00"|floatformat:2 }}</strong>
+                                    </div>
+                                {% endif %}
                             </div>
                         {% endfor %}
 
@@ -295,10 +297,9 @@
                     </div>
                 </div>
                 
-            <div class="bg-company  p-4 mt-4 termsContainer no-break">
+            <div class="bg-company  p-4 mt-4 termsContainer">
                 <label for="termsInput" class='text-white pb-2 d-flex'><b>Terms and conditions</b></label>
-                <textarea id="termsInput" name="terms" class="form-control text-justify text-sm" rows="6" readonlym style='height:250px'>{{ proposal.terms_conditions }}
-                </textarea>
+                <div id="termsInput" class="form-control text-justify text-sm" style='white-space: pre-wrap;'>{{ proposal.terms_conditions }}</div>
             </div>
         </div>
     </section>
@@ -325,23 +326,24 @@
     
             // Configuración de opciones para html2pdf
             const opt = {
-                filename: `PS_{{ proposal.project_name }}__{{ proposal.id }}__{{now|date:"Y-m-d" }}.pdf`, // Nombre dinámico del archivo
+                filename: `PS_{{ proposal.project_name }}__{{ proposal.id }}__{{now|date:"m-d-y" }}.pdf`,
                 image: { 
                     type: 'jpeg', 
-                    quality: 1 // Calidad de imagen máxima
+                    quality: 1
                 },
                 html2canvas: { 
-                    scale: 6, // Alta calidad de renderizado
-                    useCORS: true, // Permitir carga de imágenes externas
-                    logging: false // Deshabilitar logs de depuración
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    letterRendering: true
                 },
                 jsPDF: { 
-                    unit: 'in', 
-                    format: 'letter', 
-                    orientation: 'portrait', // Orientación vertical
-                    hotfixes: ['px_scaling'] // Solución para problemas de escalado de píxeles
+                    unit: 'mm', 
+                    format: 'a4', 
+                    orientation: 'portrait',
+                    hotfixes: ['px_scaling']
                 },
-                margin: [0.5, 0, 0.5, 0]
+                margin: [0, 0, 0, 0]
             };
     
             // Generación y descarga del PDF
