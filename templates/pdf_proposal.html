@@ -185,7 +185,7 @@
                     </td>
                     <td>Quote Date:</td>
                     <td>                        
-                        <input readonly type="date" name="date_created" value="{{ proposal.date_created|date:'Y-m-d' }}" style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" />
+                        <input readonly type="text" name="date_created" value="{{ proposal.date_created|date:'m/d/Y' }}" style="border: none; background: transparent; width: 100%;" />
                     </td>
                 </tr>
                 <tr>
@@ -193,7 +193,7 @@
                     <td>{{ project.customer.address}}</td>
                     <td>Valid Until:</td>
                     <td>
-                        <input readonly type="date" name="valid_until" value="{{ proposal.due_date|date:'Y-m-d' }}" style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" />
+                        <input readonly type="text" name="valid_until" value="{{ proposal.due_date|date:'m/d/Y' }}" style="border: none; background: transparent; width: 100%;" />
                     </td>
                 </tr>
             </table>
