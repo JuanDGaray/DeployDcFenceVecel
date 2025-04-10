@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_filters %}
+{% block extra_head %}
+    <style>
+        #main-pdf{
+            background-image: url("{% static 'img/logoPatron.png' %}");
+            background-repeat: none;
+            background-position: center;
+            backdrop-filter: grayscale(100%);
+            backdrop:blur(15px)
+
+        }
+        section{
+            border: 2px solid black;
+            background:white;
+            box-shadow: 2px 0px 20px 20px #0000008f;
+
+        }
+        #termsInput{
+            text-align: justify;
+        }
+
+        #main-container{
+            background: white;
+            padding: 30px 30px;
+            page-break-inside: avoid;
+            page-break-after: auto;
+            page-break-before: auto;
+        }
+        
+        .no-break {
+            page-break-inside: avoid;
+        }
+        .header-blue {
+            background-color: #1a4784;
+            color: white;
+            padding: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .materials-box {
+            border: 1px solid #000;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .materials-header {
+            background-color: #1a4784;
+            color: white;
+            padding: 5px;
+            text-align: center;
+            margin: -10px -10px 10px -10px;
+        }
+        .scope-section {
+            background-color: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .imgSello{
+            position: absolute;
+            opacity: 0.5;
+            fill: none;
+            left: 35%;
+            width:250px;
+            user-select: none;
+            pointer-events: none;
+            
+        }
+
+        .logoView{
+            background-color: #1a4784;
+            width: 200px;
+            padding: 4px;
+            height: 140px;
+        }
+
+        .deleteScope{
+            position: relative;
+            opacity: 0;
+            left:48%
+        }
+        .deleteScope:hover{
+            opacity: 1;
+        }
+
+        .scope-title:hover .deleteScope {
+            display: inline-block; 
+            opacity: 0.5;
+        }
+
+        .infoContainer{
+            background-image: url("{% static 'img/logoPatron.png' %}");
+            background-repeat: none;
+            background-position: center;
+            background-size: 480px 480px
+        }
+
+        .bgTrans{
+            background-color:white;
+            font-size: 12px
+        }
+
+        .selectTerms{
+            position: relative;
+            margin:4px;
+            padding: 0px 12px;
+            font-size: 0.9rem;
+            opacity: 0;
+            
+        }
+        
+        .termsContainer:hover .selectTerms{
+            opacity: 1;
+        }
+
+        .form-control {
+            overflow: hidden;
+            resize: none;
+        }
+    </style>
+{% endblock %}
+{% block title %}Simple Invoice{% endblock %}
+{% block content %}
+<div id='main-pdf' class='p-3'>
+    <a href="{% url 'detail_project' project.id %}" class="bg-light px-4 py-1 rounded-4"><strong><i class="bi bi-back "></i> <span id="project-container" data-project-id="{{ project.id }}">{{project.id}} </span> - {{project.project_name}}</a>
+    <section id="invoice-form" class="col-md-9 mx-auto">
+        {% csrf_token %}
+        <button id="downloadBtn"  class="mx-2 mt-2 button rounded-2" onclick="generatePDF()"><i class="bi bi-file-earmark-pdf-fill text-danger"></i> Download PDF</button>
+        <div class="container px-4 py-1 overflow-hidden select-none" id='main-container'>
+            <div class="row align-items-center pb-2 border-bottom border-2 ">
+                <div class=" d-flex flex-row flex-nowrap justify-content-between gap-2  infoContainer p-3 px-4">
+                    <img src="{% static 'img/LogoCompleteWhite.webp' %}" alt="DC FENCE Logo" class="logoView "">
+                    <div class='d-flex flex-row justify-content-between'>
+                        <div class="d-flex flex-column justify-content-center align-items-center text-center bgTrans px-2">
+                            <h6>Lic: 20BS00539/21-F22501-R <br> SBE-CON/SBE-G&S/LDB CAGE:8ZKA7 Duns:117970612</h6>
+                            <p class="m-0"><i class="bi bi-globe"></i> www.dcfence.org</p>
+                        </div>
+                        <div class="d-flex flex-column ms-5 justify-content-center bgTrans p-1">
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="bi bi-telephone-fill bg-primary p-1  text-light me-1"></i>
+                                <span>786-747-4766</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="bi bi-house-door-fill bg-primary p-1  text-light me-1"></i>
+                                <span>2498 W Third CT,</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="bi bi-house-door-fill bg-primary p-1  text-light me-1"></i>
+                                <span>Hialeah FL 33010</span>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-envelope-fill bg-primary p-1  text-light me-1"></i>
+                                <a href="mailto:dcfence01@gmail.com" class="text-decoration-none text-dark">dcfence01@gmail.com</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+            <div class="header-blue "">Project Detail</div>
+            <table class="table table-bordered ">
+                <tr>
+                    <td>Project Name:</td>
+                    <td>
+                        <input readonly type="text"  name="project_name" value="{{ proposal.project_name }}" style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;"/>
+                    </td>
+                    <td>Quote No:</td>
+                    <td><span id="quoteNo">{{ proposal.date_created|date:'ymd' }}-{{proposal.project.id}}</span></td>
+                </tr>
+                <tr>
+                    <td>Contractor:</td>
+                    <td> 
+                        {% if project.customer.customer_type == "individual" %}
+                            <a href="">
+                                <span class="status title_{{ project.customer.customer_type }} fs-6">
+                                {{ project.customer.first_name }} {{ project.customer.last_name }} <i class="bi bi-person-arms-up"></i>
+                                </span>
+                                </a> {% else %}
+                                <a href="">
+                                <span class="status title_{{ project.customer.customer_type }} fs-6">{{ project.customer.company_name }} 
+                                <i class="bi bi-buildings-fill"></i> 
+                                </span> 
+                                </a>
+                            {% endif %}
+                    </td>
+                    <td>Quote Date:</td>
+                    <td>                        
+                        <input readonly type="date" name="date_created" value="{{ proposal.date_created|date:'Y-m-d' }}" style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Job Address:</td>
+                    <td>{{ project.customer.address}}</td>
+                    <td>Valid Until:</td>
+                    <td>
+                        <input readonly type="date" name="valid_until" value="{{ proposal.due_date|date:'Y-m-d' }}" style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" />
+                    </td>
+                </tr>
+            </table>
+            <div class="header-blue "">Product Detail</div>
+            <div class="">
+                <div class="scope-section">
+                    <h5 class="header-blue mb-3 bg-primary ">Scope of Work
+                    </h5>
+                    <div class="scope-container" id="scope-section">
+                        {% for key, data in proposal.proposalInfo.items %}
+                            <ol id="scope-list" class="no-break">
+                                <div class="text-center scope-title">
+                                    <textarea 
+                                        id="scope-{{ key }}" 
+                                        name="scope-{{ key }}" 
+                                        rows="3" 
+                                        cols="30" 
+                                        style="border: none; width: 100%; resize: none; padding-top: 10px; background: #fcfcfc00;" 
+                                        oninput="autoResize(this)" 
+                                        placeholder="Describe the work here...">{{ data.scope|join:', ' }}</textarea>
+                                </div>
+                            </ol>
+                            <div class="materials-box bg-white no-break">
+                                <div class="materials-header">Materials shall be as follows:</div>
+                                <div class="text-center">
+                                    <textarea 
+                                        id="material-{{ key }}" 
+                                        name="materials-{{ key }}" 
+                                        rows="3" 
+                                        cols="30" 
+                                        style="border: none; width: 100%; resize: none; text-align: center; padding-top: 10px;" 
+                                        oninput="autoResize(this)" 
+                                        placeholder="Enter the materials here...">{{ data.materials|join:', ' }}</textarea>
+                                </div>
+                                <div class="text-end mt-2">
+                                    <strong>Price: ${{ proposal.scope_prices|get_item:key|default:"0.00"|floatformat:2 }}</strong>
+                                </div>
+                            </div>
+                        {% endfor %}
+
+                    </div>
+                    <img src="{% static 'img/DcSello.webp' %}" alt="DC FENCE Logo" class="imgSello">
+                </div>
+            </div>
+            <div class="row justify-content-end">
+                <div class="col-md-6">
+                    <table class="table table-bordered no-break">
+                        <tbody>
+                            <tr>
+                                <td>Subtotal</td>
+                                <td class="text-end">
+                                    <input readonly style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" type="text" id="total-input" name="subtotal" class="form-control text-end p-0" value="{{ proposal.subtotal }}">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Tax</td>
+                                <td class="text-end">
+                                    <input readonly style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" type="text" id="tax-input" name="tax" class="form-control text-end p-0" value="{{ proposal.tax }}">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>Retention</td>
+                                <td class="text-end">
+                                    <input readonly style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" type="text" id="retention-input" name="retention" class="form-control text-end p-0" value="{{ proposal.retention }}">
+                                </td>
+                            </tr>
+                            <tr class="table-active ">
+                                <td class="fw-bold">Grand Total</td>
+                                <td class="text-end fw-bold" id="grand-total">{{ proposal.total_proposal | currency_usd }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                </div>
+            
+
+            <div class="mt-4">
+                <div class="header-blue  text-center no-break"><strong>Exclusions:</strong> {{ proposal.exclusions }}</div>
+                
+
+                <div class="container no-break">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label for="approvedBy" class="form-label m-0 text-sm">Approved By:</label>
+                            <input readonly type="text" id="approvedBy"  name="approved_by" value='{{ proposal.approved_by }}'  class="form-control border-0 border-bottom p-0 text-strong" style="border-radius: 0;">
+                        </div>
+                    </div>
+                    <div class="row mt-1">
+                        <div class="col-md-4">
+                            <label for="printName" class="form-label m-0">Print Name:</label>
+                            <input readonly type="text" id="printName" name="print_name" value='{{ proposal.print_name }}' class="form-control border-0 border-bottom p-0" style="border-radius: 0;">
+                        </div>
+                    </div>
+                    <div class="row mt-1">
+                        <div class="col-md-4">
+                            <label for="signature" class="form-label m-0">Signature:</label>
+                            <input readonly type="text" id="signature" name="signature" value='{{ proposal.signature }}' class="form-control border-0 border-bottom p-0"  style="border-radius: 0;">
+                        </div>
+                    </div>
+                </div>
+                
+            <div class="bg-company  p-4 mt-4 termsContainer no-break">
+                <label for="termsInput" class='text-white pb-2 d-flex'><b>Terms and conditions</b></label>
+                <textarea id="termsInput" name="terms" class="form-control text-justify text-sm" rows="6" readonlym style='height:250px'>{{ proposal.terms_conditions }}
+                </textarea>
+            </div>
+        </div>
+    </section>
+</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function autoResize(textarea) {
+            textarea.style.height = 'auto';  // Reinicia la altura
+            textarea.style.height = (textarea.scrollHeight) + 'px';  // Ajusta a la altura del contenido
+        }
+    
+        window.addEventListener('DOMContentLoaded', () => {
+            const textareas = document.querySelectorAll('textarea'); // Selecciona todos los textarea
+            textareas.forEach(textarea => {
+                autoResize(textarea);
+    
+                textarea.addEventListener('input', () => autoResize(textarea));
+            });
+        });
+        function generatePDF() {
+            // Selección del contenedor principal
+            const element = document.getElementById('main-container');
+    
+            // Configuración de opciones para html2pdf
+            const opt = {
+                filename: `PS_{{ proposal.project_name }}__{{ proposal.id }}__{{now|date:"Y-m-d" }}.pdf`, // Nombre dinámico del archivo
+                image: { 
+                    type: 'jpeg', 
+                    quality: 1 // Calidad de imagen máxima
+                },
+                html2canvas: { 
+                    scale: 6, // Alta calidad de renderizado
+                    useCORS: true, // Permitir carga de imágenes externas
+                    logging: false // Deshabilitar logs de depuración
+                },
+                jsPDF: { 
+                    unit: 'in', 
+                    format: 'letter', 
+                    orientation: 'portrait', // Orientación vertical
+                    hotfixes: ['px_scaling'] // Solución para problemas de escalado de píxeles
+                },
+                margin: [0.5, 0, 0.5, 0]
+            };
+    
+            // Generación y descarga del PDF
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+    
+{% endblock %}

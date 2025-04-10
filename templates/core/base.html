@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block title %}DC FENCE | Accounting{% endblock %}
+
+{% block extra_css %}
+<style>
+    .navbar {
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 1030;
+    }
+    
+    .nav-link {
+        transition: all 0.3s ease;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        color: #333 !important;
+        font-weight: 500;
+    }
+    
+    .nav-link:hover {
+        background-color: rgba(0, 0, 0, 0.1) !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        color: #000 !important;
+    }
+    
+    .navbar-brand {
+        font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        color: #333 !important;
+    }
+    
+    .bi {
+        color: #333;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light border border-2 border-dark-secondary mb-4 rounded-4 opacity-75 blur-sm sticky-top">
+        <div class="container">
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link bg-white bg-opacity-75 px-3 py-2 rounded-3 mx-1" href="{% url 'dashboard' %}">
+                            <i class="bi bi-speedometer2"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link bg-white bg-opacity-75 px-3 py-2 rounded-3 mx-1" href="{% url 'account-list' %}">
+                            <i class="bi bi-journal-text"></i> Cuentas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link bg-white bg-opacity-75 px-3 py-2 rounded-3 mx-1" href="{% url 'transaction-list' %}">
+                            <i class="bi bi-arrow-left-right"></i> Transacciones
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link bg-white bg-opacity-75 px-3 py-2 rounded-3 mx-1" href="{% url 'invoice-list' %}">
+                            <i class="bi bi-receipt"></i> Facturas
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link bg-white bg-opacity-75 px-3 py-2 rounded-3 mx-1" href="{% url 'expense-list' %}">
+                            <i class="bi bi-cash-stack"></i> Gastos
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link bg-white bg-opacity-75 px-3 py-2 rounded-3 mx-1" href="{% url 'financial-report' %}">
+                            <i class="bi bi-graph-up"></i> Reportes
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    {% block accounting_content %}
+    {% endblock %}
+</div>
+{% endblock %}

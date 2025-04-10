@@ -1,0 +1,266 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}
+{% if form.instance.pk %}Editar Factura{% else %}Nueva Factura{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .formset-row {
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+    }
+    .delete-row {
+        color: #dc3545;
+        cursor: pointer;
+    }
+    .delete-row:hover {
+        color: #bd2130;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-{% if form.instance.pk %}edit{% else %}plus{% endif %}"></i>
+                    {% if form.instance.pk %}Editar Factura{% else %}Nueva Factura{% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post" id="invoice-form">
+                    {% csrf_token %}
+                    
+                    <!-- Invoice Details -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.client.id_for_label }}" class="form-label">
+                                    {{ form.client.label }}
+                                </label>
+                                {{ form.client }}
+                                {% if form.client.errors %}
+                                <div class="alert alert-danger">
+                                    {{ form.client.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.status.id_for_label }}" class="form-label">
+                                    {{ form.status.label }}
+                                </label>
+                                {{ form.status }}
+                                {% if form.status.errors %}
+                                <div class="alert alert-danger">
+                                    {{ form.status.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.date.id_for_label }}" class="form-label">
+                                    {{ form.date.label }}
+                                </label>
+                                {{ form.date }}
+                                {% if form.date.errors %}
+                                <div class="alert alert-danger">
+                                    {{ form.date.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.due_date.id_for_label }}" class="form-label">
+                                    {{ form.due_date.label }}
+                                </label>
+                                {{ form.due_date }}
+                                {% if form.due_date.errors %}
+                                <div class="alert alert-danger">
+                                    {{ form.due_date.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="{{ form.total_amount.id_for_label }}" class="form-label">
+                                    {{ form.total_amount.label }}
+                                </label>
+                                {{ form.total_amount }}
+                                {% if form.total_amount.errors %}
+                                <div class="alert alert-danger">
+                                    {{ form.total_amount.errors }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">
+                            {{ form.description.label }}
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                        <div class="alert alert-danger">
+                            {{ form.description.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Invoice Items -->
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Items de Factura</h6>
+                            <button type="button" class="btn btn-primary btn-sm" id="add-item">
+                                <i class="fas fa-plus"></i> Agregar Item
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            {{ items.management_form }}
+                            <div id="formset-container">
+                                {% for form in items %}
+                                <div class="formset-row">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="mb-3">
+                                                <label class="form-label">Descripción</label>
+                                                {{ form.description }}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <div class="mb-3">
+                                                <label class="form-label">Cantidad</label>
+                                                {{ form.quantity }}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <div class="mb-3">
+                                                <label class="form-label">Precio Unitario</label>
+                                                {{ form.unit_price }}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2">
+                                            <div class="mb-3">
+                                                <label class="form-label">Total</label>
+                                                {{ form.total }}
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 d-flex align-items-end">
+                                            <button type="button" class="btn btn-danger btn-sm delete-row">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    {{ form.id }}
+                                    {{ form.DELETE }}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'invoice-list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Volver
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Guardar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add Bootstrap classes to form fields
+    document.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], textarea, select').forEach(function(element) {
+        element.classList.add('form-control');
+    });
+
+    // Formset handling
+    document.addEventListener('DOMContentLoaded', function() {
+        const formsetContainer = document.getElementById('formset-container');
+        const addButton = document.getElementById('add-item');
+        const totalForms = document.getElementById('id_items-TOTAL_FORMS');
+        const formsetRows = document.querySelectorAll('.formset-row');
+
+        // Update form count
+        function updateFormCount() {
+            totalForms.value = formsetContainer.children.length;
+        }
+
+        // Add new form
+        addButton.addEventListener('click', function() {
+            const formCount = parseInt(totalForms.value);
+            const template = formsetRows[0].cloneNode(true);
+            
+            // Update form index
+            template.innerHTML = template.innerHTML.replace(/items-\d+/g, `items-${formCount}`);
+            
+            // Clear values
+            template.querySelectorAll('input').forEach(input => {
+                input.value = '';
+            });
+            
+            formsetContainer.appendChild(template);
+            updateFormCount();
+        });
+
+        // Delete form
+        formsetContainer.addEventListener('click', function(e) {
+            if (e.target.closest('.delete-row')) {
+                const row = e.target.closest('.formset-row');
+                const deleteCheckbox = row.querySelector('input[type="checkbox"]');
+                
+                if (deleteCheckbox) {
+                    deleteCheckbox.checked = true;
+                    row.style.display = 'none';
+                } else {
+                    row.remove();
+                    updateFormCount();
+                }
+            }
+        });
+
+        // Calculate totals
+        formsetContainer.addEventListener('input', function(e) {
+            if (e.target.matches('input[name$="-quantity"], input[name$="-unit_price"]')) {
+                const row = e.target.closest('.formset-row');
+                const quantity = parseFloat(row.querySelector('input[name$="-quantity"]').value) || 0;
+                const unitPrice = parseFloat(row.querySelector('input[name$="-unit_price"]').value) || 0;
+                const totalInput = row.querySelector('input[name$="-total"]');
+                
+                totalInput.value = (quantity * unitPrice).toFixed(2);
+                calculateInvoiceTotal();
+            }
+        });
+
+        // Calculate invoice total
+        function calculateInvoiceTotal() {
+            let total = 0;
+            document.querySelectorAll('input[name$="-total"]').forEach(input => {
+                total += parseFloat(input.value) || 0;
+            });
+            document.getElementById('id_total_amount').value = total.toFixed(2);
+        }
+    });
+</script>
+{% endblock %} 

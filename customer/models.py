@@ -8,6 +8,9 @@ from django.db.models import Sum,Q
 from django.db.models.functions import Coalesce
 from django.db.models import DecimalField
 from django.contrib.auth.models import AbstractUser
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
+import json
 
 
 
@@ -403,7 +406,7 @@ class ProposalProjects(models.Model):
     
     
     project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='proposals')
-    budget = models.ForeignKey('BudgetEstimate', on_delete=models.CASCADE, null=True, related_name='proposals')
+    budget = models.ForeignKey(BudgetEstimate, on_delete=models.CASCADE, null=True, related_name='proposals')
     tracking_id = models.CharField(max_length=255)  # Unique tracking ID
     proposalInfo = models.JSONField(default=dict, blank=True)
     project_name = models.CharField(max_length=255, default='none')  # Added project name
@@ -417,9 +420,11 @@ class ProposalProjects(models.Model):
     print_name = models.CharField(max_length=255, null=True, blank=True)  # Added print name
     signature = models.CharField(max_length=255, null=True, blank=True)  # Added signature
     sales_advisor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Sales Advisor", blank=True)
-    terms_conditions = models.TextField("Terms and Conditions", null=True, blank=True)  # Optional field for terms
+    terms_conditions = models.TextField("Terms and Conditions", null=True, blank=True)
     status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default=STATUS_NEW)
     billed_proposal = models.DecimalField("Total Billed", max_digits=15, decimal_places=2, default=0)
+    exclusions = models.TextField("Exclusions", null=True, blank=True, default="Permit Fee and processing, Site survey, Electrical fence grounding")
+    scope_prices = models.JSONField("Scope Prices", default=dict, blank=True)  # Campo para almacenar los precios por scope
     
     class Meta:
         verbose_name = "Proposal"
@@ -502,3 +507,192 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.username} ({self.role.name if self.role else 'Sin Rol'})"
+
+
+class ProjectHistory(models.Model):
+    """
+    Modelo para registrar el historial de cambios en los proyectos.
+    Guarda información sobre quién realizó el cambio, cuándo, qué se modificó y otros detalles.
+    """
+    # Tipos de acciones que se pueden registrar
+    ACTION_TYPES = [
+        ('CREATE', 'Creación'),
+        ('UPDATE', 'Actualización'),
+        ('DELETE', 'Eliminación'),
+        ('STATUS_CHANGE', 'Cambio de Estado'),
+        ('BUDGET_CHANGE', 'Cambio de Presupuesto'),
+        ('PROPOSAL_CHANGE', 'Cambio de Propuesta'),
+        ('INVOICE_CHANGE', 'Cambio de Factura'),
+        ('COMMENT', 'Comentario'),
+        ('OTHER', 'Otro'),
+    ]
+    
+    # Campos del modelo
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='history', verbose_name="Proyecto")
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Usuario")
+    action = models.CharField("Acción", max_length=20, choices=ACTION_TYPES)
+    timestamp = models.DateTimeField("Fecha y Hora", auto_now_add=True)
+    description = models.TextField("Descripción", blank=True)
+    
+    # Campos para almacenar información sobre el objeto modificado
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    content_object = GenericForeignKey('content_type', 'object_id')
+    
+    # Campo para almacenar los cambios realizados (antes y después)
+    changes = models.JSONField("Cambios", default=dict, blank=True)
+    
+    class Meta:
+        verbose_name = "Historial de Proyecto"
+        verbose_name_plural = "Historial de Proyectos"
+        ordering = ['-timestamp']
+    
+    def __str__(self):
+        return f"{self.project.project_name} - {self.get_action_display()} - {self.timestamp.strftime('%d/%m/%Y %H:%M')}"
+    
+    @classmethod
+    def log_change(cls, project, user, action, description="", content_object=None, changes=None):
+        """
+        Método de clase para facilitar el registro de cambios en el historial.
+        
+        Args:
+            project: Instancia del proyecto
+            user: Usuario que realiza la acción
+            action: Tipo de acción (CREATE, UPDATE, etc.)
+            description: Descripción textual del cambio
+            content_object: Objeto relacionado que fue modificado (opcional)
+            changes: Diccionario con los cambios realizados (opcional)
+        """
+        history = cls(
+            project=project,
+            user=user,
+            action=action,
+            description=description,
+            changes=changes or {}
+        )
+        
+        if content_object:
+            history.content_type = ContentType.objects.get_for_model(content_object)
+            history.object_id = content_object.id
+        
+        history.save()
+        return history
+
+# Señales para registrar automáticamente los cambios en el historial
+@receiver(post_save, sender='customer.Project')
+def log_project_changes(sender, instance, created, **kwargs):
+    """
+    Registra automáticamente los cambios en los proyectos.
+    """
+    from django.contrib.contenttypes.models import ContentType
+    
+    # Determinar el tipo de acción
+    action = 'CREATE' if created else 'UPDATE'
+    
+    # Obtener el usuario actual (si está disponible)
+    from django.contrib.auth import get_user
+    user = get_user(kwargs.get('request', None)) if 'request' in kwargs else None
+    
+    # Si no hay usuario, intentar obtener el usuario del sistema
+    if not user:
+        try:
+            user = User.objects.get(username='system')
+        except User.DoesNotExist:
+            # Si no existe un usuario 'system', usar el primer superusuario o None
+            user = User.objects.filter(is_superuser=True).first()
+    
+    # Registrar el cambio en el historial
+    ProjectHistory.log_change(
+        project=instance,
+        user=user,
+        action=action,
+        description=f"{'Creación' if created else 'Actualización'} del proyecto {instance.project_name}",
+        content_object=instance
+    )
+
+@receiver(post_save, sender='customer.BudgetEstimate')
+def log_budget_changes(sender, instance, created, **kwargs):
+    """
+    Registra automáticamente los cambios en los presupuestos.
+    """
+    # Obtener el usuario actual (si está disponible)
+    from django.contrib.auth import get_user
+    user = get_user(kwargs.get('request', None)) if 'request' in kwargs else None
+    
+    # Si no hay usuario, intentar obtener el usuario del sistema
+    if not user:
+        try:
+            user = User.objects.get(username='system')
+        except User.DoesNotExist:
+            # Si no existe un usuario 'system', usar el primer superusuario o None
+            user = User.objects.filter(is_superuser=True).first()
+    
+    # Determinar el tipo de acción
+    action = 'CREATE' if created else 'UPDATE'
+    
+    # Registrar el cambio en el historial
+    ProjectHistory.log_change(
+        project=instance.project,
+        user=user,
+        action='BUDGET_CHANGE',
+        description=f"{'Creación' if created else 'Actualización'} del presupuesto para el proyecto {instance.project.project_name}",
+        content_object=instance
+    )
+
+@receiver(post_save, sender='customer.ProposalProjects')
+def log_proposal_changes(sender, instance, created, **kwargs):
+    """
+    Registra automáticamente los cambios en las propuestas.
+    """
+    # Obtener el usuario actual (si está disponible)
+    from django.contrib.auth import get_user
+    user = get_user(kwargs.get('request', None)) if 'request' in kwargs else None
+    
+    # Si no hay usuario, intentar obtener el usuario del sistema
+    if not user:
+        try:
+            user = User.objects.get(username='system')
+        except User.DoesNotExist:
+            # Si no existe un usuario 'system', usar el primer superusuario o None
+            user = User.objects.filter(is_superuser=True).first()
+    
+    # Determinar el tipo de acción
+    action = 'CREATE' if created else 'UPDATE'
+    
+    # Registrar el cambio en el historial
+    ProjectHistory.log_change(
+        project=instance.project,
+        user=user,
+        action='PROPOSAL_CHANGE',
+        description=f"{'Creación' if created else 'Actualización'} de la propuesta para el proyecto {instance.project.project_name}",
+        content_object=instance
+    )
+
+@receiver(post_save, sender='customer.InvoiceProjects')
+def log_invoice_changes(sender, instance, created, **kwargs):
+    """
+    Registra automáticamente los cambios en las facturas.
+    """
+    # Obtener el usuario actual (si está disponible)
+    from django.contrib.auth import get_user
+    user = get_user(kwargs.get('request', None)) if 'request' in kwargs else None
+    
+    # Si no hay usuario, intentar obtener el usuario del sistema
+    if not user:
+        try:
+            user = User.objects.get(username='system')
+        except User.DoesNotExist:
+            # Si no existe un usuario 'system', usar el primer superusuario o None
+            user = User.objects.filter(is_superuser=True).first()
+    
+    # Determinar el tipo de acción
+    action = 'CREATE' if created else 'UPDATE'
+    
+    # Registrar el cambio en el historial
+    ProjectHistory.log_change(
+        project=instance.project,
+        user=user,
+        action='INVOICE_CHANGE',
+        description=f"{'Creación' if created else 'Actualización'} de la factura para el proyecto {instance.project.project_name}",
+        content_object=instance
+    )

@@ -1,0 +1,184 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{% if form.instance.pk %}Editar{% else %}Nueva{% endif %} Transacción{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exchange-alt"></i> {% if form.instance.pk %}Editar{% else %}Nueva{% endif %} Transacción
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.account.id_for_label }}" class="form-label">Cuenta</label>
+                        <select name="{{ form.account.name }}" id="{{ form.account.id_for_label }}" class="form-select" required>
+                            <option value="">Seleccione una cuenta</option>
+                            {% regroup accounts|dictsort:"account_type" by account_type as account_types %}
+                            {% for type in account_types %}
+                                <optgroup label="{{ type.grouper }}">
+                                    {% for account in type.list %}
+                                        <option value="{{ account.id }}" 
+                                                data-account-type="{{ account.account_type }}"
+                                                {% if form.account.value|stringformat:"s" == account.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ account.name }} - Saldo: ${{ account.balance|floatformat:2 }}
+                                        </option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endfor %}
+                        </select>
+                        {% if form.account.help_text %}
+                            <div class="form-text">{{ form.account.help_text }}</div>
+                        {% endif %}
+                        {% if form.account.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.account.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.transaction_type.id_for_label }}" class="form-label">Tipo de Transacción</label>
+                        <div class="input-group">
+                            <select name="{{ form.transaction_type.name }}" id="{{ form.transaction_type.id_for_label }}" class="form-select" required>
+                                <option value="">Seleccione un tipo</option>
+                                <option value="CREDIT" {% if form.transaction_type.value == 'CREDIT' %}selected{% endif %}>
+                                    Crédito <span id="credit-effect" class="badge bg-secondary">?</span>
+                                </option>
+                                <option value="DEBIT" {% if form.transaction_type.value == 'DEBIT' %}selected{% endif %}>
+                                    Débito <span id="debit-effect" class="badge bg-secondary">?</span>
+                                </option>
+                            </select>
+                        </div>
+                        {% if form.transaction_type.help_text %}
+                            <div class="form-text">{{ form.transaction_type.help_text }}</div>
+                        {% endif %}
+                        {% if form.transaction_type.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.transaction_type.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.amount.id_for_label }}" class="form-label">Monto</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" name="{{ form.amount.name }}" id="{{ form.amount.id_for_label }}" 
+                                   class="form-control" step="0.01" min="0.01" required
+                                   value="{{ form.amount.value|default:'' }}">
+                        </div>
+                        {% if form.amount.help_text %}
+                            <div class="form-text">{{ form.amount.help_text }}</div>
+                        {% endif %}
+                        {% if form.amount.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.amount.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.date.id_for_label }}" class="form-label">Fecha</label>
+                        <input type="date" name="{{ form.date.name }}" id="{{ form.date.id_for_label }}" 
+                               class="form-control" required value="{{ form.date.value|date:'Y-m-d' }}">
+                        {% if form.date.help_text %}
+                            <div class="form-text">{{ form.date.help_text }}</div>
+                        {% endif %}
+                        {% if form.date.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.date.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">Descripción</label>
+                        <textarea name="{{ form.description.name }}" id="{{ form.description.id_for_label }}" 
+                                  class="form-control" rows="3">{{ form.description.value|default:'' }}</textarea>
+                        {% if form.description.help_text %}
+                            <div class="form-text">{{ form.description.help_text }}</div>
+                        {% endif %}
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.description.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Guardar
+                        </button>
+                        <a href="{% url 'transaction-list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Establecer la fecha actual como valor predeterminado
+    const dateField = document.getElementById('{{ form.date.id_for_label }}');
+    if (!dateField.value) {
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        dateField.value = `${yyyy}-${mm}-${dd}`;
+    }
+    
+    // Elementos del formulario
+    const accountSelect = document.getElementById('{{ form.account.id_for_label }}');
+    const typeSelect = document.getElementById('{{ form.transaction_type.id_for_label }}');
+    const creditEffect = document.getElementById('credit-effect');
+    const debitEffect = document.getElementById('debit-effect');
+    
+    // Función para actualizar los efectos de los tipos de transacción
+    function updateTransactionEffects() {
+        const selectedOption = accountSelect.options[accountSelect.selectedIndex];
+        const accountType = selectedOption.getAttribute('data-account-type');
+        
+        if (accountType) {
+            // Actualizar los efectos según el tipo de cuenta
+            if (accountType === 'ASSET' || accountType === 'EXPENSE') {
+                // Para activos y gastos: los débitos aumentan (+), los créditos disminuyen (-)
+                creditEffect.textContent = '-';
+                creditEffect.className = 'badge bg-danger';
+                debitEffect.textContent = '+';
+                debitEffect.className = 'badge bg-success';
+            } else {
+                // Para pasivos, ingresos y capital: los créditos aumentan (+), los débitos disminuyen (-)
+                creditEffect.textContent = '+';
+                creditEffect.className = 'badge bg-success';
+                debitEffect.textContent = '-';
+                debitEffect.className = 'badge bg-danger';
+            }
+        } else {
+            // Si no hay cuenta seleccionada, mostrar signos de interrogación
+            creditEffect.textContent = '?';
+            creditEffect.className = 'badge bg-secondary';
+            debitEffect.textContent = '?';
+            debitEffect.className = 'badge bg-secondary';
+        }
+    }
+    
+    // Actualizar efectos cuando cambia la cuenta seleccionada
+    accountSelect.addEventListener('change', updateTransactionEffects);
+    
+    // Actualizar efectos al cargar la página
+    updateTransactionEffects();
+});
+</script>
+{% endblock %} 

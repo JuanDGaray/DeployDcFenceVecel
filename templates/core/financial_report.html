@@ -1,0 +1,106 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Reporte Financiero{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Reporte Financiero</h4>
+                    <small class="text-muted">{{ start_date|date:"d/m/Y" }} - {{ end_date|date:"d/m/Y" }}</small>
+                </div>
+                <div class="card-body">
+                    <!-- Resumen Financiero -->
+                    <div class="row mb-4">
+                        <div class="col-md-4">
+                            <div class="card bg-success text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">Ingresos</h5>
+                                    <h3 class="mb-0">${{ income|floatformat:2 }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-danger text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">Gastos</h5>
+                                    <h3 class="mb-0">${{ expenses|floatformat:2 }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card {% if balance >= 0 %}bg-primary{% else %}bg-warning{% endif %} text-white">
+                                <div class="card-body">
+                                    <h5 class="card-title">Balance</h5>
+                                    <h3 class="mb-0">${{ balance|floatformat:2 }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Transacciones por Cuenta -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h5>Transacciones por Cuenta</h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Cuenta</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for transaction in transactions_by_account %}
+                                        <tr>
+                                            <td>{{ transaction.account__name }}</td>
+                                            <td>${{ transaction.total|floatformat:2 }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="2" class="text-center">No hay transacciones en el período</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gastos por Categoría -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h5>Gastos por Categoría</h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Categoría</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for expense in expenses_by_category %}
+                                        <tr>
+                                            <td>{{ expense.get_category_display }}</td>
+                                            <td>${{ expense.total|floatformat:2 }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr>
+                                            <td colspan="2" class="text-center">No hay gastos en el período</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

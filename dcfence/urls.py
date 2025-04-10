@@ -15,19 +15,21 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from ctypes import util
-from django.urls import path
+from django.urls import path, include
 from customer import views
 from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 from django.conf.urls import handler404
 from customer import utils
+from customer.views.projects_views import project_history
 
 
 handler404 = views.custom_404_view
 
 urlpatterns = [
     path('', views.home, name='home'),
+    path('accounting/', include('accounting.urls')), 
     path('admin/', admin.site.urls),
     path('signup/', views.signup, name='signup'),
     path('signin/', views.signin, name='signin'),
@@ -81,6 +83,7 @@ urlpatterns = [
     path('sales-performance/', views.sales_performance_view, name='sales_performance'),
     path('metrics/projects-by-creation-date/', views.projects_by_creation_date, name='projects_by_creation_date'),
     path('metrics/proposals_donut_chart/', views.proposals_donut_chart, name='proposals_donut_chart'),
+    path('project/<int:project_id>/history/', project_history, name='project_history'),
 ]
 
 

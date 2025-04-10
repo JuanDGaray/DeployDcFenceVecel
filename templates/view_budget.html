@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% load static %}
+{% block extra_head %}
+<style>
+    .viewBlock{
+        font-family: Arial, sans-serif;
+        background-image: url("{% static 'img/logoPatron.png' %}");
+        background-repeat: repeat;
+        width:100%;
+        height:100%;
+        position:fixed;
+        opacity:0.07;
+        z-index:2
+    }
+    #tools-container {
+      transform: translateX(100%); /* Mueve el div fuera de la vista */
+      transition: transform 0.3s ease-in-out; /* Suaviza la transición */
+      z-index: 1000
+    }
+    #tools-container.active {
+      transform: translateX(0); /* Lo trae al área visible */
+    }
+    table td, table th, table input{
+        font-size: 0.8rem !important;   
+    }
+    #tools-container.active + #toggle-button {
+        right: calc(100% + 10px); /* Ajusta el botón para quedar separado del contenedor */
+    }
+    .util-off{
+        pointer-events: none;
+        user-select: none;
+    }
+
+</style>
+{% endblock %}
+{% block title %}B.{{budget.id}} | {{ project.project_name }}{% endblock %}
+
+{% block content %}
+<div class="viewBlock" ></div>
+<div class="d-flex flex-column min-vh-100 m-0 justify-content-center p-3"  id="productDetail-form" >
+    <div class="d-flex justify-content-center card-body col-md-12 bg-company d-none">
+        <div class="col-md-8 p-2 bg-light m-4 d-flex justify-content-between border rounded-2 px-4">
+            <div class="p-2">
+                <p class="text-center text-dark fs-6"><strong>Name</strong></p>
+                <p class="text-center text-dark fs-6">{{ project.project_name }}</p>
+            </div>
+            <div class="p-2 bg-body-secondaryay">
+                <p class="text-center text-dark fs-6"><strong>Job Address</strong></p>
+                <p class="text-center text-dark fs-6">{{ project.customer.address }}</p>
+            </div>
+            <div class="p-2 bg-body-secondaryay">
+                <p class="text-center text-dark fs-6"><strong>Contractor</strong></p>
+                {% if project.customer.customer_type == "individual" %}
+                <p class="text-center text-dark fs-6">{{ project.customer.first_name }} {{ project.customer.last_name }}</p>
+                {% else %}
+                <p class="text-center text-dark fs-6">{{ project.customer.company_name }}</p>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card p-2 bg-body-secondaryay m-4">
+        <p class="text-center text-dark fs-6"><strong>Quote N°:</strong> GENERAL </p>
+        <p class="text-center text-dark fs-6"><strong>Quote Date:</strong> {{ date|date:"d/m/Y" }}</p>
+        <p class="text-center text-dark fs-6"><strong>Valid Until:</strong> <input type="date"  name="date_valid" id="date_valid" value="{{ date_valid|date:'Y-m-d' }}"> </p>            
+        </div>
+    </div>
+    <!-- navigation.html -->
+    <nav class="mb-4 d-flex justify-content-between">
+        <div>
+            <a href="{% url 'detail_project' project.id %}">
+                <strong><i class="bi bi-back"></i> 
+                <span id="project-container" data-project-id="{{ project.id }}">{{ project.id }} </span> - {{ project.project_name }} </span> 
+                </strong>
+            </a> 
+            / <span> Budget ID{{budget.id}} <span class='status status_in_production user-select-none'>Mode : View</span>
+            <span class='status status_approved user-select-none'>Create by : {{budget.sales_advisor}}</span>
+            <span class='status status_empty user-select-none'>Creation date : {{budget.date_created}}</span>
+
+    </nav>
+    <section class="d-flex justify-content-between w-100 d-flex flex-row justify-content-around user-select-none">
+        {%include 'components/itemsContainer.html'%}
+        {%include 'components/checkListBudget.html'%}
+    </section>
+    
+    <hr class="my-2 ">
+    <section class='d-flex flex-column m-0 user-select-none' id='management-section'>
+        {%include 'components/COMP_ CostManagement.html'%}
+        {%include 'components/utilsTools.html'%}
+    </section>
+    
+    <hr class="my-2 ">
+    {%include 'components/totalBudgetInfo.html'%}
+    
+    <hr class="my-2 ">
+    <section>
+        <div class="d-flex m-auto gap-2 justify-content-between align-items-top user-select-none">
+            <div class="card my-4 overflow" style="width:30%">
+                <h2 class="card-header fs-6 text-center py-1">Cost per items</h2>
+                <table id="cost_per_items" class="table table-bordered mx-auto" style="width:100%">
+                    <thead>
+                        <tr  class="table-secondary">
+                            <th class="p-0 border text-center  px-2" style="width:70%">Items</th>
+                            <th class="p-0 border text-center  px-2" style="width:30%"> Cost</th>
+                        </tr>
+                    </thead>
+                    <tbody class="word-wrap word-break">
+                    </tbody>
+                    <tfoot>
+                        <th class="p-0 border text-center  px-2">
+                        </th>
+                        <th class="p-0 border px-2 bg-secondary text-light text-end" id="totalCostByItems">
+                            $0.00
+                        </th>
+                    </tfoot>
+                </table>     
+            </div>
+
+            <div class="card my-4" style="width:30%">
+                <h2 class="card-header fs-6 text-center py-1">Profit per item</h2>
+                <table id="profit_per_items" class="table table-bordered mx-auto">
+                    <thead>
+                        <tr  class="table-secondary">
+                            <th class="p-0 border text-center  px-2" style="width:70%">Items</th>
+                            <th class="p-0 border text-center  px-2" style="width:30%"> Utility</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                    <tfoot>
+                        <th class="p-0 border text-center  px-2">
+                        </th>
+                        <th class="p-0 border px-2 bg-secondary text-light text-end" id="totalProfitByItems">
+                            $0.00
+                        </th>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="card my-4" style="width:30%">
+                <h2 class="card-header fs-6 text-center py-1">Selling price per item</h2>
+                <table id="selling_price" class="table table-bordered mx-auto">
+                    <thead>
+                        <tr  class="table-secondary">
+                            <th class="p-0 border text-center  px-2" style="width:70%">Items</th>
+                            <th class="p-0 border text-center  px-2" style="width:30%"> Sale price</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                    <tfoot>
+                        <th class="p-0 border text-center  px-2">
+                        </th>
+                        <th class="p-0 border px-2 bg-secondary text-light text-end" id="totalCostProfitByItems">
+                            $0.00
+                        </th>
+                    </tfoot>
+                </table>
+            </div>
+    </section>
+    <div class="d-flex d-fixed justify-content-end gap-4 m-4" >
+        <button type="submit" id="save-btn" name="action" value="save" class="btn btn-primary w-40 d-none">
+            <i class="bi bi-floppy-fill"></i>
+            Save
+        </button>           
+    </div>
+</div>
+
+<div id="loadingOverlay"  class="containerLoading d-none" >
+    <img src="{% static 'img/loading.gif' %}" alt="Cargando" class="img-fluid rounded-1" style="width: 100px; height: auto;">
+</div>
+<script src="{% static 'js/new_budgetScripts.js' %}"></script>
+<script src="{% static 'js/addDetailsBudget.js' %}"></script>
+<script>
+    const dataC = {{ data|safe }};
+    document.addEventListener("DOMContentLoaded", () => {
+        const removeLaborButtons = document.querySelectorAll(".remove_btn");
+        removeLaborButtons.forEach(button => {
+            button.style.display = "none";
+        });
+    });
+
+    const toggleButton = document.getElementById('toggle-button');
+    const toolsContainer = document.getElementById('tools-container');
+
+    toggleButton.addEventListener('click', () => {
+    toolsContainer.classList.toggle('active');
+    });
+
+</script>
+
+{% endblock %}

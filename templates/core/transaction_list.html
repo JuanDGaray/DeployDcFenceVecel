@@ -1,0 +1,174 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Transacciones{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-exchange-alt"></i> Transacciones
+        </h5>
+        <a href="{% url 'transaction-create' %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus"></i> Nueva Transacción
+        </a>
+    </div>
+    <div class="card-body">
+        <!-- Filters -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="start_date" class="form-label">Fecha Inicio</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" 
+                               value="{{ request.GET.start_date }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="end_date" class="form-label">Fecha Fin</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" 
+                               value="{{ request.GET.end_date }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="account" class="form-label">Cuenta</label>
+                        <select class="form-select" id="account" name="account">
+                            <option value="">Todas las cuentas</option>
+                            {% for account in accounts %}
+                            <option value="{{ account.id }}" 
+                                    {% if request.GET.account == account.id|stringformat:"s" %}selected{% endif %}>
+                                {{ account.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="transaction_type" class="form-label">Tipo</label>
+                        <select class="form-select" id="transaction_type" name="transaction_type">
+                            <option value="">Todos los tipos</option>
+                            <option value="CREDIT" {% if request.GET.transaction_type == 'CREDIT' %}selected{% endif %}>
+                                Crédito
+                            </option>
+                            <option value="DEBIT" {% if request.GET.transaction_type == 'DEBIT' %}selected{% endif %}>
+                                Débito
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-filter"></i> Filtrar
+                        </button>
+                        <a href="{% url 'transaction-list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Limpiar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Cuenta</th>
+                        <th>Tipo</th>
+                        <th>Monto</th>
+                        <th>Descripción</th>
+                        <th>Creado por</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for transaction in transactions %}
+                    <tr>
+                        <td>{{ transaction.date }}</td>
+                        <td>{{ transaction.account.name }}</td>
+                        <td>
+                            <span class="badge {% if transaction.transaction_type == 'CREDIT' %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ transaction.get_transaction_type_display }}
+                            </span>
+                        </td>
+                        <td>${{ transaction.amount|floatformat:2 }}</td>
+                        <td>{{ transaction.description|truncatechars:50 }}</td>
+                        <td>{{ transaction.created_by.username }}</td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{% url 'transaction-update' transaction.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#deleteModal{{ transaction.pk }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+
+                            <!-- Delete Modal -->
+                            <div class="modal fade" id="deleteModal{{ transaction.pk }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Confirmar Eliminación</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            ¿Estás seguro de que deseas eliminar esta transacción?
+                                            Esta acción no se puede deshacer.
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                Cancelar
+                                            </button>
+                                            <form method="post" action="{% url 'transaction-delete' transaction.pk %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger">
+                                                    Eliminar
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">No hay transacciones registradas</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        Anterior
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                    <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        {{ num }}
+                    </a>
+                </li>
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        Siguiente
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

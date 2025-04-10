@@ -33,6 +33,7 @@ from ..promts import basePromt, AsisPromt,  QueryReviewPrompt, ModelReviewPrompt
 import re, traceback
 from typing import Optional, List
 from pydantic import BaseModel
+from customer.models import ProjectHistory
 
 client = Groq(
     api_key="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",
@@ -322,8 +323,11 @@ def new_budget(request, project_id):
                 'dateCreated': timezone.now(),  
             }
             save_budget_data_from_dict(dataBudget, data)
+            return JsonResponse({'status': 'success', 'message': 'Presupuesto y datos guardados correctamente.'})
         except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'Error al procesar los datos.'})
+            return JsonResponse({'status': 'error', 'message': 'Error al procesar los datos.'}, status=400)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': f'Error al guardar el presupuesto: {str(e)}'}, status=500)
     
 @login_required
 def view_changeOrder(request, project_id,  budget_id):
@@ -369,6 +373,7 @@ def new_change_order(request, project_id, proposal_id):
             'data':  json.dumps(data)
         })
     else:
+        try:
             budget = get_object_or_404(BudgetEstimate, pk=proposal_id)
             data = json.loads(request.body)
             budgetRelated = budget
@@ -384,7 +389,11 @@ def new_change_order(request, project_id, proposal_id):
                 'isChangeOrder': True,
             }
             save_budget_data_from_dict(dataBudget, data)
-            return redirect('detail_project', project_id=project.id)
+            return JsonResponse({'status': 'success', 'message': 'Orden de cambio guardada correctamente.'})
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Error al procesar los datos.'}, status=400)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': f'Error al guardar la orden de cambio: {str(e)}'}, status=500)
 
 @login_required 
 def edit_budget(request, project_id, budget_id):
@@ -420,9 +429,11 @@ def edit_budget(request, project_id, budget_id):
             }
             save_budget_data_from_dict(dataBudget, data)
             modify_old_budget(budget_id)
-            return redirect('detail_project', project_id=project.id)
+            return JsonResponse({'status': 'success', 'message': 'Presupuesto actualizado correctamente.'})
         except json.JSONDecodeError:
-            return JsonResponse({'status': 'error', 'message': 'Error al procesar los datos.'})
+            return JsonResponse({'status': 'error', 'message': 'Error al procesar los datos.'}, status=400)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': f'Error al actualizar el presupuesto: {str(e)}'}, status=500)
 
 def generate_pdf(request, project_id, budget_id):
     """context = get_budget_context(project_id, budget_id)
@@ -560,10 +571,12 @@ def pdf_proposal(request, project_id, proposal_id):
     elif request.method == 'POST':
         return HttpResponse(status=200)
     
+@transaction.atomic
 def save_budget_data_from_dict(dataBudget,data):
     """
     Crea un nuevo BudgetEstimate y guarda los datos relacionados a partir de un diccionario.
     :param data: Diccionario con los datos a guardar.
+    :return: El objeto BudgetEstimate creado
     """
     try:
         related_budget = None
@@ -617,17 +630,17 @@ def save_budget_data_from_dict(dataBudget,data):
                 add_unit_cost_mw = util_data_MW.get('addUnitCostMW'),
                 data_unit_cost_mw = util_data_MW.get('dataUnitCostMWCost'),
                 data_unit_cost_mw_items = util_data_MW.get('dataUnitCostMWItems'),
-                add_data_profit_by_daymw =  util_data_MW['adddataProfitByDayMW'],
-                data_profit_by_daymw =  util_data_MW['valueProfitByDayMW'],
+                add_data_profit_by_daymw =  util_data_MW.get('adddataProfitByDayMW'),
+                data_profit_by_daymw =  util_data_MW.get('valueProfitByDayMW'),
                 #####
                 add_data_profit_by_day =  util_data_Pday.get('adddataProfitByDay'),
-                days = util_data_Pday['dataProfitByDay']['days'],
-                profit_value = util_data_Pday['dataProfitByDay']['profitValue'],
-                use_day_in_items_manufacturing = util_data_Pday['dataProfitByDay']['useDayInItemsManufacturing'],
+                days = util_data_Pday.get('dataProfitByDay', {}).get('days', 0),
+                profit_value = util_data_Pday.get('dataProfitByDay', {}).get('profitValue', 0),
+                use_day_in_items_manufacturing = util_data_Pday.get('dataProfitByDay', {}).get('useDayInItemsManufacturing', False),
                 ####
                 # Información de préstamos
                 add_loans = util_data_loans.get('addLoans'),
-                percentage = util_data_loans['dataLoansToProject']['percentage'],
+                percentage = util_data_loans.get('dataLoansToProject', {}).get('percentage', 0),
             )
             
             
@@ -704,14 +717,23 @@ def save_budget_data_from_dict(dataBudget,data):
                     is_generated_by_utils=profit.get('isGeneratedByUtils'),
                 )
         
-            
         print({'status': 'success', 'message': 'Presupuesto y datos guardados correctamente.', 'budget_id': budget.id})
+        return budget
     except Exception as e:
         print({'status': 'error', 'message': str(e)})
+        raise
 
 
 def save_budget_simple(data, project, budget, dictScope, saleAdvisor):
     with transaction.atomic():
+        # Recolectar los precios por scope
+        scope_prices = {}
+        for key, value in data.items():
+            if key.startswith('scope-price-'):
+                scope_id = key.replace('scope-price-', '')
+                if value:  # Solo guardar si hay un valor
+                    scope_prices[scope_id] = float(value.replace('$', '').replace(',', ''))
+
         proposal = ProposalProjects.objects.create(
             project=project,
             budget=budget,
@@ -729,6 +751,8 @@ def save_budget_simple(data, project, budget, dictScope, saleAdvisor):
             signature=data['signature'],
             sales_advisor=saleAdvisor,
             terms_conditions=data['terms'],
+            exclusions=data.get('exclusions', 'Permit Fee and processing, Site survey, Electrical fence grounding'),
+            scope_prices=scope_prices,  # Guardar los precios por scope
         )
         project.estimated_cost = F('estimated_cost') + proposal.total_proposal
         project.save(update_fields=['status', 'estimated_cost'])
@@ -1026,3 +1050,24 @@ def JsonTableAnalisyModelIA(json, context):
         return response_message    
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+def project_history(request, project_id):
+    """
+    Vista para mostrar el historial de cambios de un proyecto.
+    """
+    project = get_object_or_404(Project, id=project_id)
+    
+    # Obtener el historial del proyecto
+    history_entries = ProjectHistory.objects.filter(project=project).order_by('-timestamp')
+    
+    # Paginar los resultados
+    paginator = Paginator(history_entries, 20)  # 20 entradas por página
+    page = request.GET.get('page')
+    history = paginator.get_page(page)
+    
+    context = {
+        'project': project,
+        'history': history,
+    }
+    
+    return render(request, 'project_history.html', context)

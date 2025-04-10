@@ -1,0 +1,371 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block accounting_content %}
+<div class="row">
+    <!-- Resumen Financiero -->
+    <div class="col-md-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Ingresos del Mes</h6>
+                <h3 class="mb-0">${{ monthly_income|floatformat:2 }}</h3>
+                <div class="mt-2">
+                    <span class="badge bg-success">
+                        <i class="bi bi-arrow-up"></i> {{ income_growth|floatformat:1 }}%
+                    </span>
+                    <small class="text-muted">vs mes anterior</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Gastos del Mes</h6>
+                <h3 class="mb-0">${{ monthly_expenses|floatformat:2 }}</h3>
+                <div class="mt-2">
+                    <span class="badge {% if expense_growth > 0 %}bg-danger{% else %}bg-success{% endif %}">
+                        <i class="bi bi-arrow-{% if expense_growth > 0 %}up{% else %}down{% endif %}"></i> 
+                        {% if expense_growth < 0 %}-{% endif %}{{ expense_growth|floatformat:1 }}%
+                    </span>
+                    <small class="text-muted">vs mes anterior</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Balance Total</h6>
+                <h3 class="mb-0">${{ total_balance|floatformat:2 }}</h3>
+                <div class="mt-2">
+                    <span class="badge {% if balance_change > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                        <i class="bi bi-arrow-{% if balance_change > 0 %}up{% else %}down{% endif %}"></i> 
+                        {% if balance_change < 0 %}-{% endif %}{{ balance_change|floatformat:1 }}%
+                    </span>
+                    <small class="text-muted">vs mes anterior</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Facturas Pendientes</h6>
+                <h3 class="mb-0">{{ pending_invoices_count }}</h3>
+                <div class="mt-2">
+                    <span class="badge bg-warning">
+                        ${{ pending_invoices_amount|floatformat:2 }}
+                    </span>
+                    <small class="text-muted">por cobrar</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Gráfico de Distribución de Cuentas -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-pie-chart"></i> Distribución de Cuentas
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="accountDistributionChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráfico de Flujo de Efectivo -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-graph-up"></i> Análisis Financiero
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="cashFlowChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Transacciones Recientes -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-arrow-left-right"></i> Transacciones Recientes
+                </h5>
+                <a href="{% url 'transaction-list' %}" class="btn btn-sm btn-outline-primary">
+                    Ver todas
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Cuenta</th>
+                                <th>Tipo</th>
+                                <th>Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in recent_transactions %}
+                            <tr>
+                                <td>{{ transaction.date|date:"d/m/Y" }}</td>
+                                <td>{{ transaction.account.name }}</td>
+                                <td>
+                                    <span class="badge {% if transaction.transaction_type == 'CREDIT' %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ transaction.get_transaction_type_display }}
+                                    </span>
+                                </td>
+                                <td>${{ transaction.amount|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-3">No hay transacciones recientes</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Facturas Pendientes -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-receipt"></i> Facturas Pendientes
+                </h5>
+                <a href="{% url 'invoice-list' %}" class="btn btn-sm btn-outline-primary">
+                    Ver todas
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Número</th>
+                                <th>Cliente</th>
+                                <th>Vencimiento</th>
+                                <th>Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in pending_invoices %}
+                            <tr>
+                                <td>{{ invoice.invoice_number }}</td>
+                                <td>{{ invoice.client.name }}</td>
+                                <td>{{ invoice.due_date|date:"d/m/Y" }}</td>
+                                <td>${{ invoice.total_amount|floatformat:2 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-3">No hay facturas pendientes</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Acciones Rápidas -->
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-lightning"></i> Acciones Rápidas
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'transaction-create' %}" class="btn btn-primary w-100">
+                            <i class="bi bi-plus-circle"></i> Nueva Transacción
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'invoice-create' %}" class="btn btn-success w-100">
+                            <i class="bi bi-file-earmark-plus"></i> Nueva Factura
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'expense-create' %}" class="btn btn-danger w-100">
+                            <i class="bi bi-cash"></i> Registrar Gasto
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'financial-report' %}" class="btn btn-info w-100">
+                            <i class="bi bi-graph-up"></i> Ver Reportes
+                        </a>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'account-list' %}" class="btn btn-secondary w-100">
+                            <i class="bi bi-gear"></i> Configuración de Cuentas
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico de Distribución de Cuentas (Consolidado por tipo)
+    const accountCtx = document.getElementById('accountDistributionChart').getContext('2d');
+    
+    // Preparar datos consolidados por tipo de cuenta
+    const accountTypes = {
+        'ASSET': { label: 'Activos', balance: 0, color: 'rgba(40, 167, 69, 0.7)' },
+        'LIABILITY': { label: 'Pasivos', balance: 0, color: 'rgba(220, 53, 69, 0.7)' },
+        'INCOME': { label: 'Ingresos', balance: 0, color: 'rgba(23, 162, 184, 0.7)' },
+        'EXPENSE': { label: 'Gastos', balance: 0, color: 'rgba(255, 193, 7, 0.7)' },
+        'EQUITY': { label: 'Capital', balance: 0, color: 'rgba(108, 117, 125, 0.7)' }
+    };
+    
+    // Consolidar saldos por tipo de cuenta
+    {% for account in accounts %}
+        accountTypes['{{ account.account_type }}'].balance += parseFloat('{{ account.balance }}');
+    {% endfor %}
+    
+    // Preparar datos para el gráfico
+    const accountLabels = [];
+    const accountData = [];
+    const accountColors = [];
+    
+    // Solo incluir tipos de cuenta con saldo
+    for (const type in accountTypes) {
+        if (accountTypes[type].balance !== 0) {
+            accountLabels.push(accountTypes[type].label);
+            accountData.push(accountTypes[type].balance);
+            accountColors.push(accountTypes[type].color);
+        }
+    }
+    
+    new Chart(accountCtx, {
+        type: 'pie',
+        data: {
+            labels: accountLabels,
+            datasets: [{
+                data: accountData,
+                backgroundColor: accountColors,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: $${value.toFixed(2)} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Gráfico de Flujo de Efectivo
+    const cashFlowCtx = document.getElementById('cashFlowChart').getContext('2d');
+    
+    // Preparar datos para el gráfico de flujo de efectivo
+    const cashFlowLabels = [];
+    const cashFlowIncome = [];
+    const cashFlowExpenses = [];
+    
+    {% for data in cash_flow_data %}
+        cashFlowLabels.push('{{ data.label }}');
+        cashFlowIncome.push({{ data.income }});
+        cashFlowExpenses.push({{ data.expenses }});
+    {% endfor %}
+    
+    const cashFlowChart = new Chart(cashFlowCtx, {
+        type: 'bar',
+        data: {
+            labels: cashFlowLabels,
+            datasets: [
+                {
+                    label: 'Ingresos',
+                    data: cashFlowIncome,
+                    backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                    borderColor: 'rgb(40, 167, 69)',
+                    borderWidth: 1
+                },
+                {
+                    label: 'Gastos',
+                    data: cashFlowExpenses,
+                    backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                    borderColor: 'rgb(220, 53, 69)',
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let value = context.raw;
+                            return '$' + value.toLocaleString('es-ES', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            });
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toLocaleString('es-ES', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

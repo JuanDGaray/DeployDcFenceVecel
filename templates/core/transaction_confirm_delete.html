@@ -1,0 +1,33 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Eliminar Transacción{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">Eliminar Transacción</h4>
+                </div>
+                <div class="card-body">
+                    <p class="mb-4">¿Está seguro que desea eliminar la transacción de {{ object.account.name }} por ${{ object.amount }}?</p>
+                    <p class="text-danger">Esta acción no se puede deshacer.</p>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'transaction-list' %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Eliminar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
