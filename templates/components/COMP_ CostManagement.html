@@ -23,6 +23,19 @@
         .costTable:hover .ai-fill-button {
             display: block;
         }
+        @keyframes warningPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .warning-animation  {
+            display: none;
+            animation: warningPulse 1.5s ease-in-out infinite;
+        }
+        .empty-field-table.warning-animation{
+
+        }
+</style>
     </style>
     <h2 class="fs-6 m-0 fw-bold px-2">COST MANAGEMENT
         <button id="toggleDisplayButton" class="btn btn-secondary p-1" style='z-index:100'><i class="bi bi-file-spreadsheet-fill" id="DisplayButton"></i></button>
@@ -30,20 +43,25 @@
     <div class="col d-flex flex-row flex-wrap justify-content-center" id="cost-management" >
         <!-- Materials -->
         <div class="col-md-6 p-1 costTable">
-            <button class="ai-fill-button" onclick="fillWithAI('materials')">
+            <button class="ai-fill-button d-none" onclick="fillWithAI('materials')">
                 <i class="bi bi-robot"></i> Ask Fenci
             </button>
             <table class="table  table rounded-4" >
                 <tbody>
                     <tr>
                         <td colspan="8" class="p-0 border">
-                            <h2 class=" d-flex justify-content-between cost-color-label card-header fs-6 py-0 ps-2 text-light pl-100" role="button" 
+                            <h2 class="title d-flex justify-content-between cost-color-label card-header fs-6 py-0 ps-2 text-light pl-100" role="button" 
                                 data-bs-toggle="collapse" href="#materials-section" aria-expanded="false" aria-controls="materials-section"
                                 onclick="toggleIcon(this)">
                                 Materials 
-                                <span class="arrow-icon ms-2">
-                                    <i class="bi bi-chevron-up bg-light px-1 m-0 text-dark"></i>
-                                </span>
+                                <div class="p-0 m-0 d-flex align-items-center">
+                                    <span class="my-auto">
+                                        <i class="bi bi-exclamation-triangle-fill bg-light opacity-80 px-2 text-danger rounded-4 my-auto warning-animation warning-table-empty-fields" style="font-size:0.8rem;"> This section has empty fields</i>
+                                    </span>
+                                    <span class="arrow-icon ms-2">
+                                        <i class="bi bi-chevron-up bg-light px-1 m-0 text-dark"></i>
+                                    </span>
+                                </div>
                             </h2>
                         </td>                        
                     </tr>
@@ -84,13 +102,18 @@
                     <tr>
                         
                         <td colspan="8" class="p-0 border">
-                            <h2 class=" d-flex justify-content-between cost-color-label card-header fs-6 py-0 ps-2 text-light pl-100" role="button" 
+                            <h2 class="title d-flex justify-content-between cost-color-label card-header fs-6 py-0 ps-2 text-light pl-100" role="button" 
                                 data-bs-toggle="collapse" href="#labor-section" aria-expanded="false" aria-controls="labor-section"
                                 onclick="toggleIcon(this)">
                                 Manufacturing 
-                                <span class="arrow-icon ms-2">
-                                    <i class="bi bi-chevron-up bg-light px-1 m-0 text-dark"></i>
-                                </span>
+                                <div class="p-0 m-0 d-flex align-items-center">
+                                    <span class="my-auto war">
+                                        <i class="bi bi-exclamation-triangle-fill bg-light opacity-80 px-2 text-danger rounded-4 my-auto warning-animation warning-table-empty-fields" style="font-size:0.8rem;"> This section has empty fields</i>
+                                    </span>
+                                    <span class="arrow-icon ms-2">
+                                        <i class="bi bi-chevron-up bg-light px-1 m-0 text-dark"></i>
+                                    </span>
+                                </div>
                             </h2>
                         </td>
                     </tr>
@@ -123,20 +146,25 @@
 
         <!-- Subcontractor -->
         <div class="col-md-6 p-1 costTable">
-            <button class="ai-fill-button" onclick="fillWithAI('subcontracting')">
+            <button class="ai-fill-button d-none" onclick="fillWithAI('subcontracting')">
                 <i class="bi bi-robot"></i> Ask Fenci
             </button>
             <table class="table rounded-4" >
                 <tbody>
                     <tr>
                         <td colspan="8" class="p-0 border">
-                            <h2 class=" d-flex justify-content-between cost-color-label card-header fs-6 py-0 ps-2 text-light pl-100" role="button" 
+                            <h2 class="title d-flex justify-content-between cost-color-label card-header fs-6 py-0 ps-2 text-light pl-100" role="button" 
                                 data-bs-toggle="collapse" href="#contractor-section" aria-expanded="false" aria-controls="contractor-section"
                                 onclick="toggleIcon(this)">
                                 Subcontracting 
-                                <span class="arrow-icon ms-2">
-                                    <i class="bi bi-chevron-up bg-light px-1 m-0 text-dark"></i>
-                                </span>
+                                <div class="p-0 m-0 d-flex align-items-center">
+                                    <span class="my-auto war">
+                                        <i class="bi bi-exclamation-triangle-fill bg-light opacity-80 px-2 text-danger rounded-4 my-auto warning-animation warning-table-empty-fields" style="font-size:0.8rem;"> This section has empty fields</i>
+                                    </span>
+                                    <span class="arrow-icon ms-2">
+                                        <i class="bi bi-chevron-up bg-light px-1 m-0 text-dark"></i>
+                                    </span>
+                                </div>
                             </h2>
                         </td>
                     </tr>
@@ -167,20 +195,25 @@
         </div>
         <!-- Misc -->
         <div class="col-md-6 p-0 costTable">
-            <button class="ai-fill-button" onclick="fillWithAI('miscellaneous')">
+            <button class="ai-fill-button d-none" onclick="fillWithAI('miscellaneous')">
                 <i class="bi bi-robot"></i> Ask Fenci
             </button>
             <table class="table rounded-4" >
                 <tbody>
                     <tr>
                         <td colspan="8" class="p-0 border">
-                            <h2 class=" d-flex justify-content-between cost-color-label card-header fs-6 py-0 ps-2 text-light pl-100" role="button" 
+                            <h2 class="title d-flex justify-content-between cost-color-label card-header fs-6 py-0 ps-2 text-light pl-100" role="button" 
                                 data-bs-toggle="collapse" href="#misc-section" aria-expanded="false" aria-controls="misc-section"
                                 onclick="toggleIcon(this)">
                                 Miscellanous 
-                                <span class="arrow-icon ms-2">
-                                    <i class="bi bi-chevron-up bg-light px-1 m-0 text-dark"></i>
-                                </span>
+                                <div class="p-0 m-0 d-flex align-items-center">
+                                    <span class="my-auto war">
+                                        <i class="bi bi-exclamation-triangle-fill bg-light opacity-80 px-2 text-danger rounded-4 my-auto warning-animation warning-table-empty-fields" style="font-size:0.8rem;"> This section has empty fields</i>
+                                    </span>
+                                    <span class="arrow-icon ms-2">
+                                        <i class="bi bi-chevron-up bg-light px-1 m-0 text-dark"></i>
+                                    </span>
+                                </div>
                             </h2>
                         </td>
                     </tr>
@@ -209,18 +242,24 @@
             </table>            
         </div>
 
+        <!-- Loans -->
         <div class="col-md-6 p-1 costTable">
             <table class="table rounded-4 col-md-6" >
                 <tbody>
                 <tr>
                     <td colspan="8" class="p-0 border">
-                        <h2 class=" d-flex justify-content-between cost-color-label card-header fs-6 py-0 ps-2 text-light pl-100" role="button" 
+                        <h2 class="title d-flex justify-content-between cost-color-label card-header fs-6 py-0 ps-2 text-light pl-100" role="button" 
                                 data-bs-toggle="collapse" href="#deducts-section" aria-expanded="false" aria-controls="deducts-section"
                                 onclick="toggleIcon(this)">
                                 Loans 
-                                <span class="arrow-icon ms-2">
-                                    <i class="bi bi-chevron-up bg-light px-1 m-0 text-dark"></i>
-                                </span>
+                                <div class="p-0 m-0 d-flex align-items-center">
+                                    <span class="my-auto war">
+                                        <i class="bi bi-exclamation-triangle-fill bg-light opacity-80 px-2 text-danger rounded-4 my-auto warning-animation warning-table-empty-fields" style="font-size:0.8rem;"> This section has empty fields</i>
+                                    </span>
+                                    <span class="arrow-icon ms-2">
+                                        <i class="bi bi-chevron-up bg-light px-1 m-0 text-dark"></i>
+                                    </span>
+                                </div>
                             </h2>
                     </td>
                 </tr>
@@ -248,6 +287,49 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- Margin of Error -->
+        <div class="col-md-6 p-1 costTable d-none margin-error-table">
+            <table class="table rounded-4 col-md-6" >
+                <tbody>
+                <tr>
+                    <td colspan="8" class="p-0 border">
+                        <h2 class="title d-flex justify-content-between cost-color-label bg-warning card-header fs-6 py-0 ps-2 text-light pl-100" role="button" 
+                                data-bs-toggle="collapse" href="#margin-error-section" aria-expanded="false" aria-controls="margin-error-section"
+                                onclick="toggleIcon(this)">
+                                Margin of Error Materials
+                                <div class="p-0 m-0 d-flex align-items-center">
+                                    <span class="my-auto war">
+                                        <i class="bi bi-exclamation-triangle-fill bg-light opacity-80 px-2 text-danger rounded-4 my-auto warning-animation warning-table-empty-fields" style="font-size:0.8rem;"> This section has empty fields</i>
+                                    </span>
+                                    <span class="arrow-icon ms-2">
+                                        <i class="bi bi-chevron-up bg-light px-1 m-0 text-dark"></i>
+                                    </span>
+                                </div>
+                            </h2>
+                    </td>
+                </tr>
+                </tbody>                        
+                <tbody class="table-secondary">
+                    <tr>
+                        <th style="font-size:0.8rem; width:2%;" class="py-0">#</th>
+                        <th colspan="4" style="font-size:0.8rem; width:60%;" class="py-0">Description</th>
+                        <th style="font-size:0.8rem; width:10%;" class="py-0">Lead time</th>
+                        <th  colspan="2" style="font-size:0.8rem" class="py-0">Cost</th>
+                    </tr>
+                </tbody>
+                <tbody id="margin-error-section" class='collapse show'>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td Colspan="2" class="p-0 table-secondary border-2">
+                            <span class="money_simbol_input">$</span>
+                            <input class="form-control-budget text-end" type="text" value='0'  name="total_margin_error_cost" id="total_margin_error_cost" step="0.01" readonly disabled>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
     <hr class="my-3 border border-4 border-black rounded-4 ">
@@ -257,7 +339,11 @@
             <tbody>
                 <tr>
                     <td colspan="8" class="p-0 border">
-                        <h2 class="card-header fs-6 py-0 px-2 text-center text-secondary bg-primary bg-gradient text-white">Profit</h2>
+                        <h2 class="card-header fs-6 py-0 px-2 text-secondary bg-primary bg-gradient text-white d-flex justify-content-between">Profit
+                            <span class="my-auto war">
+                                <i class="bi bi-exclamation-triangle-fill bg-light opacity-80 px-2 text-danger rounded-4 my-auto warning-animation warning-table-empty-fields" style="font-size:0.8rem;"> This section has empty fields</i>
+                            </span>
+                        </h2>
                     </td>
                 </tr>
             </tbody>

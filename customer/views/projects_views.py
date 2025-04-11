@@ -737,7 +737,7 @@ def save_budget_simple(data, project, budget, dictScope, saleAdvisor):
         proposal = ProposalProjects.objects.create(
             project=project,
             budget=budget,
-            tracking_id=data['tracking'],
+            tracking_id='',
             proposalInfo=dictScope,
             date_created=data['date_created'],
             project_name=data['project_name'],

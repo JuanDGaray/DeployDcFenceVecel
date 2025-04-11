@@ -50,13 +50,15 @@
                 </button>
                 <label for="windscreen">Hardware</label>
             </div>
-            <div class="col-md-4 col-sm-6 col-12">
-                <button class="btn btn-success p-0 fs-7 btn-sm" onclick="addRowCheckList('Material', 'Margin of Error')">
-                    <i class="bi bi-plus"></i>
-                </button>
-                <label for="windscreen">Margin of Error</label>
-            </div>
+        </div>
+        <div class="form-check d-flex align-items-center mx-auto">
+            <input class="form-check-input me-2" type="checkbox" id="marginErrorCheck" onchange="addMarginError(this)">
+            <label class="form-check-label me-2" for="marginErrorCheck">
+                Margin of Error
+            </label>
+            <input type="number" class="form-control form-control-sm py-0" id="marginErrorPercentage" value="5" min="0" max="100" style="width: 60px;">
+            <span class="ms-1">%</span>
         </div>
     </div>
-    
 </div>
+

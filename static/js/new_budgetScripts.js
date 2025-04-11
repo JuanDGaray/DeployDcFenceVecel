@@ -1496,7 +1496,6 @@ function calculateTotalByItem() {
                     cost = parseFloat(dedusctsCostInput.value)
             }
         }
-            
         // Sumar el costo al total
         nameDesc = select.parentElement.querySelector("input").value
         totalsByItem[selectedItem] += cost; 
@@ -1545,6 +1544,70 @@ function updateValuesUI() {
     }
 
 }
+
+
+function createRowMarginError(data) {
+    const tbodyMarginError = document.getElementById('margin-error-section');
+    const rowCountMarginError = tbodyMarginError.querySelectorAll('tr').length; // Correct row count
+    const newRowMarginError = document.createElement('tr');
+    
+    newRowMarginError.innerHTML = `
+        <td class="text-center p-0"><strong>${rowCountMarginError + 1}</strong></td> <!-- Asegurarse de mostrar la fila correcta -->
+        <td colspan="4" class="p-0">
+            <div class="d-flex align-items-center">
+                <select id="itemsSelect" class="innerSelect me-2" style="width: auto;" readonly disabled>
+                    <option value="${data ? data.item_value : 'GENERAL'}">${data ? data.item_value : 'GENERAL'} </option>
+                </select>
+                <input class="form-control-budget" type="text" id="MarginErrorDescInput" name="MarginError_desc" value="${data ? data.MarginError_description : ''}" readonly disabled>
+            </div>
+        </td>
+        <td class="p-0"><input class="form-control-budget" type="text" name="MarginError_lead-time" value="${data ? data.lead_time : ''}" readonly disabled></td>
+        <td class="p-0" colspan="2">
+            <div class="input-group p-0">
+                <span class="money_simbol_input">$</span>
+                <input class="form-control-budget text-end" type="number" name="materials_Cost" id="materials_Cost"" step="0.01" value="${data ? data.MarginError_cost : ''}" readonly disabled>
+            </div>
+        </td>
+    `;
+
+    // Insert the new row at the end of tbodyLabor
+    tbodyMarginError.appendChild(newRowMarginError);
+}
+
+function updateMarginError() {
+    let itemSelects = costManagement.querySelectorAll('#materials-section #itemsSelect');
+    let percentCost = document.getElementById('marginErrorPercentage').value / 100
+    let marginByItem = {}
+    itemSelects.forEach((select, index) => {
+        const selectedItem = select.value;
+        const materialCost = select.parentElement.parentElement.parentElement.querySelector("#materials_Cost").value
+        marginByItem[selectedItem] = materialCost * percentCost
+    })
+    const tbodyMarginError = document.getElementById('margin-error-section');
+    tbodyMarginError.innerHTML = ''
+    for (const [item, margin] of Object.entries(marginByItem)) {
+        const data = {
+            item_value: item,
+            MarginError_description: 'Margin of Error (' + item + ')',
+            MarginError_cost: margin,
+            lead_time: 'inmediate'
+        }
+        createRowMarginError(data) 
+    }
+}
+
+
+function addMarginError(checkbox) {
+    const marginErrorSection = document.querySelector('.margin-error-table');
+    if (checkbox.checked) {
+        console.log('checked');
+        marginErrorSection.classList.remove('d-none');
+        updateMarginError()
+    } else {
+        marginErrorSection.classList.add('d-none');
+    }
+}
+
 
 // Escuchar los cambios en los selects y los costos
 itemSelects.forEach(select => select.addEventListener('change', updateValuesUI));
@@ -2523,11 +2586,20 @@ function validateInputs() {
     let allValid = true;
     inputs.forEach(input => {
         if (!input.readOnly) {
+            const closestTable = input.closest('table');
             if (input.value.trim() === '') {
                 input.style.boxShadow = '0px 4px 5px 0px rgba(255, 0, 0, 0.54)';
-                allValid = false; // Marcamos que hay un input inválido
+                if (closestTable && !closestTable.classList.contains('empty-field-table')) {
+                    closestTable.classList.add('empty-field-table')
+                    
+                }
+                allValid = false;
+
             } else {
                 input.style.boxShadow = '';
+                if (closestTable && closestTable.classList.contains('empty-field-table')) {
+                    closestTable.classList.remove('empty-field-table')
+                }
             }
         }
     });
@@ -2671,3 +2743,4 @@ async function fillWithAI(section) {
         loadingOverlay.classList.add('d-none');
     }
 }
+
