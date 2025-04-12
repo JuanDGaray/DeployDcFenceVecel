@@ -316,6 +316,8 @@
                     formData.set(input.name, input.getAttribute('data-value'));
                 }
             });
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.classList.remove('d-none');
 
             fetch(form.action, {
                 method: 'POST',
@@ -328,12 +330,17 @@
                     if (response.ok) {
                         window.location.href = `/projects/${projectId}/`;
                     } else {
-                        alert('Error creating invoice.');
+                        return response.text().then(text => {
+                            alert('Error creating invoice: ' + text);
+                        });
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
+                    alert('A network error occurred. Please try again later.');
+                    loadingOverlay.classList.add('d-none');
                 });
+
         });
         // Function to add a new scope container
         document.getElementById("add-materials").addEventListener("click", function() {

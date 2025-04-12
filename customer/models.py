@@ -277,6 +277,10 @@ class BudgetEstimateUtil(models.Model):
     add_loans = models.BooleanField(default=False)
     percentage = models.DecimalField(max_digits=5, decimal_places=2)
 
+    # Información de margen de error
+    margin_error_check = models.BooleanField(default=False)
+    percentage_margin_error = models.IntegerField(default=5)
+
     def __str__(self):
         return f'Util {self.id}'
     

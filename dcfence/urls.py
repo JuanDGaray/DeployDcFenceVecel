@@ -83,7 +83,8 @@ urlpatterns = [
     path('sales-performance/', views.sales_performance_view, name='sales_performance'),
     path('metrics/projects-by-creation-date/', views.projects_by_creation_date, name='projects_by_creation_date'),
     path('metrics/proposals_donut_chart/', views.proposals_donut_chart, name='proposals_donut_chart'),
-    path('project/<int:project_id>/history/', project_history, name='project_history'),
+    path('project/<int:project_id>/history/', project_history, name='project_history'), 
+    path('active_users/', views.active_users_view, name='active_users'),
 ]
 
 

@@ -132,6 +132,7 @@ function createMaterialRow(data = null) {
     tbodyMaterial.appendChild(newRowMaterial);
     updateSelectOptions();
     updateRowNumbers(materialsSection)
+    reloadMarginError()
 }
 
 // Event listener for adding a new materials row when the button is clicked
@@ -317,6 +318,9 @@ materialsSection.addEventListener("input", function (event) {
             updateRowNumbers(materialsSection)
     }
     updateValuesUI()
+    if (document.getElementById('marginErrorCheck').checked){
+        reloadMarginError()
+    }
 });
 
 
@@ -380,6 +384,7 @@ materialsSection.addEventListener('click', function(event) {
             row.remove();
             updateTotalCost(); // Update total after removal
             updateRowNumbers(materialsSection)
+            reloadMarginError()
         }
     }
     updateValuesUI()
@@ -472,6 +477,7 @@ function updateTotalCost() {
     let miscTotal = 0;
     let deductsTotal = 0;
     let profitTotal = 0;
+    let mairginTotal = 0;
 
     // Calculate labor subtotal
     const laborCostInputs = laborSection.querySelectorAll('input[name="Labor_Cost"]');
@@ -510,6 +516,18 @@ function updateTotalCost() {
     subtotalMiscCost.value = miscTotal.toFixed(2); 
     formatTotalCost(subtotalMiscCost)
 
+    // Calculate margin error
+    if (document.getElementById('marginErrorCheck').checked){
+        const marginErrorSection = document.querySelector('.margin-error-table')
+        const marginErrorInputs = marginErrorSection.querySelectorAll('input[name="marginError_cost"]');
+        const subtotalMarginError =  $$$('total_margin_error_cost');
+        marginErrorInputs.forEach(input => {
+            mairginTotal += parseFloat(input.value) || 0;
+        });
+        subtotalMarginError.value = mairginTotal.toFixed(2); 
+        formatTotalCost(subtotalMarginError)
+    }
+    
 
     // Calculate deducts subtotal
     const deductsCostInputs = deductsSection.querySelectorAll('input[name="deducts_UnitCost"]');
@@ -535,7 +553,7 @@ function updateTotalCost() {
    
 
     // Update the total cost by summing the subtotals
-    total = laborTotal + materialsTotal + contractorTotal + miscTotal;
+    total = laborTotal + materialsTotal + contractorTotal + miscTotal + mairginTotal ;
     totalCostInput.value = total.toFixed(2); 
 
     granTotalInput = $$$('grand_Cost');
@@ -570,7 +588,7 @@ function updateTotalCost() {
     let labelPercentaProfit = $('#percentage-profit'); 
     labelPercentaProfit.textContent = percentageProfit.toFixed(0) + '%';
     
-
+    validateInputs()
     return total
 }
 
@@ -1073,6 +1091,11 @@ function addItem(input=null) {
         alert("El ítem ya existe.");
         return;
     }
+    if (!/^[a-zA-Z .&]*$/.test(inputValue)) {
+        alert("The item must only contain letters, spaces, dots (.), or ampersands (&).");
+        return;
+    }
+    
 
     // Agregar el nuevo item al array
     items.push(inputValue.trim().replace(/\s+/g, '-'));
@@ -1362,6 +1385,7 @@ function removeItem(element, value) {
         toggleCheckboxes(false);
         toggleCheckboxes(true);
     }
+    reloadMarginError()
     updatePorfitInstallations()
     removeAllElemetsByItems(value)
     reloadRowProfitManufacturingMW()
@@ -1372,10 +1396,9 @@ function removeItem(element, value) {
     }
     updateSelectOptions();
     calculateProfitByItem()
-    
-    
     const projectsCountSpan = document.getElementById('projects-count');
     projectsCountSpan.textContent = items.length - 1;
+    validateInputs()
 
 }
 function removeAllElemetsByItems(item){
@@ -1496,6 +1519,12 @@ function calculateTotalByItem() {
                     cost = parseFloat(dedusctsCostInput.value)
             }
         }
+        else if (select.closest('#margin-error-section')) {
+            const marginErrorCostInput = select.parentElement.parentElement.parentElement.querySelector("#marginError_cost");
+            if(marginErrorCostInput){
+                cost = parseFloat(marginErrorCostInput.value)
+        }
+    }
         // Sumar el costo al total
         nameDesc = select.parentElement.querySelector("input").value
         totalsByItem[selectedItem] += cost; 
@@ -1555,17 +1584,17 @@ function createRowMarginError(data) {
         <td class="text-center p-0"><strong>${rowCountMarginError + 1}</strong></td> <!-- Asegurarse de mostrar la fila correcta -->
         <td colspan="4" class="p-0">
             <div class="d-flex align-items-center">
-                <select id="itemsSelect" class="innerSelect me-2" style="width: auto;" readonly disabled>
+                <select id="itemsSelect" class="innerSelect me-2" style="width: auto;" readonly>
                     <option value="${data ? data.item_value : 'GENERAL'}">${data ? data.item_value : 'GENERAL'} </option>
                 </select>
-                <input class="form-control-budget" type="text" id="MarginErrorDescInput" name="MarginError_desc" value="${data ? data.MarginError_description : ''}" readonly disabled>
+                <input class="form-control-budget" type="text" id="MarginErrorDescInput" name="MarginError_desc" value="${data ? data.MarginError_description : ''}" readonly>
             </div>
         </td>
         <td class="p-0"><input class="form-control-budget" type="text" name="MarginError_lead-time" value="${data ? data.lead_time : ''}" readonly disabled></td>
         <td class="p-0" colspan="2">
             <div class="input-group p-0">
                 <span class="money_simbol_input">$</span>
-                <input class="form-control-budget text-end" type="number" name="materials_Cost" id="materials_Cost"" step="0.01" value="${data ? data.MarginError_cost : ''}" readonly disabled>
+                <input class="form-control-budget text-end" type="number" name="marginError_cost" id="marginError_cost" step="0.01" value="${data ? data.MarginError_cost : ''}" readonly>
             </div>
         </td>
     `;
@@ -1581,7 +1610,11 @@ function updateMarginError() {
     itemSelects.forEach((select, index) => {
         const selectedItem = select.value;
         const materialCost = select.parentElement.parentElement.parentElement.querySelector("#materials_Cost").value
-        marginByItem[selectedItem] = materialCost * percentCost
+        if (marginByItem[selectedItem] === undefined){
+            marginByItem[selectedItem] = materialCost * percentCost
+        } else {
+            marginByItem[selectedItem] += materialCost * percentCost
+        }
     })
     const tbodyMarginError = document.getElementById('margin-error-section');
     tbodyMarginError.innerHTML = ''
@@ -1603,10 +1636,24 @@ function addMarginError(checkbox) {
         console.log('checked');
         marginErrorSection.classList.remove('d-none');
         updateMarginError()
+        updateTotalCost()
+        calculateTotalByItem()
     } else {
         marginErrorSection.classList.add('d-none');
     }
 }
+
+function reloadMarginError() {
+    if (document.getElementById('marginErrorCheck').checked){   
+        const checkbox = document.getElementById('marginErrorCheck')
+        checkbox.checked = !checkbox.checked
+        addMarginError(checkbox)
+        checkbox.checked = true
+        addMarginError(checkbox)
+        validateInputs()
+    }
+}
+
 
 
 // Escuchar los cambios en los selects y los costos
@@ -1947,6 +1994,13 @@ function calculateProfitAndCostByItem() {
             const deductsCostInput = select.parentElement.parentElement.parentElement.querySelector("#deducts_item");
             if(deductsCostInput){
                 cost = parseFloat(deductsCostInput.value) || 0;
+            }
+            
+        } else if  (select.closest('#margin-error-section')) {
+            // Usar querySelector en lugar de getElementById
+            const marginErrorCostInput = select.parentElement.parentElement.parentElement.querySelector("#marginError_cost");
+            if(marginErrorCostInput){
+                cost = parseFloat(marginErrorCostInput.value) || 0;
             }
             
         }
@@ -2315,6 +2369,10 @@ function getUtilsData() {
     const profitFTTotal = parseFloat(profitTotal.replace(/,/g, ''));
     const costFTTotal = parseFloat(costTotal.replace(/,/g, ''));
 
+    const checkMarginError = $$$("marginErrorCheck").checked;
+    const percentageMarginError =  $$$("marginErrorPercentage").value;
+    
+
     data = {
         dataHolePosts:dataHolePosts,
         dataUnitCostMi:dataUnitCostMi,
@@ -2323,6 +2381,8 @@ function getUtilsData() {
         dataLoans: dataLoans,
         profitTotal:profitFTTotal,
         costTotal:costFTTotal,
+        checkMarginError:checkMarginError,
+        percentageMarginError:percentageMarginError
     }
     return data
 }
@@ -2491,6 +2551,7 @@ function getCostManagementData() {
         } 
 
     if (isChangeOrder) {
+        // Llamada para crear una orden de cambio
         fetch(`/projects/${projectId}/new_change_order/${budgetId}`, {
             method: 'POST',
             headers: {
@@ -2499,14 +2560,25 @@ function getCostManagementData() {
             },
             body: JSON.stringify(data),
         })
+        .then((response) => {
+            if (!response.ok) {
+                return response.json().then((errorData) => {
+                    throw new Error(errorData.message || 'Error desconocido al crear la orden de cambio');
+                });
+            }
+            return response.json();
+        })
         .then(() => {
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.classList.add('d-none');
+            window.location.href = `/projects/${projectId}/`;
         })
         .catch((error) => {
-            console.error('Error:', error);
+            console.error('Error al crear la orden de cambio:', error.message);
+            alert('No se pudo crear la orden de cambio: ' + error.message);
         });
     } else if (isModify) {
+        // Llamada para editar un presupuesto
         fetch(`/projects/${projectId}/edit_budget/${budgetId}`, {
             method: 'POST',
             headers: {
@@ -2515,14 +2587,24 @@ function getCostManagementData() {
             },
             body: JSON.stringify(data),
         })
+        .then((response) => {
+            if (!response.ok) {
+                return response.json().then((errorData) => {
+                    throw new Error(errorData.message || 'Error desconocido al editar el presupuesto');
+                });
+            }
+            return response.json();
+        })
         .then(() => {
             const loadingOverlay = document.getElementById('loadingOverlay');
-            window.location.href = `/projects/${projectId}/`;
             loadingOverlay.classList.add('d-none');
+            window.location.href = `/projects/${projectId}/`;
         })
         .catch((error) => {
-            console.error('Error:', error);
-        });} else if (!isChangeOrder && !isModify)  {
+            console.error('Error al editar el presupuesto:', error.message);
+            alert('No se pudo editar el presupuesto: ' + error.message);
+        });
+    } else if (!isChangeOrder && !isModify) {
         // Llamada para crear un presupuesto nuevo
         fetch(`/projects/${projectId}/new_budget/`, {
             method: 'POST',
@@ -2532,19 +2614,27 @@ function getCostManagementData() {
             },
             body: JSON.stringify(data),
         })
+        .then((response) => {
+            if (!response.ok) {
+                return response.json().then((errorData) => {
+                    throw new Error(errorData.message || 'Error desconocido al crear el presupuesto');
+                });
+            }
+            return response.json();
+        })
         .then(() => {
             window.location.href = `/projects/${projectId}/`;
         })
         .catch((error) => {
-            console.error('Error:', error);
+            console.error('Error al crear el presupuesto:', error.message);
+            alert('No se pudo crear el presupuesto: ' + error.message);
         });
     }
-
-    }
+}
  
 
 document.getElementById('save-btn').addEventListener('click', function(event) {
-    event.preventDefault(); // Evita el envío inmediato del formulario
+    event.preventDefault();
 
     // Referencia al botón y al overlay de carga
     const saveButton = document.getElementById('save-btn');
@@ -2555,8 +2645,6 @@ document.getElementById('save-btn').addEventListener('click', function(event) {
     
     // Deshabilitar el botón para evitar múltiples envíos
     saveButton.setAttribute('disabled', true);
-    
-    // Llama a la función para manejar los datos
     getCostManagementData();
 });
 

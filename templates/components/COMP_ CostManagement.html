@@ -32,10 +32,9 @@
             display: none;
             animation: warningPulse 1.5s ease-in-out infinite;
         }
-        .empty-field-table.warning-animation{
-
+        .empty-field-table .warning-animation{
+            display: block;
         }
-</style>
     </style>
     <h2 class="fs-6 m-0 fw-bold px-2">COST MANAGEMENT
         <button id="toggleDisplayButton" class="btn btn-secondary p-1" style='z-index:100'><i class="bi bi-file-spreadsheet-fill" id="DisplayButton"></i></button>
@@ -94,7 +93,7 @@
         </div>
         <!-- WorkShops -->
         <div class="col-md-6 p-1 costTable">
-            <button class="ai-fill-button m" onclick="fillWithAI('manufacturing')">
+            <button class="ai-fill-button d-none" onclick="fillWithAI('manufacturing')">
                 <i class="bi bi-robot"></i> Ask Fenci
             </button>
             <table class="table rounded-4" >
@@ -322,9 +321,12 @@
                 </tbody>
                 <tbody>
                     <tr>
+                        <td colspan="6" class="p-0 border border-0" style="background-color:#cfd4d0">
+                            
+                        </td>
                         <td Colspan="2" class="p-0 table-secondary border-2">
                             <span class="money_simbol_input">$</span>
-                            <input class="form-control-budget text-end" type="text" value='0'  name="total_margin_error_cost" id="total_margin_error_cost" step="0.01" readonly disabled>
+                            <input class="form-control-budget text-end" type="text" value='0'  name="total_margin_error_cost" id="total_margin_error_cost" step="0.01" readonly>
                         </td>
                     </tr>
                 </tbody>

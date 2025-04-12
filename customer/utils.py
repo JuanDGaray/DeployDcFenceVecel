@@ -353,53 +353,39 @@ def delete_folders_by_projects(folder_name, folder_root_value):
     except Exception as e:
         return {'status': 'error', 'message': str(e)}
 
+
 def upload_file_to_drive(request):
-    '''The function `upload_file_to_drive` uploads multiple files to Google Drive within a specified
-    folder.
-    
-    Parameters
-    ----------
-    request
-        The `request` parameter in the `upload_file_to_drive` function is typically an HTTP request object
-    that contains information about the incoming request, such as the method (GET, POST, etc.), files
-    uploaded through the request, and any form data submitted. In this context, the function is designed
-    to
-    
-    Returns
-    -------
-        The function `upload_file_to_drive` returns a JSON response with a message indicating whether the
-    files were uploaded successfully or if the method is not allowed. If the request method is POST, it
-    uploads the files to Google Drive and returns a JSON response with a success message and the IDs of
-    the uploaded files. If the request method is not POST, it returns a JSON response with a message
-    stating that the
-    
-    '''
     if request.method == 'POST':
-        service = DriveService.get_service()
-        files = request.FILES.getlist('file[]')
-        folder_id = request.POST.get('folder_id')
+        try:
+            service = DriveService.get_service()
+            files = request.FILES.getlist('file[]')
+            folder_id = request.POST.get('folder_id')
 
-        file_ids = [] 
-        for file in files:
-            file_metadata = {
-                'name': file.name,
-                'parents': [folder_id]
-            }
-            
-            media = MediaIoBaseUpload(file.file, mimetype=file.content_type)
-            file_uploaded = service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields='id',
-                supportsAllDrives=True
-            ).execute()
+            file_ids = []
+            for file in files:
+                file_metadata = {
+                    'name': file.name,
+                    'parents': [folder_id]
+                }
+                
+                media = MediaIoBaseUpload(file.file, mimetype=file.content_type)
+                
+                try:
+                    file_uploaded = service.files().create(
+                        body=file_metadata,
+                        media_body=media,
+                        fields='id',
+                        supportsAllDrives=True
+                    ).execute()
+                    file_ids.append(file_uploaded['id'])
+                except HttpError as error:
+                    print(f"Failed to upload {file.name}: {error}")
+                    continue
 
-            file_ids.append(file_uploaded['id'])
-
-
-
-
-        return JsonResponse({'message': 'Files uploaded successfully', 'file_ids': file_ids})
+            return JsonResponse({'message': 'Files uploaded successfully', 'file_ids': file_ids})
+        
+        except Exception as e:
+            return JsonResponse({'message': f'Error occurred: {str(e)}'}, status=500)
 
     return JsonResponse({'message': 'Method not allowed'}, status=405)
 
@@ -554,6 +540,7 @@ def search_file_in_drive(folder_id, file_name):
     except Exception as e:
         print(f"Error al listar archivos en la carpeta: {e}")
         return []
+
 
 
 def new_aia5_xlxs_template(request,project_id):

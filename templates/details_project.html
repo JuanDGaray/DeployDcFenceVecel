@@ -50,7 +50,7 @@
               <i class="bi bi-clock-history"></i>
             </a>
             <a href="">
-              <button class="btn btn-primary">
+              <button class="btn btn-primary d-none">
                 <i class="bi bi-pencil-square"></i> 
               </button>
             </a>
@@ -871,12 +871,19 @@
     </div>
     <!-- Project Documentation -->
     <div class="col-md-12 mt-4">
-      <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
-        <div class="card-header d-flex justify-content-between p-3 border-bottom bg-gray">
+      <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm position-relative">
+        <div id="loadingOverlay-file"  class="position-absolute w-100 top-0 h-100 end-0" style="background-color: rgba(74, 64, 129, 0.26); z-index: 1000;" >
+            <img src="{% static 'img/loading.gif' %}" alt="Cargando" class="img-fluid rounded-1 my-1" style="width: 60px; height: auto; margin-left: 95%;">
+        </div>
+        <div class="card-header d-flex align-items-center p-3 border-bottom bg-gray">
           <h1 class="card-header fs-4 rounded-4">Documents</h1>
+          <span id="google-drive-link" class="text-white ms-2 bg-secondary rounded-2 p-1 px-2" style="cursor: pointer;">
+            <a href="https://drive.google.com/drive/folders/{{ project.folder_id }}" class="text-decoration-none text-white" target="_blank">
+              <i class="bi bi-google"></i> Google Drive
+            </a>
+          </span>
         </div>
         <div id="document-list" class="relative bg-light p-4" data-project-id="{{ project.id }}">
-          <p class="text-muted">Cargando documentos...</p>
         </div>
         <form id="create-folder-form" class="d-flex my-2 justify-content-center" method="POST" enctype="multipart/form-data">
           {% csrf_token %}
@@ -952,6 +959,7 @@ function loadFolder() {
   const formData = new FormData();
   const deleteButton = document.getElementById('button-delete-project');
   formData.append('project_name', projectName);
+  const loadingOverlay = document.getElementById('loadingOverlay-file');
   fetch("{% url 'get_folders_in_drive' %}", {
     method: 'POST',
     body: formData,
@@ -964,6 +972,7 @@ function loadFolder() {
       throw new Error('Error en la solicitud');
     }
     return response.json();
+    loadingOverlay.classList.add('d-none');
   })
   .then(data => {
     if (data.structure && data.structure.length > 0) {
@@ -976,11 +985,12 @@ function loadFolder() {
       document.getElementById("document-list").innerHTML = "<p class='text-muted'>No se encontraron documentos.</p>";
       deleteButton.disabled = false; 
     }
-
+    loadingOverlay.classList.add('d-none');
   })
   .catch(error => {
     console.error("Error al cargar las carpetas:", error);
     document.getElementById("document-list").innerHTML = "<p class='text-danger'>Error al cargar los documentos.</p>";
+    loadingOverlay.classList.add('d-none');
   });
 }
 function renderFolderStructure(folders, parentId = '') {
@@ -1086,23 +1096,6 @@ window.addEventListener('click', (e) => {
 });
 
 
-function showAlert(message, type) {
-  const alertContainer = document.getElementById("alert-container");
-  const alert = document.createElement("div");
-  alert.classList.add("alert", `alert-${type}`, "alert-dismissible", "fade", "show");
-  alert.role = "alert";
-  alert.innerHTML = `
-      ${message}
-      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-  `;
-  alertContainer.appendChild(alert);
-  setTimeout(() => {
-      alert.classList.remove("show");
-      alert.classList.add("fade");
-      alert.remove();
-  }, 4000); 
-  return alert;
-}
 
 document.addEventListener("DOMContentLoaded", function () {
   const modal = document.getElementById("modal");
@@ -1154,10 +1147,10 @@ document.addEventListener("DOMContentLoaded", function () {
     .then(response => response.json())
     .then(data => {
       loadFolder();
-      loadingOverlay.classList.add('d-none');
       showAlert("Archivos subidos exitosamente.", 'success');
       const modal = document.getElementById('modal');
       modal.style.display = 'none';
+      loadingOverlay.classList.add('d-none');
     })
     .catch(error => {
       showAlert("Error uploading file: " + error, 'warning');
@@ -1170,6 +1163,8 @@ function deleteObjet(fileId) {
   if (!confirm("Are you sure you want to delete this file?")) {
     return;
   }
+  const loadingOverlay = document.getElementById('loadingOverlay-file');
+  loadingOverlay.classList.remove('d-none');
   showAlert('Borrando objeto...', 'info');
   fetch("{% url 'delete_file' %}", {
     method: 'POST',
@@ -1193,6 +1188,7 @@ function deleteObjet(fileId) {
   })
   .catch(error => {
     console.error('Error deleting file:', error);
+    loadingOverlay.classList.add('d-none');
     showAlert(data.message, 'warning');
   });
 }
@@ -1225,7 +1221,8 @@ document.getElementById("add-folder-btn").addEventListener("click", function () 
   }
   const creatingAlert = showAlert('Creando carpeta, por favor no cerrar...', 'info');
   const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
+  const loadingOverlay = document.getElementById('loadingOverlay-file');
+  loadingOverlay.classList.remove('d-none');
   fetch(`/projects/create-folder/`, {
     method: "POST",
     headers: {
@@ -1248,12 +1245,13 @@ document.getElementById("add-folder-btn").addEventListener("click", function () 
     console.log("Carpeta creada exitosamente:", data);
     creatingAlert.remove();
     loadFolder();
-    showAlert('Se ha creado la carpeta', 'success');
+    showAlert('Se ha creado la carpeta', 'success');  
   })
   .catch((error) => {
     creatingAlert.remove();
     console.error("Error:", error);
     showAlert('No se pudo crear la carpeta.', 'danger');
+    loadingOverlay.classList.add('d-none');
   });
 });
 
@@ -1261,8 +1259,11 @@ $(document).ready(function () {
   const projectId = $("#document-list").data("project-id");
   if (projectId) {
     loadFolder(projectId);
+
   } else {
-    $("#document-list").html("<p class='text-warning'>El proyecto no tiene un ID válido.</p>");
+    $("#document-list").html("<p class='text-warning'>El proyecto no tiene un ID válido. Contacte al administrador.</p>");
+    const loadingOverlay = document.getElementById('loadingOverlay-file');
+    loadingOverlay.classList.add('d-none');
   }
 });
 
@@ -1316,6 +1317,8 @@ document.getElementById('button-delete-project').addEventListener('click', funct
       const projectId = this.getAttribute('data-id');
       const folderRootValue = document.getElementById("document-list").getAttribute("data-folder-root");
       let url = `/projects/${projectId}/delete_project/`;  // URL base
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      loadingOverlay.classList.remove('d-none');
       if (folderRootValue) {
         url += folderRootValue;
       }
@@ -1331,11 +1334,13 @@ document.getElementById('button-delete-project').addEventListener('click', funct
           window.location.href = '/projects/';
         } else {
           alert('Error al eliminar el proyecto');
+          loadingOverlay.classList.add('d-none');
         }
       })
       .catch(error => {
         console.error('Error:', error);
-        alert('Hubo un problema con la eliminación del proyecto');
+        alert('Hubo un problema con la eliminación del proyecto');  
+        loadingOverlay.classList.add('d-none');
       });}
     });
 
@@ -1353,6 +1358,8 @@ function updateFolderName(folderId, newFolderName) {
   spinner.appendChild(spinnerText);
   folderElement.innerHTML = '';
   folderElement.appendChild(spinner);
+  const loadingOverlay = document.getElementById('loadingOverlay-file');
+  loadingOverlay.classList.remove('d-none');
   fetch("{% url 'rename_folder_in_drive' %}", {
     method: 'POST',
     body: formData,

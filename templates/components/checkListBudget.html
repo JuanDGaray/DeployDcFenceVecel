@@ -56,7 +56,7 @@
             <label class="form-check-label me-2" for="marginErrorCheck">
                 Margin of Error
             </label>
-            <input type="number" class="form-control form-control-sm py-0" id="marginErrorPercentage" value="5" min="0" max="100" style="width: 60px;">
+            <input type="number" class="form-control form-control-sm py-0" id="marginErrorPercentage" onchange="reloadMarginError()" value="5" min="0" max="100" style="width: 60px;">
             <span class="ms-1">%</span>
         </div>
     </div>

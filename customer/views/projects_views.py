@@ -641,6 +641,8 @@ def save_budget_data_from_dict(dataBudget,data):
                 # Información de préstamos
                 add_loans = util_data_loans.get('addLoans'),
                 percentage = util_data_loans.get('dataLoansToProject', {}).get('percentage', 0),
+                margin_error_check = util_data.get('checkMarginError'),
+                percentage_margin_error = util_data.get('percentageMarginError'),
             )
             
             
@@ -788,7 +790,7 @@ def extract_data_budget(budget):
             'totalFtAdPost', 'hole_cost', 'cost_per_hole', 'profit_value_installation_check', 'profit_value_installation',
             'utilities_cost', 'removal_cost', 'add_unit_cost_mi', 'add_unit_cost_mw', 'manufacturing_data',
             'cost_data', 'data_unit_cost_mw', 'data_unit_cost_mw_items', 'add_data_profit_by_daymw','data_profit_by_daymw', 'add_data_profit_by_day','add_post_and_hole',
-            'days', 'profit_value', 'use_day_in_items_manufacturing', 'add_loans', 'percentage'
+            'days', 'profit_value', 'use_day_in_items_manufacturing', 'add_loans', 'percentage', 'margin_error_check', 'percentage_margin_error'
         )),}
     serialized_data = decimal_to_float(data)
     return serialized_data
@@ -831,7 +833,7 @@ def save_invoice(data,project, budget, proposal, saleAdvisor):
         )
     
     
-                
+               
         
 @receiver(post_save, sender=InvoiceProjects)
 @receiver(post_delete, sender=InvoiceProjects)
