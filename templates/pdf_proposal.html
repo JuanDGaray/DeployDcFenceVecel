@@ -204,39 +204,43 @@
                     </h5>
                     <div class="scope-container" id="scope-section">
                         {% for key, data in proposal.proposalInfo.items %}
-                            <ol id="scope-list" class="no-break">
-                                <div class="text-center scope-title">
-                                    <textarea 
-                                        id="scope-{{ key }}" 
-                                        name="scope-{{ key }}" 
-                                        rows="3" 
-                                        cols="30" 
-                                        style="border: none; width: 100%; resize: none; padding-top: 10px; background: #fcfcfc00;" 
-                                        oninput="autoResize(this)" 
-                                        placeholder="Describe the work here...">{{ data.scope|join:', ' }}</textarea>
-                                </div>
-                            </ol>
-                            <div class="materials-box bg-white no-break">
-                                <div class="materials-header">Materials shall be as follows:</div>
-                                <div class="text-center">
-                                    <textarea 
-                                        id="material-{{ key }}" 
-                                        name="materials-{{ key }}" 
-                                        rows="3" 
-                                        cols="30" 
-                                        style="border: none; width: 100%; resize: none; text-align: center; padding-top: 10px;" 
-                                        oninput="autoResize(this)" 
-                                        placeholder="Enter the materials here...">{{ data.materials|join:', ' }}</textarea>
-                                </div>
-                                {% if proposal.scope_prices|get_item:key|default:"0.00"|floatformat:2 != "0.00" %}
-                                    <div class="text-end mt-2">
-                                        <strong>Price: ${{ proposal.scope_prices|get_item:key|default:"0.00"|floatformat:2 }}</strong>
+                            {% if key != 'price' %}
+                                <ol id="scope-list" class="no-break">
+                                    <div class="text-center scope-title">
+                                        <textarea 
+                                            id="scope-{{ key }}" 
+                                            name="scope-{{ key }}" 
+                                            rows="3" 
+                                            cols="30" 
+                                            style="border: none; width: 100%; resize: none; padding-top: 10px; background: #fcfcfc00;" 
+                                            oninput="autoResize(this)" 
+                                            placeholder="Describe the work here...">{{ data.scope|join:', ' }}
+                                        </textarea>
                                     </div>
-                                {% endif %}
-                            </div>
+                                </ol>
+                                <div class="materials-box bg-white no-break">
+                                    <div class="materials-header">Materials shall be as follows:</div>
+                                    <div class="text-center">
+                                        <textarea 
+                                            id="material-{{ key }}" 
+                                            name="materials-{{ key }}" 
+                                            rows="3" 
+                                            cols="30" 
+                                            style="border: none; width: 100%; resize: none; text-align: center; padding-top: 10px;" 
+                                            oninput="autoResize(this)" 
+                                            placeholder="Enter the materials here..."> {% if proposal.proposalInfo.price.materials  %}{{ proposal.proposalInfo.price.materials|join:', ' }}{% else %}{{ data.materials|join:', ' }}{% endif %}
+                                        </textarea>
+                                    </div>
+                                    {% if proposal.scope_prices|get_item:key %}
+                                        <div class="text-end mt-2">
+                                            <strong>Price: ${{ proposal.scope_prices|get_item:key|default:"0.00"|floatformat:2 }}</strong>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
                         {% endfor %}
-
                     </div>
+                    
                     <img src="{% static 'img/DcSello.webp' %}" alt="DC FENCE Logo" class="imgSello">
                 </div>
             </div>

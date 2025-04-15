@@ -563,7 +563,7 @@ def pdf_invoice(request, project_id, invoice_id):
 def pdf_proposal(request, project_id, proposal_id):
     project = get_object_or_404(Project, pk=project_id)
     proposal = get_object_or_404(ProposalProjects, id=proposal_id)
-
+    print(proposal.__dict__)
     if request.method == 'GET':
         return render(request, 'pdf_proposal.html', {
             'project': project,
