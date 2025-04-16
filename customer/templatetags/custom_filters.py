@@ -1,7 +1,7 @@
 from typing import Dict
 import json
 from django import template
-
+from datetime import timedelta
 register = template.Library()
 
 @register.filter
@@ -11,6 +11,12 @@ def currency_usd(value):
         return "${:,.2f}".format(value)
     except (ValueError, TypeError):
         return "$0.00"
+    
+@register.filter
+def add_days(value, days):
+    if value:
+        return value + timedelta(days=days)
+    return value
     
 @register.filter(name='get_item')
 def get_item(dictionary, key):

@@ -210,12 +210,12 @@
                                         <textarea 
                                             id="scope-{{ key }}" 
                                             name="scope-{{ key }}" 
-                                            rows="3" 
+                                            rows="1" 
                                             cols="30" 
                                             style="border: none; width: 100%; resize: none; padding-top: 10px; background: #fcfcfc00;" 
-                                            oninput="autoResize(this)" 
-                                            placeholder="Describe the work here...">{{ data.scope }}
-                                        </textarea>
+                                            readonly
+                                            class="scope-input"
+                                            placeholder="Describe the work here...">{{ data.scope }}</textarea>
                                     </div>
                                 </ol>
                                 <div class="materials-box bg-white no-break">
@@ -224,12 +224,12 @@
                                         <textarea 
                                             id="material-{{ key }}" 
                                             name="materials-{{ key }}" 
-                                            rows="3" 
+                                            rows="1" 
                                             cols="30" 
                                             style="border: none; width: 100%; resize: none; text-align: center; padding-top: 10px;" 
-                                            oninput="autoResize(this)" 
-                                            placeholder="Enter the materials here..."> {% if proposal.proposalInfo.price.materials  %}{{ proposal.proposalInfo.price.materials }}{% else %}{{ data.materials }}{% endif %}
-                                        </textarea>
+                                            readonly
+                                            class="materials-input"
+                                            placeholder="Enter the materials here..."> {% if proposal.proposalInfo.price.materials  %}{{ proposal.proposalInfo.price.materials }}{% else %}{{ data.materials }}{% endif %}</textarea>
                                     </div>
                                     {% if proposal.scope_prices|get_item:key %}
                                         <div class="text-end mt-2">
@@ -315,13 +315,16 @@
             textarea.style.height = 'auto';  // Reinicia la altura
             textarea.style.height = (textarea.scrollHeight) + 'px';  // Ajusta a la altura del contenido
         }
+
     
-        window.addEventListener('DOMContentLoaded', () => {
-            const textareas = document.querySelectorAll('textarea'); // Selecciona todos los textarea
-            textareas.forEach(textarea => {
+        document.addEventListener("DOMContentLoaded", () => {
+            const textareascopes = document.querySelectorAll('.scope-input');
+            const textareamaterials = document.querySelectorAll('.materials-input');
+            textareascopes.forEach((textarea) => {
                 autoResize(textarea);
-    
-                textarea.addEventListener('input', () => autoResize(textarea));
+            });
+            textareamaterials.forEach((textarea) => {
+                autoResize(textarea);
             });
         });
         function generatePDF() {

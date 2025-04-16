@@ -483,6 +483,11 @@
                   role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="View">
                   <i class="bi bi-eye-fill" style="font-size: 15px;"></i>
                   </a>
+                  <a class="btn bg-light border border-2 btn-sm rounded-2" 
+                  href="{% url 'edit_budgetSimple' project_id=project.id budget_id=proposal.budget.id proposal_id=proposal.id %}" target='_blank'
+                  role="button" title="Edit Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit">
+                  <i class="bi bi-pencil-square" style="font-size: 15px;"></i>
+                  </a>
                   <div class="dropdown d-flex">
                     <button 
                       class="btn bg-light border border-2 btn-sm rounded-2 px-1 py-0 dropdown-toggle  {% if proposal.status == 'new' or proposal.status == 'sent' or proposal.status == 'pending'  or proposal.status == 'rejected' or  proposal.total_proposal <=  proposal.billed_proposal %}disabled{% endif %}" 

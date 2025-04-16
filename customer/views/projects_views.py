@@ -451,9 +451,13 @@ def generate_pdf(request, project_id, budget_id):
     pass
 
 @login_required 
-def view_budgetSimple(request, project_id, budget_id):
+def view_budgetSimple(request, project_id, budget_id, proposal_id=None):
     project = get_object_or_404(Project, pk=project_id)
     budget = get_object_or_404(BudgetEstimate, pk=budget_id)
+    proposal = None
+    if proposal_id:
+        proposal = get_object_or_404(ProposalProjects, pk=proposal_id)
+        print(proposal.__dict__)
 
     if request.method == 'POST':
         data = request.POST
@@ -489,7 +493,7 @@ def view_budgetSimple(request, project_id, budget_id):
         return render(request, 'view_budgetSimpleSend.html',{   'budget':budget, 
                                                                 'project': project, 
                                                                 'now': timezone.now(), 
-                                                                })
+                                                                'proposal': proposal})
 
 @login_required 
 def delete_budget(request, project_id, budget_id):

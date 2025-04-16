@@ -166,7 +166,7 @@
                         <input type="text"  name="project_name" value="{{ project.project_name }}" style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;"/>
                     </td>
                     <td>Quote No:</td>
-                    <td><span id="quoteNo">{{now|date:'ymd' }}-{{budget.project.id}}</span></td>
+                    <td>{% if proposal.date_created %}{{ proposal.date_created|date:'ymd' }}-{{ proposal.project.id }}{% else %} {{ now|date:'ymd' }}-{{ budget.project.id }}{% endif %}-{{budget.project.id}}</span></td>
                 </tr>
                 <tr>
                     <td>Contractor:</td>
@@ -186,7 +186,7 @@
                     </td>
                     <td>Quote Date:</td>
                     <td>                        
-                        <input type="date" name="date_created" id="quoteDate" value="{{now|date:'Y-m-d' }}" style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" onchange="updateQuoteNo()" />
+                        <input type="date" name="date_created" id="quoteDate" value="{% if proposal.date_created %}{{ proposal.date_created|date:'Y-m-d' }}{% else %}{{ now|add_days:15|date:'Y-m-d' }}{% endif %}" style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" onchange="updateQuoteNo()" />
                     </td>
                 </tr>
                 <tr>
@@ -194,37 +194,69 @@
                     <td>{{ project.customer.address}}</td>
                     <td>Valid Until:</td>
                     <td>
-                        <input type="date" name="valid_until" value="{{now|date:'Y-m-d' }}" style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" />
+                        <input type="date" name="valid_until" value="{% if proposal.due_date %}{{ proposal.due_date|date:'Y-m-d' }}{% else %}{{ now|date:'Y-m-d' }}{% endif %}"
+                        style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" />
                     </td>
                 </tr>
             </table>
             <div class="header-blue rounded-2"">Product Detail</div>
             <div class="rounded-3">
-                <div class="scope-section">
-                    <h5 class="header-blue mb-3 bg-primary rounded-2">Scope of Work
-                    </h5>
-                    <div class="scope-container" id="scope-section">
-                        <ol id="scope-list">
-                            <div class="text-center scope-title">
-                                <textarea id="material6" name="scope-1" rows="3" cols="30" style="border: none; width: 100%; resize: none; padding-top: 10px; background: #fcfcfc00;" oninput="autoResize(this)" placeholder="Describe the work here..."></textarea>
-                                <div class="d-flex justify-content-end align-items-center mt-2">
-                                    <div class="form-check me-2 price-controls">
-                                        <input class="form-check-input" type="checkbox" id="enablePrice1" onchange="togglePriceInput(1)">
-                                        <label class="form-check-label" for="enablePrice1">Enable Price</label>
+                <div class="scope-section position-relative" id="scope-section">
+                    <h5 class="header-blue mb-3 bg-primary rounded-2">Scope of Work</h5>
+                    {% if proposal.proposalInfo %}
+                        {% for key, data in proposal.proposalInfo.items %}
+                            {% if key != 'price' %}
+                                <div class="scope-container" id="id-{{ key }}">
+                                    <ol id="scope-list">
+                                        <div class="text-center scope-title">
+                                            <textarea id="material6" class="scope-input" name="scope-{{ key }}" rows="1" cols="30" style="border: none; width: 100%; resize: none; padding-top: 10px; background: #fcfcfc00;" oninput="autoResize(this)" placeholder="Describe the work here...">{{ data.scope }}</textarea>
+                                            <div class="d-flex justify-content-end align-items-center mt-2">
+                                                <div class="form-check me-2 price-controls">
+                                                    <input class="form-check-input" type="checkbox" id="enablePrice{{ key }}" {% if proposal.scope_prices|get_item:key %}checked{% endif %} onchange="togglePriceInput({{ key }})">
+                                                    <label class="form-check-label" for="enablePrice{{ key }}">Enable Price</label>
+                                                </div>
+                                                <input type="text" class="form-control w-25 price-input border-0" id="scopePrice{{ key }}" name="scope-price-{{ key }}" style="background: #fcfcfc00" placeholder="" {% if proposal.scope_prices|get_item:key %} value="{{ proposal.scope_prices|get_item:key }}" {% else %} disabled {% endif %} oninput="formatCurrency(this)">
+                                            </div>
+                                            {% if not forloop.first %}
+                                                <a class="btn btn-danger btn-sm rounded-2 p-1 deleteScope" title="Delete Item"  onclick="deleteScope({{ key }})">
+                                                    <i class="bi bi-trash" style="font-size: 15px;"></i>
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </ol>
+                                    <div class="materials-box bg-white rounded-2">
+                                        <div class="materials-header rounded-2">Materials shall be as follows:</div>
+                                        <div class="text-center">
+                                            <textarea id="material7" class="materials-input" name="materials-{{ key }}" rows="1" cols="30" style="border: none; width: 100%; resize: none; text-align: center; padding-top: 10px;" oninput="autoResize(this)" placeholder="Enter the materials here...">{% if proposal.proposalInfo.price.materials  %}{{ proposal.proposalInfo.price.materials }}{% else %}{{ data.materials }}{% endif %}</textarea>
+                                        </div>
                                     </div>
-                                    <input type="text" class="form-control w-25 price-input border-0" style="background: #fcfcfc00;" id="scopePrice1" name="scope-price-1" placeholder="" disabled oninput="formatCurrency(this)">
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="scope-container" id="scope-section">
+                            <ol id="scope-list">
+                                <div class="text-center scope-title">
+                                    <textarea id="material6" name="scope-1" rows="1" cols="30" style="border: none; width: 100%; resize: none; padding-top: 10px; background: #fcfcfc00;" oninput="autoResize(this)" placeholder="Describe the work here..."></textarea>
+                                    <div class="d-flex justify-content-end align-items-center mt-2">
+                                        <div class="form-check me-2 price-controls">
+                                            <input class="form-check-input" type="checkbox" id="enablePrice1" onchange="togglePriceInput(1)">
+                                            <label class="form-check-label" for="enablePrice1">Enable Price</label>
+                                        </div>
+                                        <input type="text" class="form-control w-25 price-input border-0" style="background: #fcfcfc00;" id="scopePrice1" name="scope-price-1" placeholder="" disabled oninput="formatCurrency(this)">
+                                    </div>
+                                </div>
+                            </ol>
+                            <div class="materials-box bg-white rounded-2">
+                                <div class="materials-header rounded-2">Materials shall be as follows:</div>
+                                <div class="text-center">
+                                    <textarea id="material7" name="materials-1" rows="1" cols="30" style="border: none; width: 100%; resize: none; text-align: center; padding-top: 10px;" oninput="autoResize(this)" placeholder="Enter the materials here..."></textarea>
                                 </div>
                             </div>
-                        </ol>
-                        <div class="materials-box bg-white rounded-2">
-                            <div class="materials-header rounded-2">Materials shall be as follows:</div>
-                            <div class="text-center">
-                                <textarea id="material7" name="materials-1" rows="3" cols="30" style="border: none; width: 100%; resize: none; text-align: center; padding-top: 10px;" oninput="autoResize(this)" placeholder="Enter the materials here..."></textarea>
-                            </div>
                         </div>
-                    </div>
-                    <button class="btn btn-primary" id="add-materials" type="button"> + Add</button>
+                    {% endif %}
                     <img src="{% static 'img/DcSello.webp' %}" alt="DC FENCE Logo" class="imgSello">
+                    <button class="btn btn-primary position-absolute bottom-0 end-0 fs-5" id="add-materials" type="button">+</button>
                 </div>
             </div>
             <div class="row justify-content-end">
@@ -262,7 +294,7 @@
             <div class="mt-4">
                 <div class="header-blue rounded-2 text-center">
                     <strong>Exclusions:</strong>
-                    <textarea id="exclusions" name="exclusions" class="form-control text-center mt-2" rows="2" placeholder="Enter exclusions here...">Permit Fee and processing, Site survey, Electrical fence grounding</textarea>
+                    <textarea id="exclusions" name="exclusions" class="form-control text-center mt-2" rows="2" placeholder="Enter exclusions here..."> {% if proposal.exclusions %}{{ proposal.exclusions }}{% else %}Permit Fee and processing, Site survey, Electrical fence grounding{% endif %}</textarea>
                 </div>
                 
 
@@ -270,19 +302,19 @@
                     <div class="row">
                         <div class="col-md-4">
                             <label for="approvedBy" class="form-label m-0 text-sm">Approved By:</label>
-                            <input type="text" id="approvedBy"  name="approved_by"  class="form-control border-0 border-bottom p-0 text-strong" style="border-radius: 0;">
+                            <input type="text" id="approvedBy"  name="approved_by"  class="form-control border-0 border-bottom p-0 text-strong" style="border-radius: 0;" {% if proposal.approved_by %} value="{{ proposal.approved_by }}" {% endif %}>
                         </div>
                     </div>
                     <div class="row mt-1">
                         <div class="col-md-4">
                             <label for="printName" class="form-label m-0">Print Name:</label>
-                            <input type="text" id="printName" name="print_name" class="form-control border-0 border-bottom p-0" style="border-radius: 0;">
+                            <input type="text" id="printName" name="print_name" class="form-control border-0 border-bottom p-0" style="border-radius: 0;" {% if proposal.print_name %} value="{{ proposal.print_name }}" {% endif %}>
                         </div>
                     </div>
                     <div class="row mt-1">
                         <div class="col-md-4">
                             <label for="signature" class="form-label m-0">Signature:</label>
-                            <input type="text" id="signature" name="signature" class="form-control border-0 border-bottom p-0"  style="border-radius: 0;">
+                            <input type="text" id="signature" name="signature" class="form-control border-0 border-bottom p-0"  style="border-radius: 0;" {% if proposal.signature %} value="{{ proposal.signature }}" {% endif %}>
                         </div>
                     </div>
                 </div>
@@ -290,7 +322,7 @@
             <div class="bg-company rounded-4 p-4 col-md-11 mx-auto mt-4 termsContainer">
                 <label for="termsInput" class='text-white pb-2 d-flex'><b>terms and conditions</b>
                     <div class='selectTerms'>
-                        <select id="terms" name="terms" onchange="updateTerms()">
+                        <select id="terms" name="terms" {% if proposal.terms %} value="{{ proposal.terms }}" {% endif %} onchange="updateTerms()">
                             <option value="general">General</option>
                             <option value="50_percent_deposit">50% Deposit</option>
                             <option value="temporal">Temporal</option>
@@ -317,7 +349,6 @@
                     formData.set(input.name, input.getAttribute('data-value'));
                 }
             });
-            console.log(formData)
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.classList.remove('d-none');
 
@@ -362,10 +393,9 @@
                                 </div>
                                 <input type="text" class="form-control w-25 price-input border-0" id="scopePrice${uniqueId}" name="scope-price-${uniqueId}"  style="background: #fcfcfc00" placeholder="" disabled oninput="formatCurrency(this)">
                             </div>
-                            <button class="btn btn-danger btn-sm rounded-2 p-1 deleteScope" 
-                                role="button" title="Delete Budget">
+                            <a class="btn btn-danger btn-sm rounded-2 p-1 deleteScope" title="Delete Item" onclick="deleteScope(${uniqueId})">
                                 <i class="bi bi-trash" style="font-size: 15px;"></i>
-                            </button>
+                            </a>
                         </div>
                     </ol>
                     <div class="materials-box bg-white rounded-2">
@@ -465,6 +495,26 @@
         // Inicializa el contenido al cargar la página
         document.addEventListener("DOMContentLoaded", () => {
             updateTerms();
+            const textareascopes = document.querySelectorAll('.scope-input');
+            const textareamaterials = document.querySelectorAll('.materials-input');
+
+            textareascopes.forEach((textarea) => {
+                autoResize(textarea);
+            });
+
+            textareamaterials.forEach((textarea) => {
+                autoResize(textarea);
+            });
+
+            updateTerms()
+
+            {% for key, data in proposal.proposalInfo.items %}
+                {% if key != 'price' %}
+                    {% if proposal.scope_prices|get_item:key %}
+                        togglePriceInput({{key}}, true, {{ proposal.scope_prices|get_item:key }});
+                    {% endif %}
+                {% endif %}
+            {% endfor %}
         });
 
         function updateQuoteNo() {
@@ -474,21 +524,29 @@
             document.getElementById('quoteNo').textContent = `${formattedDate}-${projectId}`;
         }
 
-        function togglePriceInput(scopeId) {
+        function togglePriceInput(scopeId, isEdit=false, value=0) {
             const priceInput = document.getElementById(`scopePrice${scopeId}`);
             const checkbox = document.getElementById(`enablePrice${scopeId}`);
             
             priceInput.disabled = !checkbox.checked;
             if (checkbox.checked) {
-                priceInput.focus();
                 priceInput.classList.add('active');
-                // Establecer valor inicial
-                priceInput.value = '';
+                if (isEdit) {
+                    priceInput.value = value;
+                } else {
+                    priceInput.value = '';
+                    priceInput.focus();
+                }
                 formatCurrency(priceInput);
             } else {
                 priceInput.classList.remove('active');
                 priceInput.value = '';
             }
+        }
+
+        function deleteScope(scopeId) {
+            const scopeContainer = document.getElementById(`id-${scopeId}`);
+            scopeContainer.remove();
         }
 
     </script>
