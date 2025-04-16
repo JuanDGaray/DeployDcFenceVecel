@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% block extra_head %}
+{% load custom_filters %}
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -193,7 +194,7 @@
                     <td>{{ project.customer.address}}</td>
                     <td>Valid Until:</td>
                     <td>
-                        <input type="date" name="valid_until" value="2024-08-21" style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" />
+                        <input type="date" name="valid_until" value="{{now|date:'Y-m-d' }}" style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" />
                     </td>
                 </tr>
             </table>
@@ -233,7 +234,7 @@
                             <tr>
                                 <td>Subtotal</td>
                                 <td class="text-end">
-                                    <input style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" type="text" id="total-input" name="subtotal" class="form-control text-end p-0" value="{{ budget.total_value }}" oninput="updateGrandTotal()">
+                                    <input style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" type="text" id="total-input" name="subtotal" class="form-control text-end p-0" value="{{ budget.total_value  | floatformat:'0'}}" oninput="updateGrandTotal()">
                                 </td>
                             </tr>
                             <tr>
@@ -316,6 +317,7 @@
                     formData.set(input.name, input.getAttribute('data-value'));
                 }
             });
+            console.log(formData)
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.classList.remove('d-none');
 
@@ -379,16 +381,6 @@
             const container = document.getElementById("scope-section");
             const newDiv = createDivWithHtml(htmlToAdd);
             container.appendChild(newDiv);
-        });
-
-        // Function to delete the scope when the delete button is clicked
-        document.addEventListener("click", function(event) {
-            if (event.target.closest(".deleteScope")) {
-                const scopeContainer = event.target.closest(".scope-container");
-                if (scopeContainer) {
-                    scopeContainer.remove(); // Remove the container
-                }
-            }
         });
 
         // Function to create a new div element with HTML content inside it

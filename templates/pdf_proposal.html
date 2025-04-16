@@ -214,7 +214,7 @@
                                             cols="30" 
                                             style="border: none; width: 100%; resize: none; padding-top: 10px; background: #fcfcfc00;" 
                                             oninput="autoResize(this)" 
-                                            placeholder="Describe the work here...">{{ data.scope|join:', ' }}
+                                            placeholder="Describe the work here...">{{ data.scope }}
                                         </textarea>
                                     </div>
                                 </ol>
@@ -228,7 +228,7 @@
                                             cols="30" 
                                             style="border: none; width: 100%; resize: none; text-align: center; padding-top: 10px;" 
                                             oninput="autoResize(this)" 
-                                            placeholder="Enter the materials here..."> {% if proposal.proposalInfo.price.materials  %}{{ proposal.proposalInfo.price.materials|join:', ' }}{% else %}{{ data.materials|join:', ' }}{% endif %}
+                                            placeholder="Enter the materials here..."> {% if proposal.proposalInfo.price.materials  %}{{ proposal.proposalInfo.price.materials }}{% else %}{{ data.materials }}{% endif %}
                                         </textarea>
                                     </div>
                                     {% if proposal.scope_prices|get_item:key %}
@@ -251,7 +251,7 @@
                             <tr>
                                 <td>Subtotal</td>
                                 <td class="text-end">
-                                    <input readonly style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" type="text" id="total-input" name="subtotal" class="form-control text-end p-0" value="{{ proposal.subtotal }}">
+                                    <input readonly style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" type="text" id="total-input" name="subtotal" class="form-control text-end p-0" value="{{ proposal.subtotal | currency_usd }}">
                                 </td>
                             </tr>
                             <tr>

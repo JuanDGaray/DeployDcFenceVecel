@@ -457,15 +457,28 @@ def view_budgetSimple(request, project_id, budget_id):
 
     if request.method == 'POST':
         data = request.POST
+        print(data)
         dictScope = {}
-        id = None
+
         for key, value in data.items():
-            if 'scope' in  key:
+            print(key, value)
+            if 'scope' in key:
                 id = key.split('-')[1]
-                dictScope[id]= {}
-                dictScope[id]['scope']=[data[key]]
-            if 'materials' in  key:
-                dictScope[id]['materials']=[data[key]]
+                if id not in dictScope:
+                    dictScope[id] = {}
+                dictScope[id]['scope'] = data[key]
+            if 'scope-price' in key:
+                id = key.split('-')[1]
+                if id not in dictScope:
+                    dictScope[id] = {}
+                dictScope[id]['scope_price'] = data[key]
+            if 'materials' in key:
+                id = key.split('-')[1]
+                if id not in dictScope:
+                    dictScope[id] = {}
+                dictScope[id]['materials'] = data[key]
+
+            print(dictScope)    
         saleAdvisor = request.user
         save_budget_simple(data, project, budget, dictScope,saleAdvisor)
 
