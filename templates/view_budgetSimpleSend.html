@@ -186,7 +186,7 @@
                     </td>
                     <td>Quote Date:</td>
                     <td>                        
-                        <input type="date" name="date_created" id="quoteDate" value="{% if proposal.date_created %}{{ proposal.date_created|date:'Y-m-d' }}{% else %}{{ now|add_days:15|date:'Y-m-d' }}{% endif %}" style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" onchange="updateQuoteNo()" />
+                        <input type="date" name="date_created" id="quoteDate" value="{% if proposal.date_created %}{{ proposal.date_created|date:'Y-m-d' }}{% else %}{{ now|date:'Y-m-d' }}{% endif %}" style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" onchange="updateQuoteNo()" />
                     </td>
                 </tr>
                 <tr>
@@ -194,7 +194,7 @@
                     <td>{{ project.customer.address}}</td>
                     <td>Valid Until:</td>
                     <td>
-                        <input type="date" name="valid_until" value="{% if proposal.due_date %}{{ proposal.due_date|date:'Y-m-d' }}{% else %}{{ now|date:'Y-m-d' }}{% endif %}"
+                        <input type="date" name="valid_until" value="{% if proposal.due_date %}{{ proposal.due_date|date:'Y-m-d' }}{% else %}{{ now|add_days:15|date:'Y-m-d' }}{% endif %}"
                         style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" />
                     </td>
                 </tr>
@@ -266,7 +266,7 @@
                             <tr>
                                 <td>Subtotal</td>
                                 <td class="text-end">
-                                    <input style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" type="text" id="total-input" name="subtotal" class="form-control text-end p-0" value="{{ budget.total_value  | floatformat:'0'}}" oninput="updateGrandTotal()">
+                                    <input style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" type="text" id="total-input" name="subtotal" class="form-control text-end p-0" value="{{ budget.total_value}}" oninput="updateGrandTotal()">
                                 </td>
                             </tr>
                             <tr>
@@ -460,13 +460,14 @@
             retention = isNaN(retention) ? 0 : retention;
     
             // Calculate Grand Total: Subtotal + Tax - Retention
-            let grandTotal = Math.round(subtotal + tax - retention);
+            let grandTotal = subtotal + tax - retention;
     
             // Format Grand Total as currency
-            let formattedGrandTotal = Math.round(grandTotal).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-    
+            let formattedGrandTotal = grandTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
             // Update Grand Total in the table
             document.getElementById('grand-total').textContent = formattedGrandTotal;
+            
         }
     
         // Initial call to set Grand Total on page load

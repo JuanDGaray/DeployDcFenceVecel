@@ -257,13 +257,13 @@
                             <tr>
                                 <td>Tax</td>
                                 <td class="text-end">
-                                    <input readonly style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" type="text" id="tax-input" name="tax" class="form-control text-end p-0" value="{{ proposal.tax }}">
+                                    <input readonly style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" type="text" id="tax-input" name="tax" class="form-control text-end p-0" value="{{ proposal.tax | currency_usd  }}">
                                 </td>
                             </tr>
                             <tr>
                                 <td>Retention</td>
                                 <td class="text-end">
-                                    <input readonly style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" type="text" id="retention-input" name="retention" class="form-control text-end p-0" value="{{ proposal.retention }}">
+                                    <input readonly style="border: none; background: transparent; width: 100%; -webkit-appearance: textfield; -moz-appearance: textfield; appearance: textfield;" type="text" id="retention-input" name="retention" class="form-control text-end p-0" value="{{ proposal.retention | currency_usd  }}">
                                 </td>
                             </tr>
                             <tr class="table-active ">
