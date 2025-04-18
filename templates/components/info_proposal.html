@@ -2,9 +2,9 @@
 {% if proposals %}
 {% for proposal in proposals %}
 <tr>
-  <td class="position-relative text-center"> <a href="/projects/{{ proposal.project.id }}/pdf_proposal/{{ proposal.id }}" class="mt-2" target="_blank">{{ proposal.date_created|date:'ymd' }}-{{proposal.project.id}} {% if proposal.is_overdue %}<span class="text-light position-absolute top-0 end-0 border border-danger rounded-pill px-2 bg-danger opacity-75" style="font-size: 0.8rem;">Overdue</span>{% endif %}</a></td>
-  <td class="text-center">{{ proposal.creation_duration }} days</td>
-  <td class="text-center">{{ proposal.proposal_duration }} days </td>
+  <td class="position-relative text-center"> <a href="/projects/{{ proposal.project.id }}/pdf_proposal/{{ proposal.id }}" class="mt-2" target="_blank">{{ proposal.date_created|date:'ymd' }}-{{proposal.project.id}} {% if proposal.is_today %}<span class="text-light position-absolute top-0 end-0 border border-warning rounded-pill px-2 bg-warning opacity-75" style="font-size: 0.8rem;">Today</span>{% elif proposal.is_overdue %}<span class="text-light position-absolute top-0 end-0 border border-danger rounded-pill px-2 bg-danger opacity-75" style="font-size: 0.8rem;">Overdue</span>{% endif %}</a></td>
+  <td class="text-center">{% if proposal.creation_duration == 0 %} today {% elif proposal.creation_duration == 1 %} yesterday {% else %} {{ proposal.creation_duration }} days {% endif %}</td>
+  <td class="text-center">{% if proposal.proposal_duration == 0 %} today {% elif proposal.proposal_duration == 1 %} tomorrow {% else %} {{ proposal.proposal_duration }} days {% endif %}</td>
   <td class="text-center"><a href="/projects/{{ proposal.project.id }}" target="_blank">{{ proposal.project_name }}</a></td>
   <td class="text-center">
     <span class="status-empty status_{{ proposal.status }} m-0">

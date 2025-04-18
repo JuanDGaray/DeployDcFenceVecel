@@ -23,7 +23,6 @@
 <body class="bg-white">
     <div class="container-fluid ">
     <div class="row ">
-       <span id="csrf-token" class="d-none">{{ csrf_token }}</span>
       <div class="d-flex flex-column justify-content-between col-sm-auto bg-light sticky-top border-end p-0"  style="height: 100vh;">
               <ul class="nav nav-pills nav-flush flex-sm-column flex-row flex-nowrap text-center align-items-center p-0">
                 <li>
@@ -39,7 +38,7 @@
             </ul>
             <ul class="nav nav-pills nav-flush flex-sm-column flex-row flex-nowrap text-center align-items-center mt-auto mb-auto p-0">
                 <li class="nav-item">
-                    <a href="/home/{{ user.id }}" class="nav-link central {% if view == 'home'%} active-nav text-primary{% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Home">
+                    <a href="/home" class="nav-link central {% if view == 'home'%} active-nav text-primary{% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Home">
                         <i class="bi bi-house-door-fill fs-4 text-secondary"></i>
                     </a>
                 </li>

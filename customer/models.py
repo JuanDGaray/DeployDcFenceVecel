@@ -443,6 +443,11 @@ class ProposalProjects(models.Model):
         return self.due_date and self.due_date.date() < date.today()
 
     @property
+    def is_today(self):
+        return self.due_date and self.due_date.date() == date.today()
+
+
+    @property
     def billing_progress(self):
         if self.total_proposal > 0:
             return round((self.billed_proposal / self.total_proposal) * 100, 2)

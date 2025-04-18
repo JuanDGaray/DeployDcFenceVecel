@@ -4,7 +4,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.utils import timezone
 from django.shortcuts import render
-from ..models import ProposalProjects
+from ..models import ProposalProjects, BudgetEstimate, Project
 from django.template.loader import render_to_string
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
@@ -69,6 +69,24 @@ def get_proposals(request, page=1):
             'total_pages': paginator.num_pages,
             'total_proposals': paginator.count
         })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+
+@login_required
+def get_userInfo(request, id_user):
+    try:
+        user = User.objects.get(id=id_user)
+        userProjectsCount = Project.objects.filter(sales_advisor=user).count()
+        userProposalsCount = ProposalProjects.objects.filter(sales_advisor=user, status='sent').count()
+        userBudgetCount = BudgetEstimate.objects.filter(sales_advisor=user).count()
+        data = {
+        'user': user,
+        'userProjectsCount': userProjectsCount,
+        'userProposalsCount': userProposalsCount,
+            'userBudgetCount': userBudgetCount
+        }
+        return JsonResponse(data)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 

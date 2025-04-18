@@ -3,96 +3,10 @@
 {% load custom_filters %}
 {% block content%}
 {% include "loading_component.html" %} 
-<div class="container d-flex flex-column justify-content-center p-4">
-    <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
-      <div class="card-header d-flex justify-content-between p-3 border-bottom bg-gray">
-        <h1 class="card-header fs-4">Proposals 
-          <span class="fs-6 status-empty" id="proposals-count"> • 0</span>
-        </h1>
-      </div>
-      <div class="d-flex justify-content-center my-2 gap-2">
-        <div class="input-group px-2">
-          <span class="text-center mx-auto">Quote ID</span>
-          <div class="input-group border border-2 rounded-2 border-dark">
-            <input type="text" name="year" id="quoteYear" maxlength="4" class="form-control py-0" placeholder="25">
-            <input type="text" name="month" id="quoteMonth" maxlength="2" class="form-control py-0" placeholder="01">
-            <input type="text" name="day" id="quoteDay" maxlength="2" class="form-control py-0" placeholder="01"> -- 
-            <input type="text" name="project_id" id="quoteProjectId" maxlength="5" class="form-control py-0" placeholder="04">
-          </div>
-        </div>
-        <input type="text" name="project_name" id="searchInputProjectName" class="form-control form-control-search form-filter me-2" placeholder="Project Name">
-        <select name="status" id="searchInputStatus" class="form-select form-control-search form-filter me-2">
-          <option value="">Status...</option>
-          <option value="new">New</option>
-          <option value="sent">Sent</option>
-          <option value="pending">Pending</option>
-          <option value="approved">Approved</option>
-          <option value="rejected">Rejected</option>
-        </select>
-        <select name="sales_advisor" id="searchInputSalesAdvisor" class="form-select form-control-search form-filter me-2">
-          <option value="">Sales Advisor...</option>
-          {% for sales_advisor in sales_advisors %}
-            <option value="{{ sales_advisor.id }}">{{ sales_advisor.username }}</option>
-          {% endfor %}
-        </select>
-        <input type="date" name="due_date" id="searchInputDueDate" class="form-control form-control-search form-filter me-2">
-        <div class="d-flex gap-2 flex-column">
-          <button id="applyFilters" class="btn btn-primary py-0">Apply</button>
-          <button id="clearFilters" class="btn btn-secondary py-0">Clear</button>
-        </div>
-      </div>
-      <div class="card table-responsive rounded-0 border-0">
-        <table class="table">
-          <thead class="border-top">
-            <tr>
-              <th scope="col" class="bg-light text-center">Quote ID</th>
-              <th scope="col" class="bg-light text-center">Created Ago</th>
-              <th scope="col" class="bg-light text-center">Expires in</th>
-              <th scope="col" class="bg-light text-center">Project Name</th>
-              <th scope="col" class="bg-light text-center">Status</th>
-              <th scope="col" class="bg-light text-center">Sales Advisor</th>
-              <th scope="col" class="bg-light text-center">Total Proposal</th>
-              <th scope="col" class="bg-light text-center">Billing Amount</th>
-            </tr>
-          </thead>
-          <tbody id="resultsTableBody">
-
-          </tbody>
-        </table>
-        <div class="pagination text-center justify-content-center mb-2" id="pagination">
-          <ul class="pagination">
-            {% if proposals.has_previous %}
-            <li class="page-item">
-              <a class="page-link" href="?page=1">
-                <i class="bi bi-chevron-double-left"></i>
-              </a>
-            </li>
-            <li class="page-item">
-              <a class="page-link" href="?page={{ proposals.previous_page_number }}">
-                <i class="bi bi-chevron-left"></i>
-              </a>
-            </li>
-            {% endif %}
-            <li class="page-item mx-2">
-              <span class="px-4">Page {{ proposals.number }} of {{ proposals.paginator.num_pages }}</span>
-            </li>
-            {% if proposals.has_next %}
-            <li class="page-item mx-2"">
-              <a class="page-link" href="?page={{ proposals.next_page_number }}">
-                <i class="bi bi-chevron-right"></i>
-              </a>
-            </li>
-            <li class="page-item">
-              <a class="page-link" href="?page={{ proposals.paginator.num_pages }}">
-                <i class="bi bi-chevron-double-right"></i>
-              </a>
-            </li>
-            {% endif %}
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
+<div class="container d-flex flex-column justify-content-center p-4 gap-4">
+ {% include 'components/user_metrics.html' %}
+ {% include 'components/proposal_table.html' %}
+</div>
 <div class="offcanvas-form ">
 <div>
 </div>

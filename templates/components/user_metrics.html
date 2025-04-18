@@ -1,0 +1,98 @@
+<!-- Customer Card -->
+{% if dataUser %}
+<div class="col-md-9">
+    <div class="col-md-4">
+        <div class="card shadow-sm rounded-4">
+            <div class="card shadow-sm rounded-4">
+                <div class="card-header d-flex align-items-center rounded-4 w-100">
+                    <span
+                        class="customer-avatar me-3 text-light rounded-circle"
+                        style="font-size: 2rem; font-weight: bold; width: 50px; height: 50px;">
+                    </span>
+                    <div class="d-flex flex-column justify-content-center  w-50" >
+                        <h1 class="card-header-title fs-5 mb-0 p-0 border-0 col-6">&nbsp;</h1>
+                        <p class="fs-6 text-muted mb-0 col-4 w-100">&nbsp;</p>
+                    </div>
+                </div>
+            </div>            
+            <div class="card-body">
+                <p class="d-flex align-items-center mb-2">
+                    <i class="bi bi-envelope me-2"></i>
+                    <span class="col-8"></span>
+                </p>
+                <p class="d-flex align-items-center mb-2">
+                    <i class="bi bi-telephone me-2"></i>
+                    <span class="col-8"></span>
+                </p>
+            
+                <div class="d-flex flex-row gap-2 mt-3">
+                    <p class="d-flex flex-column col-3 align-items-center">
+                        <label class="text-muted mb-1">Projects</label>
+                        <span class="col-8"></span>
+                    </p>
+                    <p class="d-flex flex-column col-3 tecenterxt-">
+                        <label class="text-muted mb-1">Budget</label>
+                        <span class="col-8"></span>
+                    </p>
+                    <p class="d-flex flex-column col-3 alif">
+                        <label class="text-muted mb-1">Proposal</label>
+                        <span class="col-8"></span>
+                    </p>
+                    <p class="d-flex flex-column col-3 alif">
+                        <label class="text-muted mb-1">Invoices</label>
+                        <span class="col-8"></span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="col-md-9">
+    <div class="col-md-4">
+        <div class="card shadow-sm rounded-4">
+            <div class="card shadow-sm rounded-4">
+                <div class="card-header d-flex align-items-center rounded-4 placeholder-glow w-100">
+                    <span
+                        class="customer-avatar me-3 text-light placeholder rounded-circle"
+                        style="font-size: 2rem; font-weight: bold; width: 50px; height: 50px;">
+                    </span>
+                    <div class="d-flex flex-column justify-content-center placeholder-glow  w-50" >
+                        <h1 class="card-header-title fs-5 mb-0 p-0 border-0 placeholder col-6 rounded-pill">&nbsp;</h1>
+                        <p class="fs-6 text-muted mb-0 placeholder col-4 w-100 rounded-pill mt-1">&nbsp;</p>
+                    </div>
+                </div>
+            </div>            
+            <div class="card-body">
+                <p class="d-flex align-items-center mb-2 placeholder-glow">
+                    <i class="bi bi-envelope me-2"></i>
+                    <span class="placeholder col-8 rounded-pill"></span>
+                </p>
+                <p class="d-flex align-items-center mb-2 placeholder-glow">
+                    <i class="bi bi-telephone me-2"></i>
+                    <span class="placeholder col-8 rounded-pill"></span>
+                </p>
+            
+                <div class="d-flex flex-row gap-2 mt-3 placeholder-glow">
+                    <p class="d-flex flex-column col-3 align-items-center">
+                        <label class="text-muted mb-1">Projects</label>
+                        <span class="placeholder col-8 rounded-pill"></span>
+                    </p>
+                    <p class="d-flex flex-column col-3 tecenterxt-">
+                        <label class="text-muted mb-1">Budget</label>
+                        <span class="placeholder col-8 rounded-pill"></span>
+                    </p>
+                    <p class="d-flex flex-column col-3 alif">
+                        <label class="text-muted mb-1">Proposal</label>
+                        <span class="placeholder col-8 rounded-pill"></span>
+                    </p>
+                    <p class="d-flex flex-column col-3 alif">
+                        <label class="text-muted mb-1">Invoices</label>
+                        <span class="placeholder col-8 rounded-pill"></span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
