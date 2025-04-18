@@ -22,3 +22,12 @@ function showAlert(message, type) {
   }, 4000); 
   return alert;
 }
+
+
+function ajaxGetRequest(url, callback) {
+    fetch(url)  
+    .then(response => response.json())
+    .then(data => callback(data))
+    .catch(error => console.error('Error:', error));
+}
+

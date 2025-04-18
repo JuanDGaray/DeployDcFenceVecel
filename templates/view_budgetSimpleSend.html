@@ -209,7 +209,7 @@
                                 <div class="scope-container" id="id-{{ key }}">
                                     <ol id="scope-list">
                                         <div class="text-center scope-title">
-                                            <textarea id="material6" class="scope-input" name="scope-{{ key }}" rows="1" cols="30" style="border: none; width: 100%; resize: none; padding-top: 10px; background: #fcfcfc00;" oninput="autoResize(this)" placeholder="Describe the work here...">{{ data.scope }}</textarea>
+                                            <textarea id="material6" class="scope-input" name="scope-{{ key }}" rows="1" cols="30" style="border: none; width: 100%; resize: none; padding-top: 10px; background: #fcfcfc00;" oninput="autoResize(this)" placeholder="Describe the work here...">{% if data.scope|type_of == "string" %}{{ data.scope }}{% else %}{{ data.scope | join:", " }}{% endif %}</textarea>
                                             <div class="d-flex justify-content-end align-items-center mt-2">
                                                 <div class="form-check me-2 price-controls">
                                                     <input class="form-check-input" type="checkbox" id="enablePrice{{ key }}" {% if proposal.scope_prices|get_item:key %}checked{% endif %} onchange="togglePriceInput({{ key }})">
@@ -227,7 +227,7 @@
                                     <div class="materials-box bg-white rounded-2">
                                         <div class="materials-header rounded-2">Materials shall be as follows:</div>
                                         <div class="text-center">
-                                            <textarea id="material7" class="materials-input" name="materials-{{ key }}" rows="1" cols="30" style="border: none; width: 100%; resize: none; text-align: center; padding-top: 10px;" oninput="autoResize(this)" placeholder="Enter the materials here...">{% if proposal.proposalInfo.price.materials  %}{{ proposal.proposalInfo.price.materials }}{% else %}{{ data.materials }}{% endif %}</textarea>
+                                            <textarea id="material7" class="materials-input" name="materials-{{ key }}" rows="1" cols="30" style="border: none; width: 100%; resize: none; text-align: center; padding-top: 10px;" oninput="autoResize(this)" placeholder="Enter the materials here...">{% if data.materials|type_of == "string" %}{{ data.materials }}{% else %}{{ data.materials | join:", " }}{% endif %}</textarea>
                                         </div>
                                     </div>
                                 </div>

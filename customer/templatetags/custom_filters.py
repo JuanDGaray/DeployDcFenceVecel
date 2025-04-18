@@ -1,23 +1,58 @@
 from typing import Dict
 import json
 from django import template
-from datetime import timedelta
+from datetime import timedelta, date, datetime
 register = template.Library()
 
 @register.filter
 def currency_usd(value):
     try:
-        # Formatea el número como USD con separadores de miles y dos decimales
+        value = float(value)
         return "${:,.2f}".format(value)
     except (ValueError, TypeError):
         return "$0.00"
+
     
 @register.filter
 def add_days(value, days):
     if value:
         return value + timedelta(days=days)
     return value
-    
+
+
+
+@register.filter
+def days_since(value):
+    """
+    Calcula cuántos días han pasado desde la fecha dada hasta hoy.
+    Convierte una cadena de texto a un objeto de fecha si es necesario.
+    """
+    if not value:
+        return "N/A"  # Devuelve N/A si el valor es nulo o no válido.
+
+    # Convertir a fecha si es una cadena
+    if isinstance(value, str):
+        try:
+            value = datetime.strptime(value, "%Y-%m-%d").date()  # Ajusta el formato si es necesario
+        except ValueError:
+            return "Invalid date format"
+
+    # Calcular la diferencia en días
+    today = date.today()
+    delta = today - value
+    return delta.days
+
+@register.filter
+def type_of(value):
+    if isinstance(value, str):
+        return "string"
+    elif isinstance(value, list):
+        return "list"
+    elif isinstance(value, dict):
+        return "dict"
+    else:
+        return "unknown"
+        
 @register.filter(name='get_item')
 def get_item(dictionary, key):
     if isinstance(dictionary, str):

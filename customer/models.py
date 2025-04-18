@@ -1,6 +1,7 @@
 import math
 from django.db import models
 from django.utils import timezone
+from datetime import date
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -11,6 +12,7 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 import json
+from datetime import datetime
 
 
 
@@ -391,7 +393,6 @@ class InvoiceProjects(models.Model):
         return 0
     
 
-    
 class ProposalProjects(models.Model):
     # Estados del invoice
     STATUS_NEW = 'new'
@@ -407,7 +408,6 @@ class ProposalProjects(models.Model):
         (STATUS_APPROVED, 'Approved'),    
         (STATUS_REJECTED, 'Rejected'),      
     ]
-    
     
     project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='proposals')
     budget = models.ForeignKey(BudgetEstimate, on_delete=models.CASCADE, null=True, related_name='proposals')
@@ -429,15 +429,69 @@ class ProposalProjects(models.Model):
     billed_proposal = models.DecimalField("Total Billed", max_digits=15, decimal_places=2, default=0)
     exclusions = models.TextField("Exclusions", null=True, blank=True, default="Permit Fee and processing, Site survey, Electrical fence grounding")
     scope_prices = models.JSONField("Scope Prices", default=dict, blank=True)  # Campo para almacenar los precios por scope
-    
+
     class Meta:
         verbose_name = "Proposal"
         verbose_name_plural = "Proposals"
         
     @property
     def remaining_amount(self):
-        return self.total_proposal - self.billed_proposal
+        return max(0, self.total_proposal - self.billed_proposal)
 
+    @property
+    def is_overdue(self):
+        return self.due_date and self.due_date.date() < date.today()
+
+    @property
+    def billing_progress(self):
+        if self.total_proposal > 0:
+            return round((self.billed_proposal / self.total_proposal) * 100, 2)
+        return 0.0
+
+    @property
+    def days_until_due(self):
+        return (self.due_date.date() - date.today()).days if self.due_date else None
+
+    @property
+    def is_fully_billed(self):
+        return self.remaining_amount == 0
+
+    @property
+    def status_label(self):
+        return dict(self.STATUS_CHOICES).get(self.status, "Unknown")
+
+    @property
+    def calculated_tax(self):
+        TAX_RATE = 0.15  # Example: 15%
+        return round(self.subtotal * TAX_RATE, 2)
+
+    @property
+    def calculated_retention(self):
+        RETENTION_RATE = 0.05  # Example: 5%
+        return round(self.subtotal * RETENTION_RATE, 2)
+
+    @property
+    def proposal_duration(self):
+        if self.date_created and self.due_date:
+            return (self.due_date.date() - self.date_created.date()).days
+        return None
+
+
+    @property
+    def proposal_summary(self):
+        return f"Project: {self.project_name} | Total: ${self.total_proposal} | Status: {self.status_label}"
+    
+    @property
+    def creation_duration(self):
+        """ Devuelve el número de días transcurridos desde la creación de la propuesta """
+        current_time = timezone.now()
+        
+        # Asegúrate de que la fecha de creación también sea aware
+        if self.date_created.tzinfo is None:
+            self.date_created = timezone.make_aware(self.date_created, timezone.get_current_timezone())
+
+        time_elapsed = current_time - self.date_created
+        return time_elapsed.days
 
 class ProjectBudgetXLSX(models.Model):
     budget = models.ForeignKey(BudgetEstimate, related_name='xlxs_data', on_delete=models.CASCADE)

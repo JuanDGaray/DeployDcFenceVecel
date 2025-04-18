@@ -1090,3 +1090,4 @@ def project_history(request, project_id):
     }
     
     return render(request, 'project_history.html', context)
+

@@ -122,10 +122,13 @@
 {% block title %}Simple Invoice{% endblock %}
 {% block content %}
 <div id='main-pdf' class='p-3'>
-    <a href="{% url 'detail_project' project.id %}" class="bg-light px-4 py-1 rounded-4"><strong><i class="bi bi-back "></i> <span id="project-container" data-project-id="{{ project.id }}">{{project.id}} </span> - {{project.project_name}}</a>
+    <a href="{% url 'detail_project' project.id %}" class="bg-light px-4 py-1 rounded-4 border border-2 border-primary"><strong><i class="bi bi-back "></i> <span id="project-container" data-project-id="{{ project.id }}">{{project.id}} </span> - {{project.project_name}}</a>
+    <div class="d-flex flex-row justify-content-end col-md-9 mx-auto">
+        <a id="downloadBtn"  class="px-2 m-2 rounded-2 text-danger border border-danger bg-light" onclick="generatePDF()"><i class="bi bi-file-earmark-pdf-fill text-danger"></i> Download PDF</a>
+        <a href="{% url 'edit_budgetSimple' project_id=project.id budget_id=proposal.budget.id proposal_id=proposal.id %}" class="px-2 m-2 rounded-2 text-primary border border-primary bg-light"><i class="bi bi-pencil-square text-primary"></i> Edit Proposal</a>
+    </div>
     <section id="invoice-form" class="col-md-9 mx-auto">
         {% csrf_token %}
-        <button id="downloadBtn"  class="mx-2 mt-2 button rounded-2" onclick="generatePDF()"><i class="bi bi-file-earmark-pdf-fill text-danger"></i> Download PDF</button>
         <div class="container px-4 py-1 overflow-hidden select-none" id='main-container'>
             <div class="row align-items-center pb-2 border-bottom border-2 ">
                 <div class=" d-flex flex-row flex-nowrap justify-content-between gap-2  infoContainer p-3 px-4">
@@ -215,7 +218,7 @@
                                             style="border: none; width: 100%; resize: none; padding-top: 10px; background: #fcfcfc00;" 
                                             readonly
                                             class="scope-input"
-                                            placeholder="Describe the work here...">{{ data.scope }}</textarea>
+                                            placeholder="Describe the work here..."> {% if data.scope|type_of == "string" %}{{ data.scope }}{% else %}{{ data.scope | join:", " }}{% endif %}</textarea>
                                     </div>
                                 </ol>
                                 <div class="materials-box bg-white no-break">
@@ -229,7 +232,7 @@
                                             style="border: none; width: 100%; resize: none; text-align: center; padding-top: 10px;" 
                                             readonly
                                             class="materials-input"
-                                            placeholder="Enter the materials here..."> {% if proposal.proposalInfo.price.materials  %}{{ proposal.proposalInfo.price.materials }}{% else %}{{ data.materials }}{% endif %}</textarea>
+                                            placeholder="Enter the materials here..."> {% if data.materials|type_of == "string" %}{{ data.materials }}{% else %}{{ data.materials | join:", " }}{% endif %}</textarea>
                                     </div>
                                     {% if proposal.scope_prices|get_item:key %}
                                         <div class="text-end mt-2">
