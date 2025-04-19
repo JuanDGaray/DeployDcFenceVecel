@@ -198,21 +198,14 @@ def duplicate_project(request, project_id, customer_id, also_budget=False):
     try:
         # Obtén el proyecto original
         original_project = Project.objects.get(id=project_id)
-        
-        # Crea un nuevo proyecto basado en el original
-        new_project = Project.objects.create(
-            customer_id=customer_id,
-            project_name=f"{original_project.project_name} - {customer_id}",
-            start_date=original_project.start_date,
-            end_date=original_project.end_date,
-            zip_code=original_project.zip_code,
-            state=original_project.state,
-            city=original_project.city,
-            country=original_project.country,
-            description=original_project.description,
-            sales_advisor=request.user,
-            status="new"
-        )
+        customer = get_object_or_404(Customer, id=customer_id)
+
+        new_object_data = copy_info_item_table(['id','status', 'project_name', 'customer', 'sales_advisor'], original_project)
+        new_object_data['customer'] = customer
+        new_object_data['sales_advisor'] = request.user
+        new_object_data['status'] = 'new'
+        new_object_data['project_name'] = original_project.project_name + f' - {customer_id}'
+        new_project = Project.objects.create(**new_object_data)
         
         folder_name = new_project.project_name
         create_folder_response = create_folders_by_projects(folder_name)
@@ -226,6 +219,59 @@ def duplicate_project(request, project_id, customer_id, also_budget=False):
         return JsonResponse({'status': 'error', 'message': 'Original project not found.'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)})
+
+
+@login_required
+@transaction.atomic
+def create_copy_budget(request, original_budget_id, project_id):
+    try:
+        original_budget = get_object_or_404(BudgetEstimate, pk=original_budget_id)
+        new_project = get_object_or_404(Project, pk=project_id)
+        new_object_data = copy_info_item_table(['id','project', 'sales_advisor', 'id_related_budget', 'status'], original_budget)
+        new_object_data['project'] = new_project
+        new_object_data['sales_advisor'] = request.user
+        new_object_data['id_related_budget'] = None
+        new_budget = BudgetEstimate.objects.create(**new_object_data)
+
+        models = [  BudgetEstimateLaborData,
+                    BudgetEstimateMaterialData,
+                    BudgetEstimateContractorData,
+                    BudgetEstimateMiscData,
+                    BudgetEstimateDeductsData,
+                    BudgetEstimateProfitData,               
+                    ]
+        for modelTable in models:
+            print(modelTable)
+            originals_table = modelTable.objects.filter(budget=original_budget)
+            exclusionList = ['id', 'budget']
+            for original_table in originals_table:
+                new_object_data = copy_info_item_table(exclusionList, original_table)
+                new_object_data['budget'] = new_budget
+                modelTable.objects.create(**new_object_data)
+        orginal_budget_utils_data = get_object_or_404(BudgetEstimateUtil, budget=original_budget)
+        new_object_data = copy_info_item_table(['id', 'budget'], orginal_budget_utils_data)
+        new_object_data['budget'] = new_budget
+        BudgetEstimateUtil.objects.create(**new_object_data)
+        return JsonResponse({'status': 'success', 'message': 'Budget duplicated successfully.', 'redirect': f'/projects/{new_project.id}/'}, status=200)
+    except Exception as e:
+        print(e)
+        transaction.set_rollback(True)
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+    
+    
+
+def copy_info_item_table(exclusionList, original_object):
+    new_object_data = {
+        field.name: getattr(original_object, field.name)
+        for field in original_object._meta.fields
+        if field.name not in exclusionList
+    }
+    return new_object_data
+
+
+
+
 
 
 @login_required
@@ -1129,4 +1175,6 @@ def project_history(request, project_id):
     }
     
     return render(request, 'project_history.html', context)
+
+
 

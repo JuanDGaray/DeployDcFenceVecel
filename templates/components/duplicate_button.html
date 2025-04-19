@@ -1,0 +1,24 @@
+<a class="btn bg-primary text-light border border-2 btn-sm rounded-2 p-1"
+role="button" title="Duplicate Project" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Duplicate Budget" onclick="showSelectProject()">
+<i class="bi bi-copy" style="font-size: 15px;"></i>
+</a>
+<div id="selectProject" class="card d-none bg-secondary border border-2 rounded-2 p-2 box-shadow bg-opacity-25 position-fixed vw-100 vh-100 top-0 start-0" style="z-index: 1000;">
+
+    <div class="card bg-light position-absolute p-4 top-50 start-50 translate-middle rounded-4">                                                               
+        <div class="card-header">
+            <h5 class="card-title">Select Project to Duplicate Budget</h5>
+        </div>
+        <div class="card-body d-flex flex-row gap-2 align-items-center justify-content-center">
+            <span class="spinner-border spinner-border-sm m-auto" id="spinner_project" role="status" aria-hidden="true"></span>
+
+            <select name="projectSelect" id="projectSelect" class="rounded-2 border border-2 border-secondary">
+            </select>
+            <button class="btn bg-success border border-2 btn-sm rounded-2 p-1 text-light d-flex flex-row align-items-center" id="duplicateBudgetButton" onclick="sendBudgetDuplicate({{ budget.id }} )">
+                <i class="bi bi-check-all" style="font-size: 15px;"></i> Send
+            </button>
+            <button class="btn bg-danger border border-2 btn-sm rounded-2 p-1 text-light d-flex flex-row align-items-center" id="cancelBudgetDuplicateButton" onclick="cancelBudgetDuplicate()">
+                    <i class="bi bi-x-circle" style="font-size: 15px;"></i> Cancel
+                </button>
+        </div>
+    </div>
+</div>

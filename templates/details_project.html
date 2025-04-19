@@ -187,19 +187,10 @@
                       aria-expanded="false" 
                       aria-controls="collapse-{{ budget.latest_version.id }}"
                       id="drownIcon icon-{{ budget.latest_version.id }}"></i>
-                      <a href="{% url 'view_budget' project.id budget.latest_version.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budget.latest_version.id }}</a>
-                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 d-none"
-                        role="button" title="Duplicate Project" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Duplicate Budget">
-                        <i class="bi bi-plus-circle" style="font-size: 15px;" onclick="showSelectCustomer()"></i>
+                      <a href="{% url 'view_budget' project.id budget.latest_version.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budget.latest_version.id }}
+                        {% include 'components/duplicate_button.html' %}
                       </a>
-                      <div id="selectCustomerBudget" class="d-none">
-                        <select name="customer" id="customer">
-                          {% for customer in customers %}
-                            <option value="{{ customer.id }}">{{ customer.name }}</option>
-                          {% endfor %}
-                        </select>
-                      </div>
-
+                    
                     </td>
                     <td>{{ budget.latest_version.date_created|date:'M/d/Y' }}</td>
                     <td>{{ budget.latest_version.sales_advisor }}</td>
@@ -286,7 +277,9 @@
                             {% for budgetVersion in budgets.budget %}
                               <tr>
                                 <td  class='p-1'></td>
-                                <td  class='p-1'><a href="{% url 'view_budget' project.id budgetVersion.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budgetVersion.id}} 
+                                <td  class='p-1'><a href="{% url 'view_budget' project.id budgetVersion.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budgetVersion.id}}</a>
+                                  {% include 'components/duplicate_button.html' %}
+                                </td>
                                 <td  class='p-1'>{{ budgetVersion.date_created }}</td>
                                 <td  class='p-1'>{{ budgetVersion.sales_advisor }}</td>
                                 <td  class='p-1'>{{ budgetVersion.total_value|currency_usd }}</td> 
@@ -313,7 +306,9 @@
                             {% endfor %}
                             <tr>
                               <td  class='p-1'></td>
-                              <td  class='p-1'><a href="{% url 'view_budget' project.id budget.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budget.id }}</a></td>
+                              <td  class='p-1'><a href="{% url 'view_budget' project.id budget.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budget.id }}
+                                {% include 'components/duplicate_button.html' %}
+                              </a></td>
                               <td  class='p-1'>{{ budget.date_created }}</td>
                               <td  class='p-1'>{{ budget.sales_advisor }}</td>
                               <td  class='p-1'>{{ budget.total_value|currency_usd }}</td> 
@@ -346,9 +341,9 @@
                   </tr>
                 {% else %}
                 <tr style="vertical-align: middle;"">
-                  <td class='align-items-center'><a href="{% url 'view_budget' project.id budget.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budget.id }}</a>{% if budget.format_type  == 'XLSX' %}
-                    <span class="badge bg-success text-white ml-2">xlsx</span>
-                    {% endif %}</td>
+                  <td class='align-items-center'><a href="{% url 'view_budget' project.id budget.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budget.id }}
+                    {% include 'components/duplicate_button.html' %}
+                  </a></td>
                   <td>{{ budget.date_created }}</td>
                   <td>{{ budget.sales_advisor }}</td>
                   <td>{{ budget.total_value|currency_usd }}</td> 
@@ -1504,15 +1499,83 @@ document.getElementById("sendToProductionBtn").addEventListener("click", functio
   }
 });
 
-function showSelectCustomer() {
-  const selectCustomer = document.getElementById('selectCustomer');
-  selectCustomer.classList.toggle('d-none');
+function showSelectProject() {
+  const selectProject = document.getElementById('selectProject');
+  selectProject.classList.toggle('d-none');
+  ajaxGetRequest(`/get_projects/`, function (data) {
+    console.log(data);
+
+    const projectSelect = document.getElementById('projectSelect');
+    if (typeof data === 'object' && data !== null) {
+      let projectOptions = '';
+
+      // Iterar sobre los estados y proyectos
+      for (const [status, projects] of Object.entries(data)) {
+        // Crear un grupo de opciones para cada estado
+        const groupOptions = projects.map(project => {
+          const sanitizedProjectName = project.project_name.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+          return `<option value="${project.id}">${sanitizedProjectName}</option>`;
+        }).join('');
+
+        // Agregar el grupo al select
+        projectOptions += `<optgroup label="${status}">${groupOptions}</optgroup>`;
+      }
+
+      // Poblar el elemento select, incluyendo un placeholder
+      projectSelect.innerHTML = `<option value="" disabled selected>Select a project</option>${projectOptions}`;
+    } else {
+      // Manejar el caso cuando no hay proyectos disponibles
+      projectSelect.innerHTML = `<option value="" disabled>No projects available</option>`;
+    }
+
+    const spinner_project = document.getElementById('spinner_project');
+    spinner_project.classList.add('d-none');
+  });
 }
 
+
 function showSelectCustomerProject() {
-  console.log('showSelectCustomerProject')
   const selectCustomerProject = document.getElementById('selectCustomerProject');
   selectCustomerProject.classList.toggle('d-none');
+}
+
+function sendBudgetDuplicate(budgetId ) {
+  console.log('sendBudgetDuplicate', budgetId)
+  const container = document.getElementById('selectProject');
+  const selectProject = document.getElementById('projectSelect');
+  const projectId = selectProject.value;
+  const duplicateProjectButton = document.getElementById('duplicateBudgetButton');
+  const cancelBudgetDuplicate = document.getElementById('cancelBudgetDuplicateButton');
+  duplicateProjectButton.disabled = true;
+  duplicateProjectButton.classList.add('bg-secondary');
+  duplicateProjectButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Duplicating... ';
+  cancelBudgetDuplicate.disabled = true;
+  ajaxPostRequest(`/create_copy_budget/${budgetId}/${projectId}/`, {
+  }, '{{ csrf_token }}', function(data) {
+    if (data.status === 'success') {
+      duplicateProjectButton.disabled = false;
+      duplicateProjectButton.classList.remove('bg-secondary');
+      duplicateProjectButton.innerHTML = 'Duplicate';
+      cancelBudgetDuplicate.disabled = false;
+      selectProject.value = '';
+      container.classList.add('d-none');
+      showAlert('Budget duplicated successfully.', 'success');
+      window.open(data.redirect, '_blank');
+    } else {
+      showAlert('Error duplicating budget.', 'danger');
+      duplicateProjectButton.disabled = false;
+      cancelBudgetDuplicate.disabled = false;
+      duplicateProjectButton.classList.remove('bg-secondary');
+      duplicateProjectButton.innerHTML = 'Duplicate';
+    }
+  }, function(error) {
+    console.log(error)
+    container.classList.add('d-none');
+    showAlert('Error duplicating budget.', 'danger');
+    duplicateProjectButton.disabled = false;
+    duplicateProjectButton.classList.remove('bg-secondary');
+    duplicateProjectButton.innerHTML = 'Duplicate';
+  });
 }
 
 function sendProjectDuplicate() {
@@ -1537,6 +1600,11 @@ function sendProjectDuplicate() {
   } else {
     alert('Please select a customer before duplicating the project.');
   }
+}
+
+function cancelBudgetDuplicate() {
+  const container = document.getElementById('selectProject');
+  container.classList.add('d-none');
 }
 
 </script>

@@ -24,14 +24,29 @@ function showAlert(message, type) {
 }
 
 
-function ajaxGetRequest(url, callback) {
-    fetch(url)  
-    .then(response => response.json())
-    .then(data => callback(data))
-    .catch(error => console.error('Error:', error));
+function ajaxGetRequest(url, successCallback, errorCallback) {
+  fetch(url)
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(errData => {
+          throw { status: response.status, ...errData };
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      successCallback(data);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      if (errorCallback) {
+        errorCallback(error);
+      }
+    });
 }
 
-function ajaxPostRequest(url, data, csrfToken, callback) {
+
+function ajaxPostRequest(url, data, csrfToken, successCallback, errorCallback) {
   fetch(url, {
     method: 'POST',
     body: JSON.stringify(data),
@@ -40,8 +55,23 @@ function ajaxPostRequest(url, data, csrfToken, callback) {
       'X-CSRFToken': csrfToken
     }
   })
-  .then(response => response.json())
-  .then(data => callback(data))
-  .catch(error => console.error('Error:', error));
+  .then(response => {
+    if (!response.ok) {
+      return response.json().then(errData => {
+        throw { status: response.status, ...errData };
+      });
+    }
+    return response.json();
+  })
+  .then(data => {
+    // Llamar al callback de éxito
+    successCallback(data);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    if (errorCallback) {
+      errorCallback(error);
+    }
+  });
 }
-    
+
