@@ -1,6 +1,6 @@
 <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
     <div class="card-header d-flex justify-content-between p-3 border-bottom bg-gray">
-      <h1 class="card-header fs-4">Proposals 
+      <h1 class="card-header fs-4">My Proposals 
         <span class="fs-6 status-empty" id="proposals-count"> • 0</span>
       </h1>
     </div>
@@ -22,12 +22,6 @@
         <option value="pending">Pending</option>
         <option value="approved">Approved</option>
         <option value="rejected">Rejected</option>
-      </select>
-      <select name="sales_advisor" id="searchInputSalesAdvisor" class="form-select form-control-search form-filter me-2">
-        <option value="">Sales Advisor...</option>
-        {% for sales_advisor in sales_advisors %}
-          <option value="{{ sales_advisor.id }}">{{ sales_advisor.username }}</option>
-        {% endfor %}
       </select>
       <input type="date" name="due_date" id="searchInputDueDate" class="form-control form-control-search form-filter me-2">
       <div class="d-flex gap-2 flex-column">

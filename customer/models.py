@@ -343,8 +343,6 @@ class Project(models.Model):
         return self.proposals.filter(status=ProposalProjects.STATUS_APPROVED).first()
 
 
-from django.db import models
-from django.utils import timezone
 
 class InvoiceProjects(models.Model):
     STATUS_SENT = 'sent'

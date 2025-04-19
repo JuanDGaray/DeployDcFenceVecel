@@ -191,6 +191,42 @@ def projects(request):
                 'form': ProjectsForm(),
                 'warning': f'Error: {e}'
             })
+        
+
+@login_required
+def duplicate_project(request, project_id, customer_id, also_budget=False):
+    try:
+        # Obtén el proyecto original
+        original_project = Project.objects.get(id=project_id)
+        
+        # Crea un nuevo proyecto basado en el original
+        new_project = Project.objects.create(
+            customer_id=customer_id,
+            project_name=f"{original_project.project_name} - {customer_id}",
+            start_date=original_project.start_date,
+            end_date=original_project.end_date,
+            zip_code=original_project.zip_code,
+            state=original_project.state,
+            city=original_project.city,
+            country=original_project.country,
+            description=original_project.description,
+            sales_advisor=request.user,
+            status="new"
+        )
+        
+        folder_name = new_project.project_name
+        create_folder_response = create_folders_by_projects(folder_name)
+        if create_folder_response['status'] == 'success':
+            new_project.folder_id = create_folder_response['folder_id']
+            new_project.save()
+            return JsonResponse({'status': 'success', 'message': 'Project duplicated successfully.', 'redirect': f'/projects/{new_project.id}/'})
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Error creating folder.'})
+    except Project.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Original project not found.'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)})
+
 
 @login_required
 def detail_project(request, project_id):
@@ -199,6 +235,7 @@ def detail_project(request, project_id):
     invoices = InvoiceProjects.objects.filter(project_id=project_id)
     proposals = ProposalProjects.objects.filter(project_id=project_id)
     changes_orders = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True)
+    customers = Customer.objects.all()
     
     if (len(invoices) <= 0 and len(budgets) <= 0) and project.status not in ['new', 'cancelled', 'inactive', 'pending_payment', 'not_approved']:
         project.status = 'new'
@@ -267,7 +304,8 @@ def detail_project(request, project_id):
                 'invoices': invoices,
                 'proposals':proposals,
                 'status_choices': status_choices,
-                'productionUsers': productionUsers
+                'productionUsers': productionUsers,
+                'customers': customers
             })
 
     # Renderizar la plantilla
@@ -280,7 +318,8 @@ def detail_project(request, project_id):
         'proposals':proposals,
         'status_choices': status_choices,
         'changes_orders': changes_orders,
-        'productionUsers': productionUsers
+        'productionUsers': productionUsers,
+        'customers': customers
     })
 
 @login_required

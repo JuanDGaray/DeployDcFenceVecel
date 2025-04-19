@@ -1,107 +1,215 @@
-{% extends "base.html"%} 
+{% extends "base.html"%}
 {% load static %}
 {% load custom_filters %}
 {% block content%}
-{% include "loading_component.html" %} 
+{% include "loading_component.html" %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+{% endblock %}
 <div class="container d-flex flex-column justify-content-center p-4 gap-4">
- {% include 'components/user_metrics.html' %}
- {% include 'components/proposal_table.html' %}
+    <div class="d-flex flex-row  flex-nowrap gap-2 align-items-center justify-content-between" id="user-info">
+        {% include 'components/user_metrics.html' %}
+    </div>
+    {% include 'components/proposal_table.html' %}
+    {% include 'components/project_table.html' %}
 </div>
 <div class="offcanvas-form ">
-<div>
-</div>
-<script>
-  document.addEventListener('DOMContentLoaded', function () { 
-      let emptyTable = '';
-      for (let i = 0; i < 10; i++) {
-        emptyTable += '<tr><td class="text-center placeholder-glow" colspan="8"><span class="placeholder col-12 rounded-4"></span></td></tr>';
-      }
-      function loadProposals(page, filter='NaN') {
-        document.getElementById('resultsTableBody').innerHTML = emptyTable;
-        document.getElementById('proposals-count').innerHTML = '0';
-        document.getElementById('pagination').innerHTML = '';
-          ajaxGetRequest('/get_proposals/' + page + '/?' + filter, function (data) {
-              // Actualiza el contenido de la tabla
-              document.getElementById('resultsTableBody').innerHTML = data.html;
-              document.getElementById('proposals-count').innerHTML = data.total_proposals;
-              // Actualiza los controles de paginación
-              updatePaginationControls(page, data.has_more, data.total_pages);
-          });
-      }
+    <div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            let emptyTable = '';
+            for (let i = 0; i < 10; i++) {
+                emptyTable += '<tr><td class="text-center placeholder-glow" colspan="8"><span class="placeholder col-12 rounded-4"></span></td></tr>';
+            }
+    
+            async function fetchData(url) {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return await response.json();
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                    return null;
+                }
+            }
+    
+            async function loadProposals(page, filter = 'NaN') {
+                document.getElementById('resultsTableBody').innerHTML = emptyTable;
+                document.getElementById('proposals-count').innerHTML = '0';
+                document.getElementById('pagination').innerHTML = '';
+    
+                const data = await fetchData(`/get_proposals/${page}/?${filter}`);
+                if (data) {
+                    // Actualiza el contenido de la tabla
+                    document.getElementById('resultsTableBody').innerHTML = data.html;
+                    document.getElementById('proposals-count').innerHTML = data.total_proposals;
+                    // Actualiza los controles de paginación
+                    updatePaginationControls(page, data.has_more, data.total_pages);
+                }
+            }
 
-      // Maneja el clic en los botones de paginación
-      document.getElementById('pagination').addEventListener('click', function (event) {
-          const target = event.target.closest('a.page-link');
-          if (!target) return;
-
-          event.preventDefault();
-          const page = target.getAttribute('data-page'); // Obtén el número de página del atributo data
-          if (page) {
-              loadProposals(page);
-          }
-      });
-
-      // Función para actualizar controles de paginación
-      function updatePaginationControls(currentPage, hasMore, totalPages) {
-          const pagination = document.getElementById('pagination');
-          pagination.innerHTML = `
-              <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
-                  <a class="page-link" href="#" data-page="${currentPage - 1}">
-                      <i class="bi bi-chevron-left"></i>
-                  </a>
-              </li>
-              <li class="page-item mx-2"><span>Page ${currentPage} of ${totalPages}</span></li>
-              <li class="page-item ${!hasMore ? 'disabled' : ''}">
-                  <a class="page-link" href="#" data-page="${+currentPage + 1}">
-                      <i class="bi bi-chevron-right"></i>
-                  </a>
-              </li>
-          `;
-      }
-      // Carga inicial
-      loadProposals(1); 
-
-      document.getElementById('applyFilters').addEventListener('click', function () {
-        let projectName = document.getElementById('searchInputProjectName').value;
-        let status = document.getElementById('searchInputStatus').value;
-        let salesAdvisor = document.getElementById('searchInputSalesAdvisor').value;
-        let dueDate = document.getElementById('searchInputDueDate').value;
-        let quoteYear = document.getElementById('quoteYear').value; 
-        let quoteMonth = document.getElementById('quoteMonth').value;
-        let quoteDay = document.getElementById('quoteDay').value;
-        let quoteProjectId = document.getElementById('quoteProjectId').value;
-        var filter = {projectName: projectName, status: status, salesAdvisor: salesAdvisor, dueDate: dueDate, quoteYear: quoteYear, quoteMonth: quoteMonth, quoteDay: quoteDay, quoteProjectId: quoteProjectId}; 
-        let filterString = Object.entries(filter)
-        .map(([key, value]) => `${key}=${value}`)
-        .join('&');
-        loadProposals(1, filterString);
-      });
-
-      document.getElementById('clearFilters').addEventListener('click', function () {
-          // Campos a limpiar
-          const filters = [
-              'searchInputProjectName',
-              'searchInputStatus',
-              'searchInputSalesAdvisor',
-              'searchInputDueDate',
-              'quoteYear',
-              'quoteMonth',
-              'quoteDay',
-              'quoteProjectId'
-          ];
-          let emptyFilters = true;
-          // Limpiar todos los campos
-          filters.forEach(function (id) {
-              const element = document.getElementById(id);
-              if (element && element.value) {
-                  emptyFilters = false;
-                  element.value = '';  // Limpiar el campo
-              }
-          });
-          if (!emptyFilters) {
+            async function loadProjects(page, filter = 'NaN') {
+                document.getElementById('projectsTableBody').innerHTML = emptyTable;
+                document.getElementById('projects-count').innerHTML = '0';
+                document.getElementById('paginationProjects').innerHTML = '';
+    
+                const data = await fetchData(`/get_projects/${page}/?${filter}`);
+                if (data) {
+                    // Actualiza el contenido de la tabla
+                    document.getElementById('projectsTableBody').innerHTML = data.html;
+                    document.getElementById('projects-count').innerHTML = data.total_projects;
+                    // Actualiza los controles de paginación
+                    updatePaginationControls(page, data.has_more, data.total_pages, 'projects');
+                }
+            }
+    
+            async function loadUserInfo() {
+                const data = await fetchData('/get_user_info');
+                if (data) {
+                    document.getElementById('user-info').innerHTML = data.html;
+                    loadProjectsStatusChart(data.dataChart);
+                    document.getElementById('proposals-overdue').innerHTML = data.proposals_overdue;
+                    document.getElementById('projects-overbudget').innerHTML = data.projects_overbudget;
+                    if (data.projects_overbudget > 0) {
+                        document.getElementById('projects-overbudget').classList.add('text-danger');
+                    }
+                    if (data.proposals_overdue > 0) {
+                        document.getElementById('proposals-overdue').classList.add('text-danger');
+                    }
+                }
+            }
+    
+            function loadProjectsStatusChart(dataChart) {
+                const projectsStatus = dataChart.projects_status;
+                const proposalsStatus = dataChart.proposals_status;
+    
+                const commonOptions = {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                usePointStyle: true,
+                                pointStyle: 'circle',
+                                boxWidth: 10,
+                                padding: 10
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const value = context.raw;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(2);
+                                    return `${context.label}: ${value} (${percentage}%)`;
+                                }
+                            }
+                        },
+                        datalabels: {
+                            color: '#000',
+                            font: { weight: 'bold', size: 12 },
+                            formatter: (value) => value > 0 ? value : null
+                        }
+                    }
+                };
+    
+                new Chart(document.getElementById('projectsStatusChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(projectsStatus),
+                        datasets: [{
+                            label: 'Proyectos',
+                            data: Object.values(projectsStatus),
+                            backgroundColor: ['rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)'],
+                            borderColor: ['rgba(255, 255, 255)'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: commonOptions,
+                    plugins: [ChartDataLabels]
+                });
+    
+                new Chart(document.getElementById('proposalsStatusChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: Object.keys(proposalsStatus),
+                        datasets: [{
+                            label: 'Propuestas',
+                            data: Object.values(proposalsStatus),
+                            backgroundColor: ['rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)'],
+                            borderColor: ['rgba(255, 255, 255)'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: commonOptions,
+                    plugins: [ChartDataLabels]
+                });
+            }
+    
+            document.getElementById('pagination').addEventListener('click', async function (event) {
+                const target = event.target.closest('a.page-link');
+                if (!target) return;
+    
+                event.preventDefault();
+                const page = target.getAttribute('data-page');
+                if (page) {
+                    await loadProposals(page);
+                }
+            });
+    
+            function updatePaginationControls(currentPage, hasMore, totalPages, type = 'proposals') {
+                const pagination = document.getElementById('pagination');
+                if (type == 'proposals') {
+                    pagination.innerHTML = `
+                    <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="#" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
+                    </li>
+                    <li class="page-item mx-2"><span>Page ${currentPage} of ${totalPages}</span></li>
+                    <li class="page-item ${!hasMore ? 'disabled' : ''}">
+                        <a class="page-link" href="#" data-page="${+currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
+                    </li>`;
+                } else {
+                    pagination.innerHTML = `
+                    <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="#" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
+                    </li>
+                    <li class="page-item mx-2"><span>Page ${currentPage} of ${totalPages}</span></li>
+                    <li class="page-item ${!hasMore ? 'disabled' : ''}">
+                        <a class="page-link" href="#" data-page="${+currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
+                    </li>`;
+                }              
+            }
+    
+            document.getElementById('applyFilters').addEventListener('click', async function () {
+                let filters = [
+                    'searchInputProjectName',
+                    'searchInputStatus',
+                    'searchInputDueDate',
+                    'quoteYear',
+                    'quoteMonth',
+                    'quoteDay',
+                    'quoteProjectId'
+                ].map(id => `${id}=${document.getElementById(id).value}`).join('&');
+    
+                await loadProposals(1, filters);
+            });
+    
+            document.getElementById('clearFilters').addEventListener('click', async function () {
+                ['searchInputProjectName', 'searchInputStatus', 'searchInputDueDate', 'quoteYear', 'quoteMonth', 'quoteDay', 'quoteProjectId']
+                    .forEach(id => document.getElementById(id).value = '');
+    
+                await loadProposals(1);
+            });
+    
+            // Carga inicial
             loadProposals(1);
-          }
-      });
-  });
-</script>
+            loadProjects(1);
+            loadUserInfo();
+        });
+    </script>
+    
 {% endblock %}

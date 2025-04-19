@@ -31,3 +31,17 @@ function ajaxGetRequest(url, callback) {
     .catch(error => console.error('Error:', error));
 }
 
+function ajaxPostRequest(url, data, csrfToken, callback) {
+  fetch(url, {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken
+    }
+  })
+  .then(response => response.json())
+  .then(data => callback(data))
+  .catch(error => console.error('Error:', error));
+}
+    

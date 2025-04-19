@@ -1,98 +1,113 @@
 <!-- Customer Card -->
-{% if dataUser %}
-<div class="col-md-9">
-    <div class="col-md-4">
-        <div class="card shadow-sm rounded-4">
-            <div class="card shadow-sm rounded-4">
-                <div class="card-header d-flex align-items-center rounded-4 w-100">
-                    <span
-                        class="customer-avatar me-3 text-light rounded-circle"
-                        style="font-size: 2rem; font-weight: bold; width: 50px; height: 50px;">
-                    </span>
-                    <div class="d-flex flex-column justify-content-center  w-50" >
-                        <h1 class="card-header-title fs-5 mb-0 p-0 border-0 col-6">&nbsp;</h1>
-                        <p class="fs-6 text-muted mb-0 col-4 w-100">&nbsp;</p>
-                    </div>
-                </div>
-            </div>            
-            <div class="card-body">
-                <p class="d-flex align-items-center mb-2">
-                    <i class="bi bi-envelope me-2"></i>
-                    <span class="col-8"></span>
+<div style="width: 30%;">
+    <div class="card shadow-sm rounded-4">
+        <div class="card-header d-flex align-items-center rounded-4 w-100 bg-light {% if not dataUser %}placeholder-glow{% endif %}">
+            <span
+                class="customer-avatar me-3 text-light rounded-circle {% if not dataUser %}placeholder{% endif %}"
+                style="font-size: 2rem; font-weight: bold; width: 50px; height: 50px;">
+                {% if dataUser %}
+                    {{ dataUser.user.first_name|first }}{{ dataUser.user.last_name|first }}
+                {% else %}
+                    &nbsp;
+                {% endif %}
+            </span>
+            <div class="d-flex flex-column justify-content-center w-50 {% if not dataUser %}placeholder-glow{% endif %}">
+                <h1 class="card-header-title fs-5 mb-0 p-0 border-0 w-100">
+                    {% if dataUser %}
+                        {{ dataUser.user.first_name }} {{ dataUser.user.last_name }}
+                    {% else %}
+                        <span class="placeholder col-6 rounded-pill">&nbsp;</span>
+                    {% endif %}
+                </h1>
+                <p class="fs-6 text-muted mb-0 w-100">
+                    {% if dataUser %}
+                        {{ dataUser.user.group }}
+                    {% else %}
+                        <span class="placeholder col-4 rounded-pill">&nbsp;</span>
+                    {% endif %}
                 </p>
-                <p class="d-flex align-items-center mb-2">
-                    <i class="bi bi-telephone me-2"></i>
-                    <span class="col-8"></span>
-                </p>
-            
-                <div class="d-flex flex-row gap-2 mt-3">
-                    <p class="d-flex flex-column col-3 align-items-center">
-                        <label class="text-muted mb-1">Projects</label>
-                        <span class="col-8"></span>
+            </div>
+        </div>
+        <div class="card-body">
+            <p class="d-flex align-items-center mb-2">
+                <i class="bi bi-envelope me-2 text-primary"></i>
+                <span class="col-8">
+                    {% if dataUser %}
+                        {{ dataUser.user.email | default:"N/A" }}
+                    {% else %}
+                        <span class="placeholder col-8 rounded-pill"></span>
+                    {% endif %}
+                </span>
+            </p>
+            <p class="d-flex align-items-center mb-2">
+                <i class="bi bi-telephone me-2 text-primary"></i>
+                <span class="col-8">
+                    {% if dataUser %}
+                        {{ dataUser.user.phone | default:"N/A" }}
+                    {% else %}
+                        <span class="placeholder col-8 rounded-pill"></span>
+                    {% endif %}
+                </span>
+            </p>
+            <div class="d-flex flex-row gap-2 px-3 justify-content-center">
+                {% for label, value in dataUser.countList %}
+                    <p class="d-flex flex-column align-items-center border border-2 border-primary rounded-4 {% if not dataUser %}placeholder-glow{% endif %}">
+                        <label class="fw-bold border-bottom border-primary bg-primary text-light w-100 text-nowrap text-center px-1" style="border-radius: 10px 10px 0px 0px;">{{ label }}</label>
+                        <span class="col-8 text-center">
+                            {% if dataUser %}
+                                {{ value }}
+                            {% else %}
+                                <span class="placeholder rounded-pill">&nbsp;</span>
+                            {% endif %}
+                        </span>
                     </p>
-                    <p class="d-flex flex-column col-3 tecenterxt-">
-                        <label class="text-muted mb-1">Budget</label>
-                        <span class="col-8"></span>
-                    </p>
-                    <p class="d-flex flex-column col-3 alif">
-                        <label class="text-muted mb-1">Proposal</label>
-                        <span class="col-8"></span>
-                    </p>
-                    <p class="d-flex flex-column col-3 alif">
-                        <label class="text-muted mb-1">Invoices</label>
-                        <span class="col-8"></span>
-                    </p>
-                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
 </div>
-{% else %}
-<div class="col-md-9">
-    <div class="col-md-4">
-        <div class="card shadow-sm rounded-4">
+
+<!-- Charts -->
+<div class="d-flex flex-row justify-content-between flex-nowrap align-items-center justify-content-center bg-light rounded-4 p-4 gap-3 box-shadow border border-2 border-secondary" style="width: 70%;">  
+        <div class="h-full" style="width: 50%;">
             <div class="card shadow-sm rounded-4">
-                <div class="card-header d-flex align-items-center rounded-4 placeholder-glow w-100">
-                    <span
-                        class="customer-avatar me-3 text-light placeholder rounded-circle"
-                        style="font-size: 2rem; font-weight: bold; width: 50px; height: 50px;">
-                    </span>
-                    <div class="d-flex flex-column justify-content-center placeholder-glow  w-50" >
-                        <h1 class="card-header-title fs-5 mb-0 p-0 border-0 placeholder col-6 rounded-pill">&nbsp;</h1>
-                        <p class="fs-6 text-muted mb-0 placeholder col-4 w-100 rounded-pill mt-1">&nbsp;</p>
-                    </div>
+                <div class="card-header d-flex align-items-center rounded-4 w-100 bg-light">
+                    <h6 class="card-title mb-0">Projects by Status</h6>
                 </div>
-            </div>            
-            <div class="card-body">
-                <p class="d-flex align-items-center mb-2 placeholder-glow">
-                    <i class="bi bi-envelope me-2"></i>
-                    <span class="placeholder col-8 rounded-pill"></span>
-                </p>
-                <p class="d-flex align-items-center mb-2 placeholder-glow">
-                    <i class="bi bi-telephone me-2"></i>
-                    <span class="placeholder col-8 rounded-pill"></span>
-                </p>
-            
-                <div class="d-flex flex-row gap-2 mt-3 placeholder-glow">
-                    <p class="d-flex flex-column col-3 align-items-center">
-                        <label class="text-muted mb-1">Projects</label>
-                        <span class="placeholder col-8 rounded-pill"></span>
-                    </p>
-                    <p class="d-flex flex-column col-3 tecenterxt-">
-                        <label class="text-muted mb-1">Budget</label>
-                        <span class="placeholder col-8 rounded-pill"></span>
-                    </p>
-                    <p class="d-flex flex-column col-3 alif">
-                        <label class="text-muted mb-1">Proposal</label>
-                        <span class="placeholder col-8 rounded-pill"></span>
-                    </p>
-                    <p class="d-flex flex-column col-3 alif">
-                        <label class="text-muted mb-1">Invoices</label>
-                        <span class="placeholder col-8 rounded-pill"></span>
-                    </p>
+                <div class="card-body w-100 p-1 {% if not dataUser %}placeholder-glow{% endif %}">
+                    <canvas id="projectsStatusChart" class="p-0 m-0 w-100 {% if not dataUser %}placeholder rounded-4 bg-secondary{% endif %}" style="max-width: 100%; max-height: 150px;"></canvas>
+                </div>
+            </div>  
+        </div>
+        <div class="h-full" style="width: 40%;">
+            <div class="card shadow-sm rounded-4">
+                <div class="card-header d-flex align-items-center rounded-4 w-100 bg-light">
+                    <h6 class="card-title mb-0">Proposals by Status</h6>
+                </div>
+                <div class="card-body w-100 p-1 {% if not dataUser %}placeholder-glow{% endif %}">                             
+                    <canvas id="proposalsStatusChart" class="p-0 m-0 w-100 {% if not dataUser %}placeholder rounded-4 bg-secondary{% endif %}" style="max-width: 100%; max-height: 150px;"></canvas>
                 </div>
             </div>
         </div>
-    </div>
+        <div class="h-full d-flex flex-column gap-2 justify-content-center align-items-center" style="width: 10%;">
+            <div class="card shadow-sm rounded-4">
+                <div class="card-header d-flex align-items-center rounded-4 w-100 bg-light p-0 text-center px-1 {% if not dataUser %}placeholder-glow{% endif %}">
+                    <h6 class="mb-0 fw-bold" style="font-size: 0.8rem;">Proposals Overdue</h6>
+                </div>
+                <p class="card-body w-100 text-center p-0 m-0 {% if not dataUser %}placeholder-glow{% endif %}">                             
+                    <span id="proposals-overdue" class="fs-3 fw-bold p-0 w-100 {% if not dataUser %}placeholder rounded-pill bg-secondary{% endif %}"> {{ dataUser.countList.Proposals | default:"&nbsp;" }}</span> 
+                </p>
+            </div>
+            <div class="card shadow-sm rounded-4">
+                <div class="card-header d-flex align-items-center rounded-4 w-100 bg-light text-center px-1 {% if not dataUser %}placeholder-glow{% endif %}">
+                    <h6 class="mb-0 fw-bold" style="font-size: 0.8rem;">Projects Over Budget</h6>
+                </div>
+                <p class="card-body w-100 text-center p-0 m-0 {% if not dataUser %}placeholder-glow{% endif %}">                             
+                    <span id="projects-overbudget" class="fs-3 fw-bold p-0 w-100 {% if not dataUser %}placeholder rounded-pill bg-secondary{% endif %}"> {{ dataUser.countList.Projects | default:"&nbsp;" }}</span> 
+                </p>
+            </div>
+        </div>
+
 </div>
-{% endif %}
+
+

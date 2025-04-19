@@ -44,7 +44,31 @@
         <div
           class="card-header d-flex justify-content-between  p-3 border-bottom bg-gray"
         >
-          <h1 class="card-header fs-4 rounded-4 " id="project-info" data-project-name="{{ project.project_name }}">{{project.project_name}}</h1>
+          <h1 class="card-header fs-4 rounded-4 d-flex flex-row gap-2" id="project-info" data-project-name="{{ project.project_name }}">{{project.project_name}}
+            <div class="d-flex flex-row gap-2">
+              <a class="btn bg-primary border border-2 btn-sm rounded-2 p-1 text-light" onclick="showSelectCustomerProject()" id="duplicateProjectButton"
+                role="button" title="Duplicate Project" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Duplicate Project">
+                <i class="bi bi-copy me-1" style="font-size: 15px;"></i >Duplicate
+              </a>
+              <div id="selectCustomerProject" class="d-none w-50 form-selec p-0 d-flex flex-row gap-2">
+                <select name="customer" id="id_customer" class="form-select form-select-sm m-0 overflow-auto" >
+                  <option value="" selected>Select a customer</option>
+                    {% for customer in customers %}
+                        <option value="{{ customer.id }}">
+                          {% if customer.customer_type == "individual" %}
+                            {{customer.first_name }} {{customer.last_name }} - {{customer.email}} 
+                            {% else %}
+                            {{customer.company_name }} - {{customer.email}} 
+                            {% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+                <button class="btn bg-success border border-2 btn-sm rounded-2 p-1 text-light d-flex flex-row align-items-center" onclick="sendProjectDuplicate()">
+                  <i class="bi bi-check-all" style="font-size: 15px;"></i> Send
+                </button>
+              </div>
+            </div>
+          </h1>
           <div>
             <a href="{% url 'project_history' project.id %}" class="btn btn-outline-secondary me-2">
               <i class="bi bi-clock-history"></i>
@@ -164,6 +188,18 @@
                       aria-controls="collapse-{{ budget.latest_version.id }}"
                       id="drownIcon icon-{{ budget.latest_version.id }}"></i>
                       <a href="{% url 'view_budget' project.id budget.latest_version.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budget.latest_version.id }}</a>
+                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 d-none"
+                        role="button" title="Duplicate Project" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Duplicate Budget">
+                        <i class="bi bi-plus-circle" style="font-size: 15px;" onclick="showSelectCustomer()"></i>
+                      </a>
+                      <div id="selectCustomerBudget" class="d-none">
+                        <select name="customer" id="customer">
+                          {% for customer in customers %}
+                            <option value="{{ customer.id }}">{{ customer.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+
                     </td>
                     <td>{{ budget.latest_version.date_created|date:'M/d/Y' }}</td>
                     <td>{{ budget.latest_version.sales_advisor }}</td>
@@ -1467,6 +1503,41 @@ document.getElementById("sendToProductionBtn").addEventListener("click", functio
     alert("Please select a manager before sending to production.");
   }
 });
+
+function showSelectCustomer() {
+  const selectCustomer = document.getElementById('selectCustomer');
+  selectCustomer.classList.toggle('d-none');
+}
+
+function showSelectCustomerProject() {
+  console.log('showSelectCustomerProject')
+  const selectCustomerProject = document.getElementById('selectCustomerProject');
+  selectCustomerProject.classList.toggle('d-none');
+}
+
+function sendProjectDuplicate() {
+  console.log('sendProjectDuplicate')
+  const selectCustomerProject = document.getElementById('selectCustomerProject');
+  selectCustomerProject.classList.toggle('d-none');
+  const customerId = document.getElementById('id_customer').value;
+  const duplicateProjectButton = document.getElementById('duplicateProjectButton');
+  duplicateProjectButton.disabled = true;
+  duplicateProjectButton.classList.add('bg-secondary');
+  if (customerId) {
+    duplicateProjectButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Duplicating... ';
+    ajaxPostRequest(`/duplicate_project/{{project.id}}/${customerId}/`, {
+    }, '{{ csrf_token }}', function(data) {
+      console.log(data)
+      duplicateProjectButton.disabled = false;
+      duplicateProjectButton.classList.remove('bg-secondary');
+      duplicateProjectButton.innerHTML = 'Duplicate';
+      window.open(data.redirect, '_blank');
+
+    });
+  } else {
+    alert('Please select a customer before duplicating the project.');
+  }
+}
 
 </script>
 {% endblock %}
