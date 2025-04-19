@@ -1540,10 +1540,13 @@ function showSelectCustomerProject() {
 }
 
 function sendBudgetDuplicate(budgetId ) {
-  console.log('sendBudgetDuplicate', budgetId)
-  const container = document.getElementById('selectProject');
   const selectProject = document.getElementById('projectSelect');
   const projectId = selectProject.value;
+  if (projectId === null || projectId === '') {
+    showAlert('Please select a project before duplicating the budget.', 'danger');
+    return;
+  }
+  const container = document.getElementById('selectProject');
   const duplicateProjectButton = document.getElementById('duplicateBudgetButton');
   const cancelBudgetDuplicate = document.getElementById('cancelBudgetDuplicateButton');
   duplicateProjectButton.disabled = true;
