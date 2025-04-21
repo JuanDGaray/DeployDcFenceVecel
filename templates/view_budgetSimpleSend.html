@@ -191,7 +191,7 @@
                 </tr>
                 <tr>
                     <td>Job Address:</td>
-                    <td>{{ project.customer.address}}</td>
+                    <td class="text-capitalize">{{ project.address }} {{ project.city }} {{ project.state }} {{ project.country }} - {{ project.zip_code }}</td>
                     <td>Valid Until:</td>
                     <td>
                         <input type="date" name="valid_until" value="{% if proposal.due_date %}{{ proposal.due_date|date:'Y-m-d' }}{% else %}{{ now|add_days:15|date:'Y-m-d' }}{% endif %}"

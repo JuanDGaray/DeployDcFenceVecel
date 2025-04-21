@@ -87,12 +87,11 @@
           <div class=" d-flex row gap-4 mx-auto">
             <div class="col-md-8 card my-2 p-0">
               <div class="card-header m-0  ">Description</div>
-              <div class="p-4"> 
+              <div class="p-4 d-flex flex-column gap-2"> 
                 <p class="truncate">
                   {{ project.description }}</p>
                 <p>
-                  <strong>Customer: </strong
-                  > 
+                  <strong class="text-capitalize font-weight-bold text-primary">Customer: </strong
                     {% if project.customer.customer_type == "individual" %}
                     <a href="{% url 'detail_customer' project.customer.id %}" target="_blank">
                     <span class="status title_{{ project.customer.customer_type }} fs-6">
@@ -106,14 +105,15 @@
                   </a>
                     {{ project.customer.first_name }} {{ project.customer.last_name }}
                     {% endif %}
-                </p>
+                    <p class="text-capitalize p-0 m-0 d-flex flex-row gap-2"><i class="bi bi-geo-alt-fill text-primary"></i> {{ project.customer.address }} {{ project.customer.city }} {{ project.customer.state }} {{ project.customer.country }} - {{ project.customer.zip_code }} <i class="bi bi-telephone-fill text-primary"></i> {{ project.customer.phone }} <i class="bi bi-envelope-fill text-primary "></i> {{ project.customer.email }}</p>
+                  </p>
               </div>
 
             </div>
-            <div class="card  col-md-3 my-2 p-2 flex-fill">
+            <div class="card  col-md-3 my-2 p-2 flex-fill"> 
               <div>
               <p><strong>Sales Associate:</strong> {{ project.sales_advisor }}</p>
-              <p class="text-capitalize"><strong>Address:</strong> {{ project.addres }} {{ project.city }} {{ project.state }} {{ project.country }} - {{ project.zip_code }}</p>
+              <p class="text-capitalize"><strong>Project Address:</strong> {{ project.address }} {{ project.city }} {{ project.state }} {{ project.country }} - {{ project.zip_code }}</p>
               </div>
               <div>
             </div>
