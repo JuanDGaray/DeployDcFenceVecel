@@ -22,3 +22,57 @@ function showAlert(message, type) {
   }, 4000); 
   return alert;
 }
+
+
+function ajaxGetRequest(url, successCallback, errorCallback) {
+  fetch(url)
+    .then(response => {
+      if (!response.ok) {
+        return response.json().then(errData => {
+          throw { status: response.status, ...errData };
+        });
+      }
+      return response.json();
+    })
+    .then(data => {
+      successCallback(data);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      if (errorCallback) {
+        errorCallback(error);
+      }
+    });
+}
+
+
+function ajaxPostRequest(url, data, csrfToken, successCallback, errorCallback) {
+  console.log(url, data, csrfToken)
+  fetch(url, {
+    method: 'POST',
+    body: JSON.stringify(data),
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': csrfToken
+    }
+  })
+  .then(response => {
+    if (!response.ok) {
+      return response.json().then(errData => {
+        throw { status: response.status, ...errData };
+      });
+    }
+    return response.json();
+  })
+  .then(data => {
+    // Llamar al callback de éxito
+    successCallback(data);
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    if (errorCallback) {
+      errorCallback(error);
+    }
+  });
+}
+

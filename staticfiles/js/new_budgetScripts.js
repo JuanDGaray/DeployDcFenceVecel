@@ -1240,7 +1240,7 @@ function activeRowProfitManufacturingMW(checkboxAdd){
             const textNode = checkbox?.parentElement;
             const text = textNode ? textNode.textContent.trim().replace(/\s+/g, '-') : "";
             if (checkbox.checked && daysInput && checkboxAdd.checked) {
-                const days = parseInt(daysInput.value) || 0; 
+                const days = parseFloat(daysInput.value) || 0; 
                 addRowProfitManufacturingMW(checkbox, days, text);
             }
         });
@@ -1251,6 +1251,7 @@ function activeRowProfitManufacturingMW(checkboxAdd){
 
 
 function addRowProfitManufacturingMW(checkbox, days, title){
+    console.log(days)
     const tbodyProfits = $$$('profit-section');
     const rowCountProfits = tbodyProfits.querySelectorAll('tr').length; // Correct row count
     const uniqueRowId = `profit-row-manufacturingMW`
@@ -1295,7 +1296,7 @@ function reloadRowProfitManufacturingMW(){
         const textNode = checkbox?.parentElement;
         const text = textNode ? textNode.textContent.trim().replace(/\s+/g, '-') : "";
         if (checkbox.checked && daysInput && checkboxProfit.checked) {
-            const days = parseInt(daysInput.value) || 0; 
+            const days = parseFloat(daysInput.value) || 0; 
             addRowProfitManufacturingMW(checkbox, days, text);
         }
     });
@@ -2430,7 +2431,7 @@ function getCostManagementData() {
                 index: index,
                 laborDescription: cells[1]?.querySelector('input[name="Labor_desc"]')?.value || '',
                 costByDay: parseFloat(cells[2]?.querySelector('input[name="Labor_hourly"]')?.value) || 0,
-                days: parseInt(cells[3]?.querySelector('input[name="Labor_hour"]')?.value) || 0,
+                days: parseFloat(cells[3]?.querySelector('input[name="Labor_hour"]')?.value) || 0,
                 leadTime: cells[4]?.querySelector('input[name="Labor_lead-time"]')?.value || '',
                 laborCost: parseFloat(cells[5]?.querySelector('input[name="Labor_Cost"]')?.value) || 0,
                 itemValue: row.querySelector('#itemsSelect')?.value, 
@@ -2446,7 +2447,7 @@ function getCostManagementData() {
             materialsData.push({
                 index: index,
                 materialDescription: cells[1]?.querySelector('input[name="materials_desc"]')?.value || '',
-                quantity: parseInt(cells[2]?.querySelector('input[name="materials_qt"]')?.value) || 0,
+                quantity: parseFloat(cells[2]?.querySelector('input[name="materials_qt"]')?.value) || 0,
                 unitCost: parseFloat(cells[3]?.querySelector('input[name="materials_UnitCost"]')?.value) || 0,
                 leadTime: cells[4]?.querySelector('input[name="materials_lead-time"]')?.value || '',
                 cost: parseFloat(cells[5]?.querySelector('input[name="materials_Cost"]')?.value) || 0,
