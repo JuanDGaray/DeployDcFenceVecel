@@ -181,7 +181,7 @@
             </tr>
             <tr>
                 <td>Job Address:</td>
-                <td>{{ proposal.project.address }} {{ proposal.project.city }} {{ proposal.project.state }} {{ proposal.project.country }} - {{ proposal.project.zip_code }}</td>
+                <td class="text-capitalize">{{ proposal.project.address | default:'' }} {{ proposal.project.city | default:'' }} {{ proposal.project.state | default:'' }} {{ proposal.project.country | default:'' }} - {{ proposal.project.zip_code | default:'' }}</td>
                 <td>Valid Until:</td>
                 <td>
                     <input readonly type="text" name="valid_until" value="{{ proposal.due_date|date:'m/d/Y' }}" style="border: none; background: transparent; width: 100%;" />
@@ -296,5 +296,36 @@
             <label for="termsInput" class='text-white pb-2 d-flex'><b>Terms and conditions</b></label>
             <div id="termsInput" class="form-control text-justify text-sm" style='white-space: pre-wrap;'>{{ proposal.terms_conditions }}</div>
         </div>
+        <script>
+            function generatePDF() {
+                // Selección del contenedor principal
+                const element = document.getElementById('main-container');
+
+                // Configuración de opciones para html2pdf
+                const opt = {
+                    filename: `PS_{{ proposal.project_name }}__{{ proposal.id }}__{{now|date:"m-d-y" }}.pdf`,
+                    image: { 
+                        type: 'jpeg', 
+                        quality: 1
+                    },
+                    html2canvas: { 
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                        letterRendering: true
+                    },
+                    jsPDF: { 
+                        unit: 'mm', 
+                        format: 'a4', 
+                        orientation: 'portrait',
+                        hotfixes: ['px_scaling']
+                    },
+                    margin: [0, 0, 0, 0]
+                };
+
+                // Generación y descarga del PDF
+                html2pdf().set(opt).from(element).save();
+            }
+        </script>
         {% endif %}
     </div>

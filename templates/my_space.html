@@ -71,7 +71,7 @@
             if (data.status === 'success') {
                 selectAllStatusByProposal = document.querySelectorAll('.status_proposal_' + proposal_id);
                 for (let select of selectAllStatusByProposal) {
-                    changeInnerHTML(select, proposal_id,  newStatus);
+                    changeInnerHTML(select.parentElement, proposal_id,  newStatus);
                 }
                 showAlert('Status updated successfully.', 'success');
                 parentSelect.querySelector('.spinner-border').remove();
