@@ -9,6 +9,7 @@ from django.db.models import Q, F
 from django.utils import timezone
 from django.template.loader import render_to_string
 from django.contrib.auth.models import User
+import json
 
 
 
@@ -17,7 +18,6 @@ def get_proposals(request, page=1):
     try:
         # Obtén todas las propuestas
         proposals = ProposalProjects.objects.all().filter(sales_advisor=request.user).order_by('-date_created')
-        print(request.GET)
         # Si hay un filtro proporcionado
         if request.GET.get('searchInputProjectName') or request.GET.get('searchInputStatus') or request.GET.get('searchInputDueDate') or request.GET.get('quoteYear') or request.GET.get('quoteMonth') or request.GET.get('quoteDay') or request.GET.get('quoteProjectId'):
             project_name = request.GET.get('searchInputProjectName', '')
@@ -27,7 +27,6 @@ def get_proposals(request, page=1):
             quote_month = request.GET.get('quoteMonth', '')
             quote_day = request.GET.get('quoteDay', '')
             quote_project_id = request.GET.get('quoteProjectId', '')
-            print(quote_year, quote_month, quote_day, quote_project_id, status, due_date, project_name)
             filters = Q()
             if quote_year:
                 filters &= Q(date_created__year='20' + quote_year)
@@ -164,7 +163,7 @@ def get_proposals_quick_info(request, id_proposal):
     
 @login_required
 def get_projects_quick_info(request, project_id):
-    # try:    
+    try:    
         project = Project.objects.get(id=project_id)
         budgets = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=True, isChangeOrder=False)
         invoices = InvoiceProjects.objects.filter(project_id=project_id)
@@ -186,9 +185,33 @@ def get_projects_quick_info(request, project_id):
                                                                     'proposals':proposals,
                                                                     'changes_orders': changes_orders})
         return JsonResponse({'html': html, 'title': project.project_name})
-    # except Project.DoesNotExist:
-    #     return JsonResponse({'error': 'Project not found'}, status=404)
+    except Project.DoesNotExist:
+        return JsonResponse({'error': 'Project not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+@login_required
+def get_proposal_quick_info(request, proposal_id):
+    try:    
+        proposal = ProposalProjects.objects.get(id=proposal_id)
+        html = render_to_string('components/proposal_quick_info.html', {'proposal': proposal, 'is_quickInfo': True, 'budgets': proposal.budget})
+        return JsonResponse({'html': html})
+    except ProposalProjects.DoesNotExist:
+        return JsonResponse({'error': 'Project not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+def update_proposal_status(request, proposal_id):
+    # try:
+        proposal = ProposalProjects.objects.get(id=proposal_id)
+        proposal.status = json.loads(request.body).get('status')
+        proposal.save()
+        return JsonResponse({'status': 'success', 'message': 'Status updated successfully.'})
+    # except ProposalProjects.DoesNotExist:
+    #     return JsonResponse({'status': 'error', 'message': 'Proposal not found.'}, status=404)
     # except Exception as e:
-    #     return JsonResponse({'error': str(e)}, status=500)
+    #     return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
 
 

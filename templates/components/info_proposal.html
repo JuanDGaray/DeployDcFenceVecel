@@ -3,17 +3,26 @@
 {% for proposal in proposals %}
 <tr>
   <td class="position-relative text-center"> <a href="/projects/{{ proposal.project.id }}/pdf_proposal/{{ proposal.id }}" class="mt-2" target="_blank">{{ proposal.date_created|date:'ymd' }}-{{proposal.project.id}} {% if proposal.is_today %}<span class="text-light position-absolute top-0 end-0 border border-warning rounded-pill px-2 bg-warning opacity-75" style="font-size: 0.8rem;">Today</span>{% elif proposal.is_overdue %}<span class="text-light position-absolute top-0 end-0 border border-danger rounded-pill px-2 bg-danger opacity-75" style="font-size: 0.8rem;">Overdue</span>{% endif %}</a></td>
-  <td class="text-center">{% if proposal.creation_duration == 0 %} today {% elif proposal.creation_duration == 1 %} yesterday {% else %} {{ proposal.creation_duration }} days {% endif %}</td>
-  <td class="text-center">{% if proposal.proposal_duration == 0 %} today {% elif proposal.proposal_duration == 1 %} tomorrow {% else %} {{ proposal.proposal_duration }} days {% endif %}</td>
+  <td class="text-justify">{% if proposal.creation_duration == 0 %} today {% elif proposal.creation_duration == 1 %} yesterday {% else %} {{ proposal.creation_duration }} days {% endif %}</td>
+  <td class="text-justify" {% if proposal.is_overdue %} class="text-danger" {% endif %}>    {% if proposal.is_overdue %}<button class="btn btn-warning btn-sm rounded-2 p-1 modal-open" id='button-show_project' title="Prolonged Due date" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Extend 15 days from today" onclick="openModal(event, '{{ project.id }}', {{proposal_id}}, 'proposal')"><i class="bi bi-stopwatch"></i></button>{% endif %}
+  {% if proposal.proposal_duration == 0 %} today {% elif proposal.proposal_duration == 1 %} tomorrow {% else %} {{ proposal.proposal_duration }} days {% endif %} 
+  </td>
   <td class="text-center"><a href="/projects/{{ proposal.project.id }}" target="_blank">{{ proposal.project_name }}</a></td>
   <td class="text-center">
-    <span class="status-empty status_{{ proposal.status }} m-0">
-      <strong>•</strong> {{ proposal.status }}
-    </span>
+    <span class="d-flex flex-row status-empty status_{{ proposal.status }}  status_proposal_{{ proposal.id }} mr-3 align-items-center justifify-content-center" id="select-status" style="width: fit-content;">
+      <select class="w-auto mx-1 border-0" name="status" onchange="changeStatusProposal(event, {{ proposal.id }})" title="Change Status">
+          {% for value, display in proposal.STATUS_CHOICES %}
+              <option value="{{ value }}" {% if proposal.status == value %}selected{% endif %}>
+                  {{ display }}
+              </option>
+          {% endfor %}
+      </select>
+    </span>   
   </td>
   <td class="text-center">{{ proposal.sales_advisor }}</td>
   <td class="text-center">{{ proposal.total_proposal|currency_usd }}</td>
   <td class="text-center">{{ proposal.billing_progress|currency_usd }}</td>
+  <td class="text-center"><button class="btn btn-primary btn-sm rounded-2 p-1 modal-open button-show_proposal" id='button-show_proposal' onclick="openModal(event, project_id='{{ project.id }}', proposal_id={{proposal.id}}, object='proposal')"><i class="bi bi-eye-fill"></i></button></td>
 </tr>
 {% endfor %}
 {% else %}

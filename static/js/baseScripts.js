@@ -47,6 +47,7 @@ function ajaxGetRequest(url, successCallback, errorCallback) {
 
 
 function ajaxPostRequest(url, data, csrfToken, successCallback, errorCallback) {
+  console.log(url, data, csrfToken)
   fetch(url, {
     method: 'POST',
     body: JSON.stringify(data),

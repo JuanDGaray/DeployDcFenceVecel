@@ -27,39 +27,98 @@
         </div>
     </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{% static 'js/components/quick_projectInfo.js' %}"></script> 
+<script src="{% static 'js/components/pdf_proposal.js' %}"></script>
 <script>
-    function openModal(event, id, object) {
-        event.preventDefault();
-        const button = event.currentTarget;
-        button.disabled = true;
-        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+    function initializeTooltips() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
+    function toggleButtons(className) {
+        document.querySelectorAll(className).forEach(function(button) {
+            if (button.disabled) {
+                button.disabled = false;
+            } else {
+                button.disabled = true;
+            }
+        });
+    }
+    
+    function changeInnerHTML(element, proposal_id, status) {
+        element.innerHTML = `
+            <span class="d-flex flex-row status-empty status_${status}  status_proposal_${proposal_id} mr-3 align-items-center justifify-content-center" id="select-status" style="width: fit-content;">
+                <select class="w-auto mx-1 border-0" name="status" onchange="changeStatusProposal(event, ${proposal_id})" title="Change Status">
+                    <option value="new" ${status === 'new' ? 'selected' : ''}>New</option>
+                    <option value="sent" ${status === 'sent' ? 'selected' : ''}>Sent</option>
+                    <option value="pending" ${status === 'pending' ? 'selected' : ''}>Pending</option>
+                    <option value="rejected" ${status === 'rejected' ? 'selected' : ''}>Rejected</option>
+                    <option value="approved" ${status === 'approved' ? 'selected' : ''}>Approved</option>
+                </select>
+            </span>`;
+    }
 
-        ajaxGetRequest(`/get_${object}_quick_info/${id}/`, function(data) {
+    function changeStatusProposal(event, proposal_id) {
+        event.preventDefault();
+        parentContainer = event.currentTarget.parentElement.parentElement;
+        parentSelect = event.currentTarget.parentElement;
+        parentSelect.innerHTML = parentSelect.innerHTML + '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+        const newStatus = event.target.value;
+        data = {status: newStatus}
+        ajaxPostRequest(`/update_proposal_status/${proposal_id}/`,  data, '{{ csrf_token }}', function(data) {
+            if (data.status === 'success') {
+                selectAllStatusByProposal = document.querySelectorAll('.status_proposal_' + proposal_id);
+                for (let select of selectAllStatusByProposal) {
+                    changeInnerHTML(select, proposal_id,  newStatus);
+                }
+                showAlert('Status updated successfully.', 'success');
+                parentSelect.querySelector('.spinner-border').remove();
+            } else {
+                showAlert('Error updating status.', 'danger');
+                parentSelect.querySelector('.spinner-border').remove();
+            }
+        });
+    }
+
+
+    function openModal(event, project_id=None, proposal_id=None, object) {
+        event.preventDefault();
+        console.log(project_id, proposal_id, object)
+        const button = event.currentTarget;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+        toggleButtons('.button-show_proposal');
+        let url;
+        if (object === 'proposal') {
+            url = `/get_${object}_quick_info/${proposal_id}/`;
+        } else {
+            url = `/get_${object}_quick_info/${project_id}/`;
+        }
+        ajaxGetRequest(url, function(data) {
             if (data) {
-                // Actualizar el contenido del modal
                 const modalElement = document.getElementById('largeModal');
                 modalElement.querySelector('.modal-body').innerHTML = data.html;
-                
-
-                // Quitar el atributo inert y mostrar el modal
                 modalElement.removeAttribute('inert');
                 const modal = new bootstrap.Modal(modalElement);
                 modal.show();
-
-                // Restaurar el botón
-                button.disabled = false;
                 button.innerHTML = '<i class="bi bi-eye-fill"></i>';
+                initializeTooltips();
+                if (object === 'proposal') {
+                    setTimeout(() => {
+                        autorResizeAllTextAreas();
+                    }, 1000);
+                }
+                toggleButtons('.button-show_proposal');
             }
         }, function(error) {
-            // Manejo de errores
-            button.disabled = false;
             button.innerHTML = '<i class="bi bi-eye-fill"></i>';
             if (error.status === 404) {
-                showAlert('This project does not exist.', 'danger');
+                showAlert(`This ${object} does not exist.`, 'danger');
             } else if (error.status === 500) {
                 showAlert('Internal server error.', 'danger');
             }
+            toggleButtons('.button-show_proposal');
         });
     }
 
@@ -98,6 +157,7 @@
                 document.getElementById('proposals-count').innerHTML = data.total_proposals;
                 // Actualiza los controles de paginación
                 updatePaginationControls(page, data.has_more, data.total_pages);
+                initializeTooltips() 
             }
         }
 
@@ -266,7 +326,7 @@
             await loadProposals(1);
         });
 
-        // Carga inicial
+
         loadProposals(1);
         loadProjects(1);
         loadUserInfo();
