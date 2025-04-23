@@ -193,7 +193,7 @@
                 </tr>
                 <tr>
                     <td>Job Address:</td>
-                    <td class="text-capitalize">{{ project.address }} {{ project.city }} {{ project.state }} {{ project.country }} - {{ project.zip_code }}</td>
+                    <td>{{ project.customer.address}}</td>
                     <td>Valid Until:</td>
                     <td>
                         <input readonly type="text" name="valid_until" value="{{ proposal.due_date|date:'m/d/Y' }}" style="border: none; background: transparent; width: 100%;" />

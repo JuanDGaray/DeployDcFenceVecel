@@ -306,7 +306,6 @@ def detail_project(request, project_id):
             elif group.name == "PRODUCTION":
                 production_users = [{"name": user.first_name + user.last_name, "email": user.email, "id":  user.id} for user in group.user_set.all()]
         productionUsers = {'Admins': admin_users, 'Managers':production_users}
-    print()
     if project.project_manager and project.status != 'in_production':
         project.status = 'in_production'
         project.save()
@@ -619,6 +618,19 @@ def delete_invoice(request, project_id, invoice_id):
 
     return redirect('detail_project', project_id=project_id)
 
+@receiver(post_save, sender=ProposalProjects)
+@receiver(post_delete, sender=ProposalProjects)
+def update_estimated_cost(sender, instance, **kwargs):
+    project = instance.project
+    active_statuses = ['active', 'new', 'approved', 'pending']
+    total_active_cost = ProposalProjects.objects.filter(
+        project=project,
+        status__in=active_statuses
+    ).aggregate(total_cost=Sum('total_proposal'))['total_cost'] or 0
+
+    project.estimated_cost = total_active_cost
+    project.save(update_fields=['estimated_cost'])
+
 @login_required
 def delete_proposal(request, project_id, proposal_id):
     """
@@ -830,7 +842,6 @@ def save_budget_data_from_dict(dataBudget,data):
 
 def save_budget_simple(data, project, budget, dictScope, saleAdvisor):
     with transaction.atomic():
-        # Recolectar los precios por scope
         scope_prices = {}
         for key, value in data.items():
             if key.startswith('scope-price-'):
@@ -858,8 +869,7 @@ def save_budget_simple(data, project, budget, dictScope, saleAdvisor):
             exclusions=data.get('exclusions', 'Permit Fee and processing, Site survey, Electrical fence grounding'),
             scope_prices=scope_prices,  # Guardar los precios por scope
         )
-        project.estimated_cost = F('estimated_cost') + proposal.total_proposal
-        project.save(update_fields=['status', 'estimated_cost'])
+        project.save(update_fields=['status'])
 
     
 def modify_old_budget(budget_id):

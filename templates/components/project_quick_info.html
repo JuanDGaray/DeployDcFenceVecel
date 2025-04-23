@@ -1,0 +1,889 @@
+{% load custom_filters %}
+{% load static %}
+<style>
+    .productionButton {
+      font-weight: bold;
+      letter-spacing: 0.1em;
+      border: none;
+      border-radius: 1.1em;
+      background-color: #20a33a;
+      cursor: pointer;
+      color: #ffffff;
+      padding: 8px 32px;
+      border: 4px solid #c7c7c7;
+      box-sizing: border-box;
+    }
+    .productionButton:hover {
+      background-color:rgb(14, 109, 33);
+    }
+    #selectManager{
+      border: none;
+      border-radius: 1.1em;
+      background-color: #ffffff;
+      cursor: pointer;
+      color: #000000;
+      padding: 8px 32px;
+      left: -30px;
+      position: relative;
+      border: 4px solid #c7c7c7;
+      box-sizing: border-box;
+    }
+  </style>
+<div class="container d-flex flex-column justify-content-center my-4">
+  <div id="alert-container"></div>
+  <div class="row">
+    <!-- Project Card -->
+    <div class="col-md-12 ">
+      <div class="container border m-0 px-0 rounded-4 overflow-hidden mb-4 shadow-sm ">
+        <div
+          class="card-header d-flex justify-content-between  p-3 border-bottom bg-gray"
+        >
+          <h1 class="card-header fs-4 rounded-4 d-flex flex-row gap-2" id="project-info" data-project-name="{{ project.project_name }}">{{project.project_name}} <span class="badge badge-{{ project.status }}">{{project.status }}</span>
+            <div class="d-flex flex-row gap-2">
+              <a class="btn bg-primary border border-2 btn-sm rounded-2 p-1 text-light" onclick="showSelectCustomerProject()" id="duplicateProjectButton"
+                role="button" title="Duplicate Project" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Duplicate Project">
+                <i class="bi bi-copy me-1" style="font-size: 15px;"></i >Duplicate
+              </a>
+              <div id="selectCustomerProject" class="d-none w-50 form-selec p-0 d-flex flex-row gap-2">
+                <select name="customer" id="id_customer" class="form-select form-select-sm m-0 overflow-auto" >
+                  <option value="" selected>Select a customer</option>
+                    {% for customer in customers %}
+                        <option value="{{ customer.id }}">
+                          {% if customer.customer_type == "individual" %}
+                            {{customer.first_name }} {{customer.last_name }} - {{customer.email}} 
+                            {% else %}
+                            {{customer.company_name }} - {{customer.email}} 
+                            {% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+                <button class="btn bg-success border border-2 btn-sm rounded-2 p-1 text-light d-flex flex-row align-items-center" onclick="sendProjectDuplicate()">
+                  <i class="bi bi-check-all" style="font-size: 15px;"></i> Send
+                </button>
+              </div>
+            </div>
+          </h1>
+          <div>
+            <a href="{% url 'detail_project' project.id %}" class="btn btn-outline-secondary me-2" target="_blank">
+               <i class="bi bi-info-circle" style="font-size: 15px;" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="View Detail to project"> View all information</i>
+            </a>
+          </div>
+        </div>
+        <div class="card-body mx-4 my-2">
+          <div class=" d-flex row gap-4 mx-auto">
+            <div class="col-md-8 card my-2 p-0">
+              <div class="card-header m-0  ">Description</div>
+              <div class="p-4 d-flex flex-column gap-2 text-justify"> 
+                <p class="truncate">
+                  {{ project.description }}</p>
+                <p>
+                  <strong class="text-capitalize font-weight-bold text-primary">Customer: </strong
+                    {% if project.customer.customer_type == "individual" %}
+                    <a href="{% url 'detail_customer' project.customer.id %}" target="_blank">
+                    <span class="status title_{{ project.customer.customer_type }} fs-6">
+                    {{ project.customer.first_name }} {{ project.customer.last_name }} <i class="bi bi-person-arms-up"></i>
+                    </span>
+                    </a> {% else %}
+                    <a href="{% url 'detail_customer' project.customer.id %}" target="_blank">
+                    <span class="status title_{{ project.customer.customer_type }} fs-6">{{ project.customer.company_name }} 
+                      <i class="bi bi-buildings-fill"></i> 
+                    </span> 
+                  </a>
+                    {{ project.customer.first_name }} {{ project.customer.last_name }}
+                    {% endif %}
+                    <p class="text-capitalize p-0 m-0 d-flex flex-row gap-2"><i class="bi bi-geo-alt-fill text-primary"></i> {{ project.customer.address }} {{ project.customer.city }} {{ project.customer.state }} {{ project.customer.country }} - {{ project.customer.zip_code }} <i class="bi bi-telephone-fill text-primary"></i> {{ project.customer.phone }} <i class="bi bi-envelope-fill text-primary "></i> {{ project.customer.email }}</p>
+                  </p>
+              </div>
+
+            </div>
+            <div class="card  col-md-3 my-2 p-2 flex-fill"> 
+              <div>
+              <p><strong>Sales Associate:</strong> {{ project.sales_advisor }}</p>
+              <p class="text-capitalize"><strong>Project Address:</strong> {{ project.address }} {{ project.city }} {{ project.state }} {{ project.country }} - {{ project.zip_code }}</p>
+              </div>
+              <div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Project Budget -->
+    <div class="col-md-12 mt-4">
+      <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
+        <div class="card-header d-flex justify-content-between p-3 border-bottom bg-gray">
+          <h1 class="card-header fs-4 rounded-4">Budgets</h1>
+          <a href="{% url 'new_budget' project.id %}" class="btn bg-primary text-light">
+            <i class="bi bi-plus-circle text-light fs-6"></i> Add Budget
+          </a>
+        </div>
+        <div class="card-body">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Budge ID</th>
+                <th>Date</th>
+                <th>Create by.</th>
+                <th>Amount</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+            {% for budget in budgets %}
+                {% if budget.id in budgets_dict %}
+                  <tr style="vertical-align: middle;"">
+                    <td>
+                      <i class="bi bi-caret-right text-light rounded-2 mx-2 p-1 drownIcon collapsed" 
+                      data-bs-toggle="collapse" 
+                      data-bs-target="#collapse-{{ budget.latest_version.id }}" 
+                      aria-expanded="false" 
+                      aria-controls="collapse-{{ budget.latest_version.id }}"
+                      id="drownIcon icon-{{ budget.latest_version.id }}"></i>
+                      <a href="{% url 'view_budget' project.id budget.latest_version.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budget.latest_version.id }}
+                        {% include 'components/duplicate_button.html' %}
+                      </a>
+                    
+                    </td>
+                    <td>{{ budget.latest_version.date_created|date:'M/d/Y' }}</td>
+                    <td>{{ budget.latest_version.sales_advisor }}</td>
+                    <td>{{ budget.latest_version.total_value|currency_usd }}</td>  
+                    <td><span class="status-empty status-{{budget.latest_version.status}}">
+                          {{ budget.latest_version.status }}
+                        </span>
+                        {% if budget.latest_version.status == 'rejected' %}
+                            <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                                data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                                data-bs-title="The proposal has been rejected. You must edit or create a new budget to submit another proposal." 
+                                aria-label="Info" data-bs-original-title="Rejected Proposal">
+                                <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                            </a>
+                        {% elif budget.latest_version.status == 'complete' %}
+                            <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                                data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                                data-bs-title="The budget is complete and cannot be edited. This means that no more proposals can be created, as the current proposal has already been approved or is awaiting approval." 
+                                aria-label="Info" data-bs-original-title="Completed Budget">
+                                <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                            </a>
+                        {% elif budget.latest_version.status == 'approved' %}
+                            <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                                data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                                data-bs-title="The proposal is approved. No further edits or proposals can be made for this budget." 
+                                aria-label="Info" data-bs-original-title="Proposal Locked">
+                                <i class="bi bi-lock-fill" style="font-size: 15px;"></i>
+                            </a>
+                        {% elif budget.latest_version.status == 'saved' %}
+                            <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                                data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                                data-bs-title="The budget is new, meaning no proposal has been created or sent to the client yet." 
+                                aria-label="Info" data-bs-original-title="New Budget">
+                                <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                            </a>
+                        {% endif %}
+                    <td style="width:80px">
+                      <div class="d-inline-flex gap-2 align-items-center p-0">
+                        <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 {% if budget.latest_version.status == 'complete' or budget.latest_version.status == 'approved' %}disabled{% endif %}" 
+                        href="{% url 'edit_budget' project.id budget.latest_version.id %}" 
+                        role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit">
+                        <i class="bi bi-pencil-square" style="font-size: 15px;"></i>
+                        </a>
+                        <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
+                        href="{% url 'view_budget' project.id budget.latest_version.id %}" 
+                        role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Print">
+                        <i class="bi bi-printer-fill" style="font-size: 15px;"></i>
+                        </a>
+                        <a class="btn bg-success text-light border border-2 btn-sm rounded-2 p-1 {% if budget.latest_version.status == 'complete' or budget.latest_version.status == 'approved' or budget.latest_version.status == 'rejected' %}disabled{% endif %}" 
+                        href="{% url 'view_budgetSimple' project.id budget.latest_version.id %}"
+                        role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Make proposal">
+                        <i class="bi bi-receipt" style="font-size: 15px;"></i>
+                        </a>
+                        <!-- Botón para Eliminar -->
+                        <a class="btn btn-danger btn-sm rounded-2 p-1 
+                          {% if budget.latest_version.status == 'complete' or budget.latest_version.status == 'approved' %}disabled{% endif %}" 
+                          href="{% url 'delete_budget' project.id budget.latest_version.id %}"                         
+                          role="button" title="Delete Budget" 
+                          data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" 
+                          data-bs-custom-class="custom-tooltip" 
+                          data-delete-action data-bs-title="Delete">
+                            <i class="bi bi-trash" style="font-size: 15px;"></i>
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr id="collapse-{{ budget.latest_version.id }}" class="collapse">
+                    <td colspan="6" class="m-0 p-0">
+                      <table class="table table-bordered">
+                        <thead>
+                          <tr>
+                            <th class='p-0 text-secondary'></th>
+                            <th class='p-0 text-secondary'>Budge ID</th>
+                            <th class='p-0 text-secondary'>Date</th>
+                            <th class='p-0 text-secondary'>Create by.</th>
+                            <th class='p-0 text-secondary'>Amount</th>
+                            <th class='p-0 text-secondary'>Version</th>
+                            <th class='p-0 text-secondary'></th>
+                          </tr>
+                        </thead>
+                        {% for related_id, budgets in budgets_dict.items %}
+                          {% if budget.id == related_id %}
+                            {% for budgetVersion in budgets.budget %}
+                              <tr>
+                                <td  class='p-1'></td>
+                                <td  class='p-1'><a href="{% url 'view_budget' project.id budgetVersion.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budgetVersion.id}}</a>
+                                  {% include 'components/duplicate_button.html' %}
+                                </td>
+                                <td  class='p-1'>{{ budgetVersion.date_created }}</td>
+                                <td  class='p-1'>{{ budgetVersion.sales_advisor }}</td>
+                                <td  class='p-1'>{{ budgetVersion.total_value|currency_usd }}</td> 
+                                <td  class='p-1'>
+                                  <span class="status-empty">
+                                    {% if forloop.counter == 1 %}
+                                        Last Version
+                                    {% else %}
+                                        Version {{ forloop.counter }}
+                                    {% endif %}
+                                  </span>
+                                </td>
+                                <td style="width:40px"  class='px-auto py-1'>
+                                  <div class="d-inline-flex gap-2 ">
+                                    <!-- Botón para Eliminar -->
+                                    <a class="btn btn-danger btn-sm rounded-2 p-1" 
+                                        href="{% url 'delete_budget' project.id budgetVersion.id %}" 
+                                        role="button" title="Delete Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-delete-action data-bs-title="Delete">
+                                        <i class="bi bi-trash" style="font-size: 15px;"></i>
+                                    </a>
+                                  </div>
+                                </td>
+                              </tr>
+                            {% endfor %}
+                            <tr>
+                              <td  class='p-1'></td>
+                              <td  class='p-1'><a href="{% url 'view_budget' project.id budget.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budget.id }}
+                                {% include 'components/duplicate_button.html' %}
+                              </a></td>
+                              <td  class='p-1'>{{ budget.date_created }}</td>
+                              <td  class='p-1'>{{ budget.sales_advisor }}</td>
+                              <td  class='p-1'>{{ budget.total_value|currency_usd }}</td> 
+                              <td  class='p-1'>
+                                <span class="status-empty">
+                                  Principal
+                                </span>
+                                <a class="btn btn-sm rounded-2 p-1" 
+                                role="button" title="Delete Budget"
+                                data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Deleting this budget will delete all related budgets, as this is the primary budget.">
+                                <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                            </a>
+                              </td>
+                              <td style="width:40px"  class='px-auto py-1'>
+                                <div class="d-inline-flex gap-2 ">
+                                  <!-- Botón para Eliminar -->
+                                  <a class="btn btn-danger btn-sm rounded-2 p-1" 
+                                      href="{% url 'delete_budget' project.id budget.id %}" 
+                                      role="button" title="Delete Budget"
+                                      data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-delete-action data-bs-title="Delete">
+                                      <i class="bi bi-trash" style="font-size: 15px;"></i>
+                                  </a>
+                                </div>
+                              </td>
+                            </tr>
+                          {% endif %}
+                        {% endfor %}
+                      </table>
+                    </td>
+                  </tr>
+                {% else %}
+                <tr style="vertical-align: middle;"">
+                  <td class='align-items-center'><a href="{% url 'view_budget' project.id budget.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budget.id }}
+                    {% include 'components/duplicate_button.html' %}
+                  </a></td>
+                  <td>{{ budget.date_created }}</td>
+                  <td>{{ budget.sales_advisor }}</td>
+                  <td>{{ budget.total_value|currency_usd }}</td> 
+                  <td>
+                    <span class="status-empty status-{{budget.status}}">
+                      {{ budget.status }}
+                    </span>
+                    {% if budget.status == 'rejected' %}
+                            <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                                data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                                data-bs-title="The proposal has been rejected. You must edit or create a new budget to submit another proposal." 
+                                aria-label="Info" data-bs-original-title="Rejected Proposal">
+                                <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                            </a>
+                        {% elif budget.status == 'complete' %}
+                            <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                                data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                                data-bs-title="The budget is complete and cannot be edited. This means that no more proposals can be created, as the current proposal has already been approved or is awaiting approval." 
+                                aria-label="Info" data-bs-original-title="Completed Budget">
+                                <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                            </a>
+                        {% elif budget.status == 'approved' %}
+                            <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                                data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                                data-bs-title="The proposal is approved. No further edits or proposals can be made for this budget." 
+                                aria-label="Info" data-bs-original-title="Proposal Locked">
+                                <i class="bi bi-lock-fill" style="font-size: 15px;"></i>
+                            </a>
+                        {% elif budget.status == 'saved' %}
+                            <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                                data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                                data-bs-title="The budget is new, meaning no proposal has been created or sent to the client yet." 
+                                aria-label="Info" data-bs-original-title="New Budget">
+                                <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                            </a>
+                      {% endif %}
+                  </td>
+                  <td style="width:80px">
+                    <div class="d-inline-flex gap-2 align-items-center p-0">
+                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 {% if budget.status == 'complete' or budget.status == 'approved' %}disabled{% endif %}" 
+                      href="{% url 'edit_budget' project.id budget.id %}" 
+                      role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit">
+                      <i class="bi bi-pencil-square" style="font-size: 15px;"></i>
+                      </a>
+                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
+                      href="{% url 'view_budget' project.id budget.id %}"
+                      role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Print">
+                      <i class="bi bi-printer-fill" style="font-size: 15px;"></i>
+                      </a>
+                      <a class="btn  bg-success border text-light border-2 btn-sm rounded-2 p-1 {% if budget.status == 'complete' or budget.status == 'approved' or budget.status == 'rejected' %}disabled{% endif %}" 
+                      href="{% url 'view_budgetSimple' project.id budget.id %}"
+                      role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Make invoice">
+                      <i class="bi bi-receipt" style="font-size: 15px;"></i>
+                      </a>
+                      <!-- Botón para Eliminar -->
+                      <a class="btn btn-danger btn-sm rounded-2 p-1 
+                        {% if budget.status == 'complete' or budget.status == 'approved' %}disabled{% endif %}" 
+                        href="{% url 'delete_budget' project.id budget.id %}"                         
+                        role="button" title="Delete Budget" 
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="bottom" 
+                        data-bs-custom-class="custom-tooltip" 
+                        data-delete-action data-bs-title="Delete">
+                          <i class="bi bi-trash" style="font-size: 15px;"></i>
+                      </a>
+            
+                    </div>
+                  </td>
+                </tr>
+                {% endif %}
+            {% empty %}
+              <tr>
+                <td colspan="5">No proposals found for this project.</td>
+              </tr>
+            {% endfor %}
+            
+            
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <!-- Project proposal -->
+    <div class="col-md-12 mt-4">
+      <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
+        <div class="card-header d-flex justify-content-between p-3 border-bottom bg-gray">
+          <h1 class="card-header fs-4 rounded-4">Proposals</h1>
+        </div>
+        <div class="card-body">
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Proposal ID</th>
+                <th>Budget ID</th>
+                <th>Date</th>
+                <th>Due Date</th>
+                <th>Tracking ID</th>
+                <th>Create by</th>
+                <th>Status</th>
+                <th>Amount</th>
+                <th>Billed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for proposal in proposals %}
+              <tr style="vertical-align: middle;">
+                <td>{{ proposal.id }}</td>
+                <td>{{ proposal.budget.id }}</td>
+                <td>{{ proposal.date_created | date:'M/d/y' }}</td>
+                <td>{{ proposal.due_date | date:'M/d/y' }}</td>
+                <td>{{ proposal.tracking_id }}</td>
+                <td>{{ proposal.sales_advisor.username }}</td>
+                <td class="d-flex"> 
+                  <form method="post" class='m-0'>
+                    {% csrf_token %}
+                    <input type="hidden" name="proposal_id" value="{{ proposal.id }}" style='display:none'>
+                    <input type="hidden" name="budget_id" value="{{ proposal.budget.id }}" style='display:none'>
+                    <select name="status" class="status status-{{ proposal.status }}" onchange="this.form.submit()">
+                      {% for value, label in proposal.STATUS_CHOICES %}
+                        <option value="{{ value }}" {% if proposal.status == value %}selected{% endif %}>
+                          {{ label }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </form>
+                  {% if proposal.status == 'new' %}
+                      <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                          data-bs-title="The proposal is new. You cannot create an invoice for it." 
+                          aria-label="Info" data-bs-original-title="New Proposal">
+                          <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                      </a>
+                  {% elif proposal.status == 'sent' %}
+                      <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                          data-bs-title="The proposal has been sent. It cannot be deleted or have an invoice created." 
+                          aria-label="Info" data-bs-original-title="Sent Proposal">
+                          <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                      </a>
+                  {% elif proposal.status == 'pending' %}
+                      <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                          data-bs-title="The proposal is pending. It cannot be deleted or have an invoice created." 
+                          aria-label="Info" data-bs-original-title="Pending Proposal">
+                          <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                      </a>
+                  {% elif proposal.status == 'approved' %}
+                      <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                          data-bs-title="The proposal is approved. It cannot be deleted, but you can create an invoice for it." 
+                          aria-label="Info" data-bs-original-title="Approved Proposal">
+                          <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                      </a>
+                  {% elif proposal.status == 'rejected' %}
+                      <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                          data-bs-title="The proposal has been rejected. It can be deleted, but you cannot create an invoice for it." 
+                          aria-label="Info" data-bs-original-title="Rejected Proposal">
+                          <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                      </a>
+                  {% endif %}
+                </td>
+                <td>{{ proposal.total_proposal | currency_usd }}</td>
+                <td>{{ proposal.billed_proposal | currency_usd }}</td>
+                <td style='width:120px' class="p-0">
+                  <div class="d-inline-flex gap-2 align-items-center p-1">
+                  <a class="btn bg-light border border-2 btn-sm rounded-2" 
+                  href="{% url 'pdf_proposal' project_id=project.id proposal_id=proposal.id %}" target='_blank'
+                  role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="View">
+                  <i class="bi bi-eye-fill" style="font-size: 15px;"></i>
+                  </a>
+                  <a class="btn bg-light border border-2 btn-sm rounded-2" 
+                  href="{% url 'edit_budgetSimple' project_id=project.id budget_id=proposal.budget.id proposal_id=proposal.id %}" target='_blank'
+                  role="button" title="Edit Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit">
+                  <i class="bi bi-pencil-square" style="font-size: 15px;"></i>
+                  </a>
+                  <div class="dropdown d-flex">
+                    <button 
+                      class="btn bg-light border border-2 btn-sm rounded-2 px-1 py-0 dropdown-toggle  {% if proposal.status == 'new' or proposal.status == 'sent' or proposal.status == 'pending'  or proposal.status == 'rejected' or  proposal.total_proposal <=  proposal.billed_proposal %}disabled{% endif %}" 
+                      type="button" 
+                      id="dropdownMenuButton" 
+                      data-bs-toggle="dropdown" 
+                      aria-expanded="false" 
+                      title="Make Budget" 
+                      data-bs-toggle="tooltip" 
+                      data-bs-placement="bottom" 
+                      data-bs-custom-class="custom-tooltip" 
+                      data-bs-title="Make invoice">
+                      <i class="bi bi-cash-stack" style="font-size: 15px;"
+                      > </i>
+                    </button class='p-0'>
+                    <ul class="dropdown-menu p-0" aria-labelledby="dropdownMenuButton">
+                      <li><a class="dropdown-item" href="{% url 'mdcpInvoice' project_id=project.id invoice_id=proposal.id %}" target='_blank'>Invoice MDCP</a></li>
+                      <li><a class="dropdown-item" href="{% url 'broadInvoice10' project_id=project.id invoice_id=proposal.id %}"  target='_blank'>Invoice BROD</a></li>
+                      <li><a class="dropdown-item" href="{% url 'aiaInvoice5' project_id=project.id invoice_id=proposal.id %}"  target='_blank'>Invoice AIA 5%</a></li>
+                      <li><a class="dropdown-item" href="{% url 'aiaInvoice10' project_id=project.id invoice_id=proposal.id %}"  target='_blank'>Invoice AIA 10%</a></li>
+                    </ul>
+                    {% if proposal.status == 'new' or proposal.status == 'sent' or proposal.status == 'pending'  or proposal.status == 'rejected' %}
+                    <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                        data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                        data-bs-title="Invoice creation is disabled because the proposal is in Pending, New, Rejected, or Sent status." 
+                        aria-label="Info" data-bs-original-title="Rejected Proposal">
+                        <i class="bi bi-info-circle text-danger" style="font-size: 15px;"></i>
+                    </a>
+                    {% elif  proposal.total_proposal <=  proposal.billed_proposal %}
+                    <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                        data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                        data-bs-title="You cannot add more invoices because the total of the proposal has already been invoiced." 
+                        aria-label="Info" data-bs-original-title="Rejected Proposal">
+                        <i class="bi bi-info-circle text-success" style="font-size: 15px;"></i>
+                    </a>
+                    
+                    {% endif %}
+                  </div>
+                  
+                  <a class="btn btn-danger btn-sm rounded-2 p-1 {% if proposal.status == 'approved' or proposal.status == 'sent' or proposal.status == 'pending' %}disabled{% endif %}" 
+                    href="{% url 'delete_proposal' project.id proposal.id %}"
+                    role="button" title="Delete Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-delete-action data-bs-title="Delete">
+                    <i class="bi bi-trash" style="font-size: 15px;"></i>
+                  </a>
+                  {% if proposal.status == 'approved' %}
+
+                      <a class="btn btn-sm rounded-2 p-1 bg-warning" role="button" data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                          data-bs-title="Change order requested by the client after approval, modifying scope, cost, or timeline."
+                          aria-label="Info" data-bs-original-title="Approved Proposal"
+                          href="{% url 'new_change_order' project.id proposal.id %}">
+                          ChangeOrder
+                      </a>
+                    {% endif %}
+              </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="9">No proposals found for this project.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+        </div>
+    
+    </div>
+      <!-- Change Order -->
+      {% if changes_orders %}
+      <div class="col-md-12 mt-4">
+        <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
+          <div class="card-header d-flex justify-content-between p-3 border-bottom bg-warning" style="--bs-bg-opacity: .2;">
+            <h1 class="card-header fs-4 rounded-4 px-2"  style="--bs-bg-opacity: .1;">Change Order</h1>
+          </div>
+          <div class="card-body">
+            <table class="table table-striped">
+              <thead>
+                <tr>
+                  <th>Budget ID</th>
+                  <th>Date</th>
+                  <th>Create by</th>
+                  <th>Last value</th>
+                  <th>New value</th>
+                  <th>Total Change</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for budget in changes_orders %}
+                <tr style="vertical-align: middle;">
+                  <td>{{ budget.id_related_budget_id }}</td>
+                  <td>{{ budget.date_created | date:'M/d/y' }}</td>
+                  <td>{{ budget.sales_advisor.username }}</td>
+                  <td>{{ budget.id_related_total_value | currency_usd}}</td>
+                  <td>{{ budget.total_value | currency_usd}}</td>
+                  <td>
+                    <span class="status title_budget{% if budget.total_change_order < 0 %}Down{% else %}Up{% endif %}">
+                      <i class="bi bi-graph-{% if budget.total_change_order < 0 %}down{% else %}up{% endif %}-arrow fs-6"></i>
+                        {{ budget.total_change_order | currency_usd}}
+                    <span>
+                  </td>
+                  <td style="width:80px">
+                    <div class="d-inline-flex gap-2 align-items-center p-0">
+                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
+                      href="{% url 'view_changeOrder' project.id budget.id %}" 
+                      role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="View">
+                      <i class="bi bi-eye-fill" style="font-size: 15px;"></i>
+                      </a>
+                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
+                      href="{% url 'edit_budget' project.id budget.id %}" 
+                      role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit Budget">
+                      <i class="bi bi-pencil-square" style="font-size: 15px;"></i>
+                      </a>
+                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
+                      href="{% url 'view_budget' project.id budget.id %}"
+                      role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Print">
+                      <i class="bi bi-printer-fill" style="font-size: 15px;"></i>
+                      </a>
+                      <a class="btn btn-danger btn-sm rounded-2"
+                        href="{% url 'delete_budget' project.id budget.id %}"                         
+                        role="button" title="Delete Budget" 
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="bottom" 
+                        data-bs-custom-class="custom-tooltip" 
+                        data-delete-action data-bs-title="Delete">
+                          <i class="bi bi-trash" style="font-size: 15px;"></i>
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="8">No changes orders  found for this project.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+          </div>
+      </div>    
+      {% endif %}
+      
+      <!-- Change Order Proposals -->
+      {% if change_order_proposals %}
+        <div class="col-md-12 mt-4">
+          <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
+            <div class="card-header d-flex justify-content-between p-3 border-bottom bg-dark">
+              <h1 class="card-header fs-4 rounded-4 px-2">Change Order Proposals</h1>
+            </div>
+            <div class="card-body">
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Proposal ID</th>
+                    <th>Budget ID</th>
+                    <th>Date</th>
+                    <th>Due Date</th>
+                    <th>Tracking ID</th>
+                    <th>Create by</th>
+                    <th>Status</th>
+                    <th>Amount</th>
+                    <th>Billed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for proposal in change_order_proposals %}
+                  <tr style="vertical-align: middle;">
+                    <td>{{ proposal.id }}</td>
+                    <td>{{ proposal.budget.id }}</td>
+                    <td>{{ proposal.date_created | date:'M/d/y' }}</td>
+                    <td>{{ proposal.due_date | date:'M/d/y' }}</td>
+                    <td>{{ proposal.tracking_id }}</td>
+                    <td>{{ proposal.sales_advisor.username }}</td>
+                    <td class="d-flex"> 
+                      <form method="post" class='m-0'>
+                        {% csrf_token %}
+                        <input type="hidden" name="proposal_id" value="{{ proposal.id }}" style='display:none'>
+                        <input type="hidden" name="budget_id" value="{{ proposal.budget.id }}" style='display:none'>
+                        <select name="status" class="status status-{{ proposal.status }}" onchange="this.form.submit()">
+                          {% for value, label in proposal.STATUS_CHOICES %}
+                            <option value="{{ value }}" {% if proposal.status == value %}selected{% endif %}>
+                              {{ label }}
+                            </option>
+                          {% endfor %}
+                        </select>
+                      </form>
+                      {% if proposal.status == 'new' %}
+                          <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                              data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                              data-bs-title="The proposal is new. You cannot create an invoice for it." 
+                              aria-label="Info" data-bs-original-title="New Proposal">
+                              <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                          </a>
+                      {% elif proposal.status == 'sent' %}
+                          <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                              data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                              data-bs-title="The proposal has been sent. It cannot be deleted or have an invoice created." 
+                              aria-label="Info" data-bs-original-title="Sent Proposal">
+                              <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                          </a>
+                      {% elif proposal.status == 'pending' %}
+                          <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                              data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                              data-bs-title="The proposal is pending. It cannot be deleted or have an invoice created." 
+                              aria-label="Info" data-bs-original-title="Pending Proposal">
+                              <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                          </a>
+                      {% elif proposal.status == 'approved' %}
+                          <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                              data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                              data-bs-title="The proposal is approved. It cannot be deleted, but you can create an invoice for it." 
+                              aria-label="Info" data-bs-original-title="Approved Proposal">
+                              <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                          </a>
+                      {% elif proposal.status == 'rejected' %}
+                          <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                              data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                              data-bs-title="The proposal has been rejected. It can be deleted, but you cannot create an invoice for it." 
+                              aria-label="Info" data-bs-original-title="Rejected Proposal">
+                              <i class="bi bi-info-circle" style="font-size: 15px;"></i>
+                          </a>
+                      {% endif %}
+                    </td>
+                    <td>{{ proposal.total_proposal | currency_usd }}</td>
+                    <td>{{ proposal.billed_proposal | currency_usd }}</td>
+                    <td style='width:120px' class="p-0">
+                      <div class="d-inline-flex gap-2 align-items-center p-1">
+                      <a class="btn bg-light border border-2 btn-sm rounded-2" 
+                      href="{% url 'pdf_proposal' project_id=project.id proposal_id=proposal.id %}" target='_blank'
+                      role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="View">
+                      <i class="bi bi-eye-fill" style="font-size: 15px;"></i>
+                      </a>
+                      <div class="dropdown d-flex">
+                        <button 
+                          class="btn bg-light border border-2 btn-sm rounded-2 px-1 py-0 dropdown-toggle  {% if proposal.status == 'new' or proposal.status == 'sent' or proposal.status == 'pending'  or proposal.status == 'rejected' or  proposal.total_proposal <=  proposal.billed_proposal %}disabled{% endif %}" 
+                          type="button" 
+                          id="dropdownMenuButton" 
+                          data-bs-toggle="dropdown" 
+                          aria-expanded="false" 
+                          title="Make Budget" 
+                          data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" 
+                          data-bs-custom-class="custom-tooltip" 
+                          data-bs-title="Make Proposal">
+                          <i class="bi bi-cash-stack" style="font-size: 15px;"
+                          > </i>
+                        </button class='p-0'>
+                        <ul class="dropdown-menu p-0" aria-labelledby="dropdownMenuButton">
+                          <li><a class="dropdown-item" href="{% url 'mdcpInvoice' project_id=project.id invoice_id=proposal.id %}" target='_blank'>Invoice MDCP</a></li>
+                          <li><a class="dropdown-item" href="{% url 'broadInvoice10' project_id=project.id invoice_id=proposal.id %}"  target='_blank'>Invoice BROD</a></li>
+                          <li><a class="dropdown-item" href="{% url 'aiaInvoice5' project_id=project.id invoice_id=proposal.id %}"  target='_blank'>Invoice AIA 5%</a></li>
+                          <li><a class="dropdown-item" href="{% url 'aiaInvoice10' project_id=project.id invoice_id=proposal.id %}"  target='_blank'>Invoice AIA 10%</a></li>
+                        </ul>
+                        {% if proposal.status == 'new' or proposal.status == 'sent' or proposal.status == 'pending'  or proposal.status == 'rejected' %}
+                        <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                            data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                            data-bs-title="Invoice creation is disabled because the proposal is in Pending, New, Rejected, or Sent status." 
+                            aria-label="Info" data-bs-original-title="Rejected Proposal">
+                            <i class="bi bi-info-circle text-danger" style="font-size: 15px;"></i>
+                        </a>
+                        {% elif  proposal.total_proposal <=  proposal.billed_proposal %}
+                        <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                            data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                            data-bs-title="You cannot add more invoices because the total of the proposal has already been invoiced." 
+                            aria-label="Info" data-bs-original-title="Rejected Proposal">
+                            <i class="bi bi-info-circle text-success" style="font-size: 15px;"></i>
+                        </a>
+                        
+                        {% endif %}
+                      </div>
+                      
+                      <a class="btn btn-danger btn-sm rounded-2 p-1 {% if proposal.status == 'approved' or proposal.status == 'sent' or proposal.status == 'pending' %}disabled{% endif %}" 
+                        href="{% url 'delete_proposal' project.id proposal.id %}"
+                        role="button" title="Delete Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-delete-action data-bs-title="Delete">
+                        <i class="bi bi-trash" style="font-size: 15px;"></i>
+                      </a>
+                      {% if proposal.status == 'approved' %}
+
+                          <a class="btn btn-sm rounded-2 p-1 bg-warning" role="button" data-bs-toggle="tooltip" 
+                              data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                              data-bs-title="Change order requested by the client after approval, modifying scope, cost, or timeline."
+                              aria-label="Info" data-bs-original-title="Approved Proposal"
+                              href="{% url 'new_change_order' project.id proposal.id %}">
+                              ChangeOrder
+                          </a>
+                        {% endif %}
+                  </td>
+                  </tr>
+                  {% empty %}
+                  <tr>
+                    <td colspan="9">No proposals found for this project.</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Project Invoices -->
+      <div class="col-md-12 mt-4">
+        <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
+          <div class="card-header d-flex justify-content-between p-3 border-bottom bg-gray">
+            <h1 class="card-header fs-4 rounded-4">Invoice</h1>
+          </div>
+          <div class="card-body">
+            <table class="table table-striped bgwarning">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Budget ID</th>
+                  <th>Type</th>
+                  <th>Date</th>
+                  <th>Due Date</th> 
+                  <th>Create by</th>
+                  <th>Status</th>
+                  <th>Amount</th>
+                  <th>Paid</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for invoice in invoices %}
+                <tr>
+                  <td>{{ invoice.id }}</td>
+                  <td>{{ invoice.budget.id }}</td>
+                  <td>{{ invoice.type_invoice }}</td>
+                  <td>{{ invoice.date_created | date:'M/d/y' }}</td>
+                  <td>{{ invoice.due_date | date:'M/d/y' }}</td>
+                  <td>{{ invoice.sales_advisor.username }}</td>
+                  <td> 
+                    <form method="post" class='m-0'>
+                      {% csrf_token %}
+                      <input type="hidden" name="invoice_id" value="{{ invoice.id }}" style='display:none'>
+                    
+                      <select name="status" class="status status-empty status_{{   invoice.status }}" onchange="this.form.submit()">
+                        {% for value, label in invoice.STATUS_CHOICES %}
+                          <option value="{{ value }}" {% if invoice.status == value %}selected{% endif %}>
+                            {{ label }}
+                          </option>
+                        {% endfor %}
+                      </select>
+                    </form>
+                  </td>
+                  <td>{{ invoice.total_invoice | currency_usd }} ({{ invoice.percentage_of_proposal }}%)</td>
+                  <td>
+                    {{ invoice.total_paid | currency_usd }} ({{ invoice.percentage_paid }}%) 
+                    {% if invoice.total_paid == 0 %}
+                      <!-- Icono para agregar pago si total_paid es cero -->
+                      <button class="btn btn-success btn-sm" onclick="openPaymentModal('{{ invoice.id }}', '{{invoice.total_paid}}', '{{invoice.total_invoice}}')" title="Attach Payment" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Attach payment">
+                        <i class="bi bi-wallet"></i>
+                      </button>
+                    {% elif invoice.total_paid <  invoice.total_invoice %}
+                      <button class="btn btn-primary btn-sm" onclick="openPaymentModal('{{ invoice.id }}', '{{invoice.total_paid}}', '{{invoice.total_invoice}}')" title="Edit Payment" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit payment">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                    {% endif %}
+                  </td>
+                  <td style='width:80px'>
+                    <div class="d-inline-flex gap-2 ">
+                    <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
+                    href="{% url 'pdf_invoice' project_id=project.id invoice_id=invoice.id %}" 
+                    role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="View">
+                    <i class="bi bi-eye-fill" style="font-size: 15px;"></i>
+                  </a>
+                    <a class="btn btn-danger btn-sm rounded-2 p-1" 
+                      href="{% url 'delete_invoice' project.id invoice.id %}"
+                      role="button" title="Delete Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-delete-action data-bs-title="Delete">
+                      <i class="bi bi-trash" style="font-size: 15px;"></i>
+                    </a>
+                </td>
+                </tr>
+                {% empty %}
+                <tr>
+                  <td colspan="9">No invoices found for this project.</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+          </div>
+    </div>
+    <!-- Modal para Adjuntar Pago -->
+    <div class="modal fade" id="attachPaymentModal" tabindex="-1" aria-labelledby="attachPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog p-1 d-flex justify-content-center">
+        <div class="modal-content p-1">
+        <div class="modal-header">
+            <h5 class="modal-title" id="attachPaymentModalLabel">Attach Payment to Invoice</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <!-- Formulario para adjuntar el pago -->
+            <form id="paymentForm" enctype="multipart/form-data">
+            <div class="row">
+                <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}">
+
+                <div class="col-md-6 mb-3">
+                <label for="paymentAmount" class="form-label">Amount*</label>
+                <input type="number" class="form-control" id="paymentAmount" placeholder="Enter payment amount" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                <label for="paymentDate" class="form-label">Payment Date*</label>
+                <input type="date" class="form-control" id="paymentDate" required>
+                </div>
+            </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-success" id="confirmPaymentBtn">Attach Payment</button>
+        </div>
+        </div>
+    </div>
+    </div>

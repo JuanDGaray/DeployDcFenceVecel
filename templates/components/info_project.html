@@ -11,8 +11,9 @@
     </span>
   </td>           
   <td class="text-center">{{ project.sales_advisor }}</td>
-  <td class="text-center">{{ project.total_budget|currency_usd }}</td>
+  <td class="text-center">{{ project.estimated_cost|currency_usd  }}</td>
   <td class="text-center">{{ project.actual_cost|currency_usd }}</td>
+  <td class="text-center"><button class="btn btn-primary btn-sm rounded-2 p-1 modal-open" id='button-show_project' onclick="openModal(event, '{{ project.id }}', 'project')"><i class="bi bi-eye-fill" id='iconView{{ project.id }}'></i></button></td>
 </tr>
 {% endfor %}
 {% else %}

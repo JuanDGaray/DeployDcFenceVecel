@@ -14,202 +14,263 @@
     {% include 'components/proposal_table.html' %}
     {% include 'components/project_table.html' %}
 </div>
-<div class="offcanvas-form ">
-    <div>
-    </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            let emptyTable = '';
-            for (let i = 0; i < 10; i++) {
-                emptyTable += '<tr><td class="text-center placeholder-glow" colspan="8"><span class="placeholder col-12 rounded-4"></span></td></tr>';
-            }
-    
-            async function fetchData(url) {
-                try {
-                    const response = await fetch(url);
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return await response.json();
-                } catch (error) {
-                    console.error('Error fetching data:', error);
-                    return null;
-                }
-            }
-    
-            async function loadProposals(page, filter = 'NaN') {
-                document.getElementById('resultsTableBody').innerHTML = emptyTable;
-                document.getElementById('proposals-count').innerHTML = '0';
-                document.getElementById('pagination').innerHTML = '';
-    
-                const data = await fetchData(`/get_proposals/${page}/?${filter}`);
-                if (data) {
-                    // Actualiza el contenido de la tabla
-                    document.getElementById('resultsTableBody').innerHTML = data.html;
-                    document.getElementById('proposals-count').innerHTML = data.total_proposals;
-                    // Actualiza los controles de paginación
-                    updatePaginationControls(page, data.has_more, data.total_pages);
-                }
-            }
 
-            async function loadProjects(page, filter = 'NaN') {
-                document.getElementById('projectsTableBody').innerHTML = emptyTable;
-                document.getElementById('projects-count').innerHTML = '0';
-                document.getElementById('paginationProjects').innerHTML = '';
-    
-                const data = await fetchData(`/get_projects/${page}/?${filter}`);
-                if (data) {
-                    // Actualiza el contenido de la tabla
-                    document.getElementById('projectsTableBody').innerHTML = data.html;
-                    document.getElementById('projects-count').innerHTML = data.total_projects;
-                    // Actualiza los controles de paginación
-                    updatePaginationControls(page, data.has_more, data.total_pages, 'projects');
-                }
+<div class="modal fade" id="largeModal" tabindex="-1" role="dialog" aria-labelledby="largeModalLabel" aria-hidden="true">
+    <div class="modal-dialog bg-white rounded-4" role="document" style="max-width: 75%;">
+        <div class="modal-content w-100" style="overflow-y: auto; text-align: justify;">
+            <div class="modal-header">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-">
+
+            </div>
+        </div>
+    </div>
+</div>
+<script src="{% static 'js/components/quick_projectInfo.js' %}"></script> 
+<script>
+    function openModal(event, id, object) {
+        event.preventDefault();
+        const button = event.currentTarget;
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+
+        ajaxGetRequest(`/get_${object}_quick_info/${id}/`, function(data) {
+            if (data) {
+                // Actualizar el contenido del modal
+                const modalElement = document.getElementById('largeModal');
+                modalElement.querySelector('.modal-body').innerHTML = data.html;
+                
+
+                // Quitar el atributo inert y mostrar el modal
+                modalElement.removeAttribute('inert');
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+
+                // Restaurar el botón
+                button.disabled = false;
+                button.innerHTML = '<i class="bi bi-eye-fill"></i>';
             }
-    
-            async function loadUserInfo() {
-                const data = await fetchData('/get_user_info');
-                if (data) {
-                    document.getElementById('user-info').innerHTML = data.html;
-                    loadProjectsStatusChart(data.dataChart);
-                    document.getElementById('proposals-overdue').innerHTML = data.proposals_overdue;
-                    document.getElementById('projects-overbudget').innerHTML = data.projects_overbudget;
-                    if (data.projects_overbudget > 0) {
-                        document.getElementById('projects-overbudget').classList.add('text-danger');
-                    }
-                    if (data.proposals_overdue > 0) {
-                        document.getElementById('proposals-overdue').classList.add('text-danger');
-                    }
-                }
+        }, function(error) {
+            // Manejo de errores
+            button.disabled = false;
+            button.innerHTML = '<i class="bi bi-eye-fill"></i>';
+            if (error.status === 404) {
+                showAlert('This project does not exist.', 'danger');
+            } else if (error.status === 500) {
+                showAlert('Internal server error.', 'danger');
             }
-    
-            function loadProjectsStatusChart(dataChart) {
-                const projectsStatus = dataChart.projects_status;
-                const proposalsStatus = dataChart.proposals_status;
-    
-                const commonOptions = {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: {
-                                usePointStyle: true,
-                                pointStyle: 'circle',
-                                boxWidth: 10,
-                                padding: 10
-                            }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    const value = context.raw;
-                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                    const percentage = ((value / total) * 100).toFixed(2);
-                                    return `${context.label}: ${value} (${percentage}%)`;
-                                }
-                            }
-                        },
-                        datalabels: {
-                            color: '#000',
-                            font: { weight: 'bold', size: 12 },
-                            formatter: (value) => value > 0 ? value : null
-                        }
-                    }
-                };
-    
-                new Chart(document.getElementById('projectsStatusChart'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: Object.keys(projectsStatus),
-                        datasets: [{
-                            label: 'Proyectos',
-                            data: Object.values(projectsStatus),
-                            backgroundColor: ['rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)'],
-                            borderColor: ['rgba(255, 255, 255)'],
-                            borderWidth: 1
-                        }]
-                    },
-                    options: commonOptions,
-                    plugins: [ChartDataLabels]
-                });
-    
-                new Chart(document.getElementById('proposalsStatusChart'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: Object.keys(proposalsStatus),
-                        datasets: [{
-                            label: 'Propuestas',
-                            data: Object.values(proposalsStatus),
-                            backgroundColor: ['rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)'],
-                            borderColor: ['rgba(255, 255, 255)'],
-                            borderWidth: 1
-                        }]
-                    },
-                    options: commonOptions,
-                    plugins: [ChartDataLabels]
-                });
-            }
-    
-            document.getElementById('pagination').addEventListener('click', async function (event) {
-                const target = event.target.closest('a.page-link');
-                if (!target) return;
-    
-                event.preventDefault();
-                const page = target.getAttribute('data-page');
-                if (page) {
-                    await loadProposals(page);
-                }
-            });
-    
-            function updatePaginationControls(currentPage, hasMore, totalPages, type = 'proposals') {
-                const pagination = document.getElementById('pagination');
-                if (type == 'proposals') {
-                    pagination.innerHTML = `
-                    <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
-                        <a class="page-link" href="#" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
-                    </li>
-                    <li class="page-item mx-2"><span>Page ${currentPage} of ${totalPages}</span></li>
-                    <li class="page-item ${!hasMore ? 'disabled' : ''}">
-                        <a class="page-link" href="#" data-page="${+currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
-                    </li>`;
-                } else {
-                    pagination.innerHTML = `
-                    <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
-                        <a class="page-link" href="#" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
-                    </li>
-                    <li class="page-item mx-2"><span>Page ${currentPage} of ${totalPages}</span></li>
-                    <li class="page-item ${!hasMore ? 'disabled' : ''}">
-                        <a class="page-link" href="#" data-page="${+currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
-                    </li>`;
-                }              
-            }
-    
-            document.getElementById('applyFilters').addEventListener('click', async function () {
-                let filters = [
-                    'searchInputProjectName',
-                    'searchInputStatus',
-                    'searchInputDueDate',
-                    'quoteYear',
-                    'quoteMonth',
-                    'quoteDay',
-                    'quoteProjectId'
-                ].map(id => `${id}=${document.getElementById(id).value}`).join('&');
-    
-                await loadProposals(1, filters);
-            });
-    
-            document.getElementById('clearFilters').addEventListener('click', async function () {
-                ['searchInputProjectName', 'searchInputStatus', 'searchInputDueDate', 'quoteYear', 'quoteMonth', 'quoteDay', 'quoteProjectId']
-                    .forEach(id => document.getElementById(id).value = '');
-    
-                await loadProposals(1);
-            });
-    
-            // Carga inicial
-            loadProposals(1);
-            loadProjects(1);
-            loadUserInfo();
         });
-    </script>
+    }
+
+    document.getElementById('largeModal').addEventListener('hidden.bs.modal', function () {
+        this.setAttribute('inert', '');
+    });
     
+    document.addEventListener('DOMContentLoaded', function () {
+        let emptyTable = '';
+        for (let i = 0; i < 10; i++) {
+            emptyTable += '<tr><td class="text-center placeholder-glow" colspan="8"><span class="placeholder col-12 rounded-4"></span></td></tr>';
+        }
+
+        async function fetchData(url) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                return null;
+            }
+        }
+
+        async function loadProposals(page, filter = 'NaN') {
+            document.getElementById('resultsTableBody').innerHTML = emptyTable;
+            document.getElementById('proposals-count').innerHTML = '0';
+            document.getElementById('pagination').innerHTML = '';
+
+            const data = await fetchData(`/get_proposals/${page}/?${filter}`);
+            if (data) {
+                // Actualiza el contenido de la tabla
+                document.getElementById('resultsTableBody').innerHTML = data.html;
+                document.getElementById('proposals-count').innerHTML = data.total_proposals;
+                // Actualiza los controles de paginación
+                updatePaginationControls(page, data.has_more, data.total_pages);
+            }
+        }
+
+        async function loadProjects(page, filter = 'NaN') {
+            document.getElementById('projectsTableBody').innerHTML = emptyTable;
+            document.getElementById('projects-count').innerHTML = '0';
+            document.getElementById('paginationProjects').innerHTML = '';
+
+            const data = await fetchData(`/get_projects/${page}/?${filter}`);
+            if (data) {
+                // Actualiza el contenido de la tabla
+                document.getElementById('projectsTableBody').innerHTML = data.html;
+                document.getElementById('projects-count').innerHTML = data.total_projects;
+                // Actualiza los controles de paginación
+                updatePaginationControls(page, data.has_more, data.total_pages, 'projects');
+            }
+        }
+
+        async function loadUserInfo() {
+            const data = await fetchData('/get_user_info');
+            if (data) {
+                document.getElementById('user-info').innerHTML = data.html;
+                loadProjectsStatusChart(data.dataChart);
+                document.getElementById('proposals-overdue').innerHTML = data.proposals_overdue;
+                document.getElementById('projects-overbudget').innerHTML = data.projects_overbudget;
+                if (data.projects_overbudget > 0) {
+                    document.getElementById('projects-overbudget').classList.add('text-danger');
+                }
+                if (data.proposals_overdue > 0) {
+                    document.getElementById('proposals-overdue').classList.add('text-danger');
+                }
+            }
+        }
+
+        function loadProjectsStatusChart(dataChart) {
+            const projectsStatus = dataChart.projects_status;
+            const proposalsStatus = dataChart.proposals_status;
+
+            const commonOptions = {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                            boxWidth: 10,
+                            padding: 10
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const value = context.raw;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((value / total) * 100).toFixed(2);
+                                return `${context.label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        color: '#000',
+                        font: { weight: 'bold', size: 12 },
+                        formatter: (value) => value > 0 ? value : null
+                    }
+                }
+            };
+
+            new Chart(document.getElementById('projectsStatusChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(projectsStatus),
+                    datasets: [{
+                        label: 'Proyectos',
+                        data: Object.values(projectsStatus),
+                        backgroundColor: ['rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)'],
+                        borderColor: ['rgba(255, 255, 255)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: commonOptions,
+                plugins: [ChartDataLabels]
+            });
+
+            new Chart(document.getElementById('proposalsStatusChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(proposalsStatus),
+                    datasets: [{
+                        label: 'Propuestas',
+                        data: Object.values(proposalsStatus),
+                        backgroundColor: ['rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)'],
+                        borderColor: ['rgba(255, 255, 255)'],
+                        borderWidth: 1
+                    }]
+                },
+                options: commonOptions,
+                plugins: [ChartDataLabels]
+            });
+        }
+
+        document.getElementById('pagination').addEventListener('click', async function (event) {
+            const target = event.target.closest('a.page-link');
+            if (!target) return;
+
+            event.preventDefault();
+            const page = target.getAttribute('data-page');
+            if (page) {
+                await loadProposals(page);
+            }
+        });
+        document.getElementById('paginationProjects').addEventListener('click', async function (event) {
+            const target = event.target.closest('a.page-link');
+            console.log(target)
+            if (!target) return;
+
+            event.preventDefault();
+            const page = target.getAttribute('data-page');
+            if (page) {
+                await loadProjects(page);
+            }
+        });
+
+        function updatePaginationControls(currentPage, hasMore, totalPages, type = 'proposals') {
+            const pagination = document.getElementById('pagination');
+            if (type == 'proposals') {
+                pagination.innerHTML = `
+                <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
+                </li>
+                <li class="page-item mx-2"><span>Page ${currentPage} of ${totalPages}</span></li>
+                <li class="page-item ${!hasMore ? 'disabled' : ''}">
+                    <a class="page-link" href="#" data-page="${+currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
+                </li>`;
+            } else {
+                const pagination = document.getElementById('paginationProjects');
+                pagination.innerHTML = `
+                <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
+                </li>
+                <li class="page-item mx-2"><span>Page ${currentPage} of ${totalPages}</span></li>
+                <li class="page-item ${!hasMore ? 'disabled' : ''}">
+                    <a class="page-link" href="#" data-page="${+currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
+                </li>`;
+            }              
+        }
+
+        document.getElementById('applyFilters').addEventListener('click', async function () {
+            let filters = [
+                'searchInputProjectName',
+                'searchInputStatus',
+                'searchInputDueDate',
+                'quoteYear',
+                'quoteMonth',
+                'quoteDay',
+                'quoteProjectId'
+            ].map(id => `${id}=${document.getElementById(id).value}`).join('&');
+
+            await loadProposals(1, filters);
+        });
+
+        document.getElementById('clearFilters').addEventListener('click', async function () {
+            ['searchInputProjectName', 'searchInputStatus', 'searchInputDueDate', 'quoteYear', 'quoteMonth', 'quoteDay', 'quoteProjectId']
+                .forEach(id => document.getElementById(id).value = '');
+
+            await loadProposals(1);
+        });
+
+        // Carga inicial
+        loadProposals(1);
+        loadProjects(1);
+        loadUserInfo();
+    });
+</script>
+
 {% endblock %}
