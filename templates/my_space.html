@@ -105,11 +105,14 @@
                 button.innerHTML = '<i class="bi bi-eye-fill"></i>';
                 initializeTooltips();
                 if (object === 'proposal') {
+                    toggleButtons('.button-show_proposal');
                     setTimeout(() => {
                         autorResizeAllTextAreas();
                     }, 1000);
+                }else{
+                    toggleButtons('.button-show_project');
                 }
-                toggleButtons('.button-show_proposal');
+                
             }
         }, function(error) {
             button.innerHTML = '<i class="bi bi-eye-fill"></i>';
@@ -118,7 +121,11 @@
             } else if (error.status === 500) {
                 showAlert('Internal server error.', 'danger');
             }
-            toggleButtons('.button-show_proposal');
+            if (object === 'proposal') {
+                toggleButtons('.button-show_proposal');
+            }else{
+                toggleButtons('.button-show_project');
+            }
         });
     }
 

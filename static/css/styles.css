@@ -209,7 +209,7 @@ a{
   }
 
 span.status-empty, select.status-empty {
-  padding: 1px 8px;
+  padding: 1px 2px;
   margin-left: 4px;
   border-radius: 22px;
   border: 2px solid;
@@ -249,9 +249,10 @@ span.status_contractor{
   background-color: var(--color-status-customer3-bg);
   color: var(--color-status-customer3); ;
 }
-span.status_new, span.status_Completed, span.status-saved {
+span.status_new, span.status_Completed, span.status-saved, span.status_new select {
   border-color: #0091ff; /* Blue */
   color: #0091ff;;
+  background-color: #d9eefd;
 }
 .status_first_project {
   border-color: #020608; /* Blue */
@@ -263,23 +264,26 @@ span.status_contacted {
   color:#00B5AD;
 }
 
-span.status_quote_sent, span.status-sent {
+span.status_quote_sent, span.status_sent, span.status_sent select {
   border-color: #FBBD08; /* Yellow */
   color:#FBBD08;
+  background: #f5ebce;
 }
 
-span.status_in-negotiation, .status_pending {
+span.status_in-negotiation, .status_pending, span.status_pending select {
   border-color: #F2711C; /* Orange */
   color:#F2711C;
+  background-color: #f7d9c6;
 }
-span.status_approved, span.status-completed {
+span.status_approved, span.status-completed, span.status_approved select {
   border-color: #21BA45; /* Green */
   color:#21BA45;
   background-color: #b4f5c3;
 }
-span.status_not_approved, span.status-rejected {
+span.status_not_approved, span.status_rejected, span.status_rejected select{
   border-color: #ba2121; /* Green */
   color:#ba2121;
+  background-color: #f5c6c6;
 }
 span.status_in_production {
   border-color: #5718cc; /* Olive */
