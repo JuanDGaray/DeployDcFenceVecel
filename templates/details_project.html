@@ -1502,7 +1502,7 @@ document.getElementById("sendToProductionBtn").addEventListener("click", functio
 function showSelectProject() {
   const selectProject = document.getElementById('selectProject');
   selectProject.classList.toggle('d-none');
-  ajaxGetRequest(`/get_projects/`, function (data) {
+  ajaxGetRequest(`/get_array_projects/`, function (data) {
     console.log(data);
 
     const projectSelect = document.getElementById('projectSelect');
