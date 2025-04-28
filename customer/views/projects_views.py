@@ -140,28 +140,12 @@ def get_timeline_steps(project):
 
 @login_required
 def projects(request):
-    # Asegúrate de que la consulta esté ordenada para evitar el UnorderedObjectListWarning
-    Project_list = Project.objects.all().order_by('project_name')  # Puedes cambiar por el campo que desees
-    paginator = Paginator(Project_list, 20)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    
-    sellers = User.objects.all()
-    customers = Customer.objects.all()
-    current_user = request.user
-
     if request.method == 'GET':
-        # Renders the customer list view with pagination
+        customers = Customer.objects.all()
         return render(request, 'projects.html', {
-            'form': ProjectsForm(),
-            'projects': page_obj,
-            'total_projects': Project_list.count(),
-            'view': 'projects',
-            'current_user': current_user,
-            'customers': customers,
-            'sellers': sellers
+            'customers': customers
         })
-    else:  # If the request method is POST
+    else:
         try:
             form = ProjectsForm(request.POST)
             if form.is_valid():

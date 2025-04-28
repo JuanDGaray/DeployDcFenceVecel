@@ -3,6 +3,11 @@
       <h1 class="card-header fs-4">My Projects 
         <span class="fs-6 status-empty" id="projects-count"> • 0</span>
       </h1>
+      {% if projectindex %}
+        <button class="btn bg-primary"  id="add-customer-btn">
+          <i class="bi bi-folder-plus text-light fs-6 "></i>
+        </button>
+      {% endif %}
     </div>
     <div class="d-flex justify-content-center my-2 px-2 gap-2">
       <div class="input-group px-2"> 
@@ -31,6 +36,7 @@
             <th scope="col" class="bg-light text-center">Created Ago</th>
             <th scope="col" class="bg-light text-center">Project Name</th>
             <th scope="col" class="bg-light text-center">Status</th>
+            <th scope="col" class="bg-light">Costumer</th>
             <th scope="col" class="bg-light text-center">Sales Advisor</th>
             <th scope="col" class="bg-light text-center">Total Budget</th>
             <th scope="col" class="bg-light text-center">Actual Amount</th>

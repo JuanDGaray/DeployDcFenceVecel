@@ -4,16 +4,47 @@
 <tr>
   <td class="position-relative text-center"> <a href="/projects/{{ project.id }}" class="mt-2" target="_blank">{{ project.id }}</a></td>
   <td class="text-center">{{ project.created_at|date:'y-m-d' }}</td>
-  <td class="text-center"><a href="/projects/{{ project.id }}" target="_blank">{{ project.project_name }}</a></td>
+  <td class=""><a href="/projects/{{ project.id }}" target="_blank"> <span class=" border border-primary rounded-4  px-2">{{ project.project_name }}</span></a></td>
   <td class="text-center">
     <span class="status-empty status_{{ project.status }} m-0">
       <strong>•</strong> {{ project.status }}
     </span>
-  </td>           
+  </td>     
+  <td>
+      {% if project.customer.customer_type == "individual" %}
+          <a href="{% url 'detail_customer' project.customer.id %}">
+          <span class="status title_{{ project.customer.customer_type }} fs-6">
+          {{ project.customer.first_name }} {{ project.customer.last_name }} <i class="bi bi-person-arms-up"></i>
+      </span>
+      </a> {% else %}
+      <a href="{% url 'detail_customer' project.customer.id %}">
+      <span class="status title_{{ project.customer.customer_type }} fs-6">{{ project.customer.company_name }} 
+        <i class="bi bi-buildings-fill"></i> 
+      </span> 
+      </a>
+      {% endif %}
+  </td>      
   <td class="text-center">{{ project.sales_advisor }}</td>
   <td class="text-center">{{ project.estimated_cost|currency_usd  }}</td>
-  <td class="text-center">{{ project.actual_cost|currency_usd }}</td>
-  <td class="text-center"><button class="btn btn-primary btn-sm rounded-2 p-1 modal-open button-show_project" id='button-show_project' onclick="openModal(event, project_id='{{ project.id }}',proposal_id='None', object='project')"><i class="bi bi-eye-fill"></i></button></td>
+  {% if project.estimated_cost > project.actual_cost or project.actual_cost == 0 %}
+  <td> 
+  <span class="status title_budgetUp">
+    <i class="bi bi-graph-up-arrow fs-6"></i>
+  {{ project.actual_cost }}
+  <span>
+  </td>
+  {% else %}  
+  <td> 
+    <span class="status title_budgetDown">
+      <i class="bi bi-graph-down-arrow fs-6"></i>
+    {{ project.actual_cost }}
+    <span>
+    </td>
+  </td>
+  {% endif %}
+  {% if not view == 'view_project' %}
+    <td class="text-center"><button class="btn btn-primary btn-sm rounded-2 p-1 modal-open button-show_project" id='button-show_project' onclick="openModal(event, project_id='{{ project.id }}',proposal_id='None', object='project')"><i class="bi bi-eye-fill"></i></button></td>
+  {% endif %}
 </tr>
 {% endfor %}
 {% else %}

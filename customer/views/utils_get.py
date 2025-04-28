@@ -79,9 +79,24 @@ def get_array_projects(request):
 
 @login_required
 def get_projects(request, page=1):
-        # Obtén todas las propuestas
-        projects = Project.objects.all().filter(sales_advisor=request.user).order_by('-created_at')
-        # Si hay un filtro proporcionado
+        timeInitial = timezone.now()
+        view = request.GET.get('view')
+        if view == 'view_project':
+            projects = Project.objects.select_related('customer').only(
+                'id', 'project_name', 'status', 'sales_advisor__username', 'estimated_cost',
+                'actual_cost', 'created_at', 'customer__customer_type', 
+                'customer__first_name', 'customer__last_name', 'customer__company_name'
+            ).order_by('project_name')
+            numberProjects = 15
+        else:
+            projects = Project.objects.select_related('customer').only(
+                'id', 'project_name', 'status', 'sales_advisor__username', 'estimated_cost',
+                'actual_cost', 'created_at', 'customer__customer_type', 
+                'customer__first_name', 'customer__last_name', 'customer__company_name'
+            ).filter(sales_advisor=request.user).order_by('project_name')
+            numberProjects = 10
+        segundo = (timezone.now() - timeInitial).total_seconds()
+        print(segundo)
         if request.GET.get('searchInputProjectName') or request.GET.get('searchInputStatus') or request.GET.get('searchInputDueDate') or request.GET.get('ProjectId'):
             project_name = request.GET.get('searchInputProjectName', '')
             status = request.GET.get('searchInputStatus', '')
@@ -100,21 +115,29 @@ def get_projects(request, page=1):
             # Aplica todos los filtros en una sola consulta
             projects = projects.filter(filters)
 
-
+        timeRender = timezone.now()
         # Paginación
-        paginator = Paginator(projects, 10)  # 10 elementos por página
+        paginator = Paginator(projects, numberProjects)
         page_obj = paginator.get_page(page)
+        print('render',(timezone.now() - timeRender).total_seconds())
 
-        # Renderizar el HTML para la tabla
-        html = render_to_string('components/info_project.html', {'projects': page_obj})
+        if not view == 'view_project':
+            html = render_to_string('components/info_project.html', {'projects': page_obj, 'view':request.GET.get('view')})
+            return JsonResponse({
+                'html': html,
+                'has_more': page_obj.has_next(),
+                'total_pages': paginator.num_pages,
+                'total_projects': paginator.count
+            })
+        else:
+            print(list(page_obj.object_list.values()))
+            return JsonResponse({
+                'projects': list(page_obj.object_list.values()),
+                'has_more': page_obj.has_next(),
+                'total_pages': paginator.num_pages,
+                'total_projects': paginator.count
+            })
 
-        # Se devuelve la respuesta JSON con los datos
-        return JsonResponse({
-            'html': html,
-            'has_more': page_obj.has_next(),
-            'total_pages': paginator.num_pages,
-            'total_projects': paginator.count
-        })
 
 @login_required
 def get_userInfo(request):
