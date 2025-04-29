@@ -1,12 +1,17 @@
 <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
-    <div class="card-header d-flex justify-content-between p-3 border-bottom bg-gray">
+    <div class="card-header d-flex justify-content-between p-3 border-bottom bg-gray align-items-center">
       <h1 class="card-header fs-4">My Projects 
         <span class="fs-6 status-empty" id="projects-count"> • 0</span>
       </h1>
       {% if projectindex %}
+      <div>
+        <label for="all" style="padding: 0.2rem 0.5rem;">
+          <input type="checkbox" id="view-all-projects" name="all" value="all" id=""> View all projects
+        </label>
         <button class="btn bg-primary"  id="add-customer-btn">
           <i class="bi bi-folder-plus text-light fs-6 "></i>
         </button>
+      </div>
       {% endif %}
     </div>
     <div class="d-flex justify-content-center my-2 px-2 gap-2">
@@ -24,7 +29,7 @@
       </div>
       <input type="date" name="due_date" id="searchInputDueDate" class="form-control form-control-search form-filter me-2 w-25">
       <div class="d-flex gap-2 flex-row">
-        <button id="applyFilters" class="btn btn-primary py-0">Apply</button>
+        <button id="applyFiltersProject" class="btn btn-primary py-0">Apply</button>
         <button id="clearFilters" class="btn btn-secondary py-0">Clear</button>
       </div>
     </div>
@@ -32,14 +37,14 @@
       <table class="table">
         <thead class="border-top">
           <tr>
-            <th scope="col" class="bg-light text-center">Project ID</th>
-            <th scope="col" class="bg-light text-center">Created Ago</th>
-            <th scope="col" class="bg-light text-center">Project Name</th>
-            <th scope="col" class="bg-light text-center">Status</th>
-            <th scope="col" class="bg-light">Costumer</th>
-            <th scope="col" class="bg-light text-center">Sales Advisor</th>
-            <th scope="col" class="bg-light text-center">Total Budget</th>
-            <th scope="col" class="bg-light text-center">Actual Amount</th>
+            <th scope="col" class="bg-light text-center">Project ID <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="id"></i></th>
+            <th scope="col" class="bg-light text-center">Created Ago <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="created_at"></i></th>
+            <th scope="col" class="bg-light text-center">Project Name <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="project_name"></i></th>
+            <th scope="col" class="bg-light text-center">Status <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="status"></i></th>
+            <th scope="col" class="bg-light">Costumer <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="customer__customer_type"></i> </th>
+            <th scope="col" class="bg-light text-center">Sales Advisor <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="sales_advisor"></i> </th>
+            <th scope="col" class="bg-light text-center">Total Budget <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="estimated_cost"></i> </th>
+            <th scope="col" class="bg-light text-center">Actual Amount <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="actual_cost"></i> </th>
           </tr>
         </thead>
         <tbody id="projectsTableBody">

@@ -138,12 +138,33 @@
   });
 
   document.querySelector('form').addEventListener('submit', function(event) {
+    event.preventDefault();
     const loadingOverlay = document.getElementById('loadingOverlay');
     const spinner = document.getElementById('spinner');
     spinner.style.display = 'inline-block';
     this.disabled = true;
     document.getElementById('submit-btn').disabled = true;
     loadingOverlay.classList.remove('d-none');
+    const formData = new FormData(this);
+    console.log([...formData.entries()]);
+    const allInputs = this.querySelectorAll('input:disabled, select:disabled, textarea:disabled');
+    allInputs.forEach(input => input.disabled = false);
+    ajaxPostRequest('/projects/create/', formData, '{{ csrf_token }}', function(data) {
+      if (data.status === 'success') {
+        showAlert(data.message, 'success');
+        window.open(data.redirect, '_blank');
+      }else {
+        showAlert(data.message);
+      }
+      loadingOverlay.classList.add('d-none');
+      allInputs.forEach(input => input.disabled = true);
+      spinner.style.display = 'none';
+      this.disabled = false;
+      document.getElementById('submit-btn').disabled = false;
+      loadProjects(1);
+      const customerForm = document.getElementById("customer-form");
+      customerForm.classList.toggle("visible")
+    });
 });
 
 let emptyTable = '';
@@ -172,10 +193,11 @@ function renderTable(data) {
       const row = document.createElement('tr');
 
       // Asegúrate de convertir `created_at` en un objeto `Date`
-      const formattedDate = new Date(project.created_at).toLocaleDateString("es-ES", {
-          year: "numeric",
-          month: "long",
+      const formattedDate = new Date(project.created_at).toLocaleDateString("en-US", {
           day: "numeric",
+          month: "numeric",
+          year: "numeric",
+
       });
 
       row.innerHTML = `
@@ -185,7 +207,7 @@ function renderTable(data) {
           <td class="">${formattedDate}</td>
           <td>
               <a href="/projects/${project.id}" target="_blank">
-                  <span class="border border-primary rounded-4 px-2">${project.project_name}</span>
+                  <span class="border border-primary rounded-4 px-2 text-truncate">${project.project_name}</span>
               </a>
           </td>
           <td class="text-center">
@@ -215,11 +237,14 @@ function renderTable(data) {
   });
 }
 
-async function loadProjects(page, filter = 'view=view_project') {
+async function loadProjects(page, filters= '', view = 'view=view_project', sort = '') {
   document.getElementById('projectsTableBody').innerHTML = emptyTable;
   document.getElementById('projects-count').innerHTML = '0';
   document.getElementById('paginationProjects').innerHTML = '';
-  const data = await fetchData(`/get_projects/${page}/?${filter}`);
+  const all = document.getElementById('view-all-projects').checked
+  console.log(sort)
+  const url = `/get_projects/${page}/?${filters}&${filters ? '&' : ''}${view}&all=${all}&sort=${sort}`;
+  const data = await fetchData(url);
   if (data) {
       renderTable(data);
       document.getElementById('projects-count').innerHTML = data.total_projects;
@@ -238,6 +263,47 @@ document.getElementById('paginationProjects').addEventListener('click', async fu
   if (page) {
       await loadProjects(page);
   }
+});
+
+
+
+
+document.getElementById('applyFiltersProject').addEventListener('click', async function () {
+  let filters = [
+      'searchInputProjectId',
+      'searchInputProjectName',
+      'searchInputStatus',
+      'searchInputDueDate',
+  ]
+  .map(id => `${id}=${document.getElementById(id).value}`).join('&');
+
+  await loadProjects(1, filters);
+});
+
+document.getElementById('view-all-projects').addEventListener('click', async function () {
+  await loadProjects(1);
+});
+
+
+
+document.getElementById('clearFilters').addEventListener('click', async function () {
+  [
+      'searchInputProjectId',
+      'searchInputProjectName',
+      'searchInputStatus',
+      'searchInputDueDate',
+  ]
+      .forEach(id => document.getElementById(id).value = '');
+
+  await loadProjects(1);
+});
+
+document.querySelectorAll('[data-sort]').forEach(element => {
+  element.addEventListener('click', function () {
+      const sortField = this.getAttribute('data-sort');
+      console.log(sortField);
+      loadProjects(1, '', 'view=view_project', sortField); // Llama a tu función con el valor correspondiente
+  });
 });
 
 function updatePaginationControls(currentPage, hasMore, totalPages, type = 'proposals') {

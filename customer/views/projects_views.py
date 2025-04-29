@@ -145,37 +145,50 @@ def projects(request):
         return render(request, 'projects.html', {
             'customers': customers
         })
-    else:
-        try:
-            form = ProjectsForm(request.POST)
-            if form.is_valid():
-                new_project = form.save(commit=False)
-                new_project.sales_advisor = request.user
-                new_project.status = "new"
-                folder_name = new_project.project_name
-                create_folder_response = create_folders_by_projects(folder_name)
-                if create_folder_response['status'] == 'success':
-                    new_project.folder_id = create_folder_response['folder_id']
-                    new_project.save()
-
-                return redirect('projects')
-                
-            else:
-                return render(request, 'projects.html', {
-                    'form': form,
-                    'projects': page_obj,
-                    'total_projects': Project_list.count(),
-                    'view': 'projects',
-                    'sellers': sellers,
-                    'warning': 'Invalid data. Please correct the errors.'
-                })
-        except Exception as e:
-            print("Error:", e)
-            return render(request, 'projects.html', {
-                'form': ProjectsForm(),
-                'warning': f'Error: {e}'
-            })
         
+
+@login_required
+def create_project(request):
+    form = ProjectsForm(request.POST)
+    print(form.__dict__)
+    if not form.is_valid():
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Validation failed.',
+            'errors': form.errors 
+        }, status=400)
+
+    try:
+        new_project = form.save(commit=False)
+        new_project.sales_advisor = request.user
+        new_project.status = "new"
+
+        folder_name = new_project.project_name
+        resp = create_folders_by_projects(folder_name)
+        if resp.get('status') != 'success':
+            # carpeta no creada: error controlado
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Failed to create project folder.'
+            }, status=500)
+
+        new_project.folder_id = resp['folder_id']
+        new_project.save()
+
+        # todo OK
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Project created successfully.',
+            'redirect': f'/projects/{new_project.id}/'
+        })
+
+    except Exception as e:
+        print("Error:", e)
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Error creating project.'
+        }, status=500)
+
 
 @login_required
 def duplicate_project(request, project_id, customer_id, also_budget=False):
@@ -252,11 +265,6 @@ def copy_info_item_table(exclusionList, original_object):
         if field.name not in exclusionList
     }
     return new_object_data
-
-
-
-
-
 
 @login_required
 def detail_project(request, project_id):

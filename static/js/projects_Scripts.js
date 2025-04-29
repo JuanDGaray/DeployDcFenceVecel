@@ -59,7 +59,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function toggleFormVisibility() {
         if (customerForm) {
             customerForm.classList.toggle("visible");
-            getCustomer()
         }
     }
 

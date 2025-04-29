@@ -38,6 +38,7 @@ urlpatterns = [
     path('logout/', views.closeSession, name='logout'),
     path('customers/', views.customers, name='customers'),
     path('projects/', views.projects, name='projects'),
+    path('projects/create/', views.create_project, name='create_project'),
     path('production/', views.production, name='production'),
     path('production/<int:project_id>', views.production_project, name='production_project'),
     path('projects/<int:project_id>/', views.detail_project, name='detail_project'),

@@ -81,27 +81,31 @@ def get_array_projects(request):
 def get_projects(request, page=1):
         timeInitial = timezone.now()
         view = request.GET.get('view')
+        allProjects = request.GET.get('all')
+        sort = request.GET.get('sort')
+
+        if sort == '':
+            sort = 'project_name'
         if view == 'view_project':
-            projects = Project.objects.select_related('customer').only(
-                'id', 'project_name', 'status', 'sales_advisor__username', 'estimated_cost',
-                'actual_cost', 'created_at', 'customer__customer_type', 
-                'customer__first_name', 'customer__last_name', 'customer__company_name'
-            ).order_by('project_name')
+            projects = Project.objects.order_by(sort).values(
+                'id', 'project_name', 'status', 
+                'sales_advisor__username', 'estimated_cost', 'actual_cost', 'created_at',
+                'customer__customer_type', 'customer__first_name', 'customer__last_name', 'customer__company_name'
+            )
             numberProjects = 15
         else:
-            projects = Project.objects.select_related('customer').only(
-                'id', 'project_name', 'status', 'sales_advisor__username', 'estimated_cost',
-                'actual_cost', 'created_at', 'customer__customer_type', 
-                'customer__first_name', 'customer__last_name', 'customer__company_name'
-            ).filter(sales_advisor=request.user).order_by('project_name')
+            projects = Project.objects.filter(sales_advisor=request.user).order_by(sort).values(
+                'id', 'project_name', 'status', 
+                'sales_advisor__username', 'estimated_cost', 'actual_cost', 'created_at',
+                'customer__customer_type', 'customer__first_name', 'customer__last_name', 'customer__company_name'
+            )
+
             numberProjects = 10
-        segundo = (timezone.now() - timeInitial).total_seconds()
-        print(segundo)
-        if request.GET.get('searchInputProjectName') or request.GET.get('searchInputStatus') or request.GET.get('searchInputDueDate') or request.GET.get('ProjectId'):
+        if request.GET.get('searchInputProjectId') or request.GET.get('searchInputProjectName') or request.GET.get('searchInputStatus') or request.GET.get('searchInputDueDate'):
             project_name = request.GET.get('searchInputProjectName', '')
             status = request.GET.get('searchInputStatus', '')
             due_date = request.GET.get('searchInputDueDate', '')
-            project_id = request.GET.get('ProjectId', '')
+            project_id = request.GET.get('searchInputProjectId', '')
             filters = Q()
             if project_id:
                 filters &= Q(id=project_id)
@@ -115,12 +119,12 @@ def get_projects(request, page=1):
             # Aplica todos los filtros en una sola consulta
             projects = projects.filter(filters)
 
-        timeRender = timezone.now()
         # Paginación
+        if allProjects == 'true':
+            numberProjects = 1000
         paginator = Paginator(projects, numberProjects)
         page_obj = paginator.get_page(page)
-        print('render',(timezone.now() - timeRender).total_seconds())
-
+        print()
         if not view == 'view_project':
             html = render_to_string('components/info_project.html', {'projects': page_obj, 'view':request.GET.get('view')})
             return JsonResponse({
