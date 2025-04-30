@@ -84,8 +84,12 @@ def get_projects(request, page=1):
         allProjects = request.GET.get('all')
         sort = request.GET.get('sort')
 
-        if sort == '':
+        if (sort == '' or sort == None) and not view == 'view_project':
+            sort = '-id'
+        elif view == 'view_project' and (sort == '' or sort == None):
             sort = 'project_name'
+            
+        print(sort)
         if view == 'view_project':
             projects = Project.objects.order_by(sort).values(
                 'id', 'project_name', 'status', 
@@ -99,8 +103,8 @@ def get_projects(request, page=1):
                 'sales_advisor__username', 'estimated_cost', 'actual_cost', 'created_at',
                 'customer__customer_type', 'customer__first_name', 'customer__last_name', 'customer__company_name'
             )
-
             numberProjects = 10
+        
         if request.GET.get('searchInputProjectId') or request.GET.get('searchInputProjectName') or request.GET.get('searchInputStatus') or request.GET.get('searchInputDueDate'):
             project_name = request.GET.get('searchInputProjectName', '')
             status = request.GET.get('searchInputStatus', '')
@@ -124,23 +128,12 @@ def get_projects(request, page=1):
             numberProjects = 1000
         paginator = Paginator(projects, numberProjects)
         page_obj = paginator.get_page(page)
-        print()
-        if not view == 'view_project':
-            html = render_to_string('components/info_project.html', {'projects': page_obj, 'view':request.GET.get('view')})
-            return JsonResponse({
-                'html': html,
-                'has_more': page_obj.has_next(),
-                'total_pages': paginator.num_pages,
-                'total_projects': paginator.count
-            })
-        else:
-            print(list(page_obj.object_list.values()))
-            return JsonResponse({
-                'projects': list(page_obj.object_list.values()),
-                'has_more': page_obj.has_next(),
-                'total_pages': paginator.num_pages,
-                'total_projects': paginator.count
-            })
+        return JsonResponse({
+            'projects': list(page_obj.object_list),
+            'has_more': page_obj.has_next(),
+            'total_pages': paginator.num_pages,
+            'total_projects': paginator.count
+        })
 
 
 @login_required
@@ -242,15 +235,16 @@ def get_proposal_quick_info(request, proposal_id):
 
 @login_required
 def update_proposal_status(request, proposal_id):
-    # try:
+    try:
+        print(request.body)
         proposal = ProposalProjects.objects.get(id=proposal_id)
         proposal.status = json.loads(request.body).get('status')
         proposal.save()
         return JsonResponse({'status': 'success', 'message': 'Status updated successfully.'})
-    # except ProposalProjects.DoesNotExist:
-    #     return JsonResponse({'status': 'error', 'message': 'Proposal not found.'}, status=404)
-    # except Exception as e:
-    #     return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    except ProposalProjects.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Proposal not found.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
 

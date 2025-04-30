@@ -150,7 +150,6 @@ def projects(request):
 @login_required
 def create_project(request):
     form = ProjectsForm(request.POST)
-    print(form.__dict__)
     if not form.is_valid():
         return JsonResponse({
             'status': 'error',

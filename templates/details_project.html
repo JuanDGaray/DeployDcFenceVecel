@@ -456,18 +456,15 @@
                 <td>{{ proposal.tracking_id }}</td>
                 <td>{{ proposal.sales_advisor.username }}</td>
                 <td class="d-flex"> 
-                  <form method="post" class='m-0'>
-                    {% csrf_token %}
-                    <input type="hidden" name="proposal_id" value="{{ proposal.id }}" style='display:none'>
-                    <input type="hidden" name="budget_id" value="{{ proposal.budget.id }}" style='display:none'>
-                    <select name="status" class="status status-{{ proposal.status }}" onchange="this.form.submit()">
-                      {% for value, label in proposal.STATUS_CHOICES %}
-                        <option value="{{ value }}" {% if proposal.status == value %}selected{% endif %}>
-                          {{ label }}
-                        </option>
-                      {% endfor %}
+                  <span class="d-flex flex-row status-empty status_{{ proposal.status }}  status_proposal_{{ proposal.id }} mr-3 align-items-center justifify-content-center" id="select-status" style="width: fit-content;">
+                    <select class="w-auto mx-1 border-0" name="status" onchange="changeStatusProposal(event, {{ proposal.id }})" title="Change Status">
+                        {% for value, display in proposal.STATUS_CHOICES %}
+                            <option value="{{ value }}" {% if proposal.status == value %}selected{% endif %}>
+                                {{ display }}
+                            </option>
+                        {% endfor %}
                     </select>
-                  </form>
+                  </span>      
                   {% if proposal.status == 'new' %}
                       <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
                           data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
@@ -1498,6 +1495,29 @@ document.getElementById("sendToProductionBtn").addEventListener("click", functio
     alert("Please select a manager before sending to production.");
   }
 });
+
+function changeStatusProposal(event, proposal_id) {
+  event.preventDefault();
+  parentContainer = event.currentTarget.parentElement.parentElement;
+  parentSelect = event.currentTarget.parentElement;
+  parentSelect.innerHTML = parentSelect.innerHTML + '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+  const newStatus = event.target.value;
+  data = {status: newStatus}
+  ajaxPostRequest(`/update_proposal_status/${proposal_id}/`,  data, '{{ csrf_token }}', function(data) {
+      if (data.status === 'success') {
+          selectAllStatusByProposal = document.querySelectorAll('.status_proposal_' + proposal_id);
+          for (let select of selectAllStatusByProposal) {
+              changeInnerHTML(select.parentElement, proposal_id,  newStatus);
+          }
+          showAlert('Status updated successfully.', 'success');
+          parentSelect.querySelector('.spinner-border').remove();
+      } else {
+          showAlert('Error updating status.', 'danger');
+          parentSelect.querySelector('.spinner-border').remove();
+      }
+  });
+}
+
 
 function showSelectProject() {
   const selectProject = document.getElementById('selectProject');

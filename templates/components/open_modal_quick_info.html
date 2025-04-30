@@ -1,0 +1,93 @@
+<div class="modal fade" id="largeModal" tabindex="-1" role="dialog" aria-labelledby="largeModalLabel" aria-hidden="true">
+    <div class="modal-dialog bg-white rounded-4" role="document" style="max-width: 75%;">
+        <div class="modal-content w-100" style="overflow-y: auto; text-align: justify;">
+            <div class="modal-header">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-">
+
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    function toggleButtons(className) {
+        document.querySelectorAll(className).forEach(function(button) {
+            if (button.disabled) {
+                button.disabled = false;
+            } else {
+                button.disabled = true;
+            }
+        });
+    }
+    
+    function initializeTooltips() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+            new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
+    
+    function changeInnerHTML(element, proposal_id, status) {
+        element.innerHTML = `
+            <span class="d-flex flex-row status-empty status_${status}  status_proposal_${proposal_id} mr-3 align-items-center justifify-content-center" id="select-status" style="width: fit-content;">
+                <select class="w-auto mx-1 border-0" name="status" onchange="changeStatusProposal(event, ${proposal_id})" title="Change Status">
+                    <option value="new" ${status === 'new' ? 'selected' : ''}>New</option>
+                    <option value="sent" ${status === 'sent' ? 'selected' : ''}>Sent</option>
+                    <option value="pending" ${status === 'pending' ? 'selected' : ''}>Pending</option>
+                    <option value="rejected" ${status === 'rejected' ? 'selected' : ''}>Rejected</option>
+                    <option value="approved" ${status === 'approved' ? 'selected' : ''}>Approved</option>
+                </select>
+            </span>`;
+    }
+
+    function openModal(event, project_id=None, proposal_id=None, object) {
+        event.preventDefault();
+        console.log(project_id, proposal_id, object)
+        const button = event.currentTarget;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+        if (object === 'proposal') {
+            toggleButtons('.button-show_proposal');
+        }else{
+            toggleButtons('.button-show_project');
+        }
+        let url;
+        if (object === 'proposal') {
+            url = `/get_${object}_quick_info/${proposal_id}/`;
+        } else {
+            url = `/get_${object}_quick_info/${project_id}/`;
+        }
+        ajaxGetRequest(url, function(data) {
+            if (data) {
+                const modalElement = document.getElementById('largeModal');
+                modalElement.querySelector('.modal-body').innerHTML = data.html;
+                modalElement.removeAttribute('inert');
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+                button.innerHTML = '<i class="bi bi-eye-fill"></i>';
+                initializeTooltips();
+                if (object === 'proposal') {
+                    toggleButtons('.button-show_proposal');
+                    setTimeout(() => {
+                        autorResizeAllTextAreas();
+                    }, 1000);
+                }else{
+                    toggleButtons('.button-show_project');
+                }
+                
+            }
+        }, function(error) {
+            button.innerHTML = '<i class="bi bi-eye-fill"></i>';
+            if (error.status === 404) {
+                showAlert(`This ${object} does not exist.`, 'danger');
+            } else if (error.status === 500) {
+                showAlert('Internal server error.', 'danger');
+            }
+            if (object === 'proposal') {
+                toggleButtons('.button-show_proposal');
+            }else{
+                toggleButtons('.button-show_project');
+            }
+        });
+    }
+</script>

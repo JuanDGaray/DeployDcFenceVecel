@@ -1,0 +1,111 @@
+<div id="customer-form" class="offcanvas-form ">
+    <form action="/projects/" method="POST">
+      {% csrf_token %}
+      <div class="row">
+        <div class="offset-md-0 m-0 p-0" style="box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);">
+            <div class="card shadow-lg rounded-4" style="height: 100vh;">
+                <div class="m-0 text-dark rounded-4">
+                    <h4 class="card-header fs-4">Create New Project
+                    <button type="button" id="close-form" class="btn-close float-end fs-6 m-1" aria-label="Close"></button>
+                    </h4>
+                </div>
+                <div class="card-body overflow-y" style="overflow-y: auto;">
+                    <div class="d-flex mb-3">
+                        <div class="me-3 flex-fill">
+                            <label for="id_project_name" class="form-label">Project Name *</label>
+                            <input type="text" name="project_name" id="id_project_name" class="form-control form-control-sm" value="" required>
+                        </div>
+                    </div>
+                      <!-- Customer (related field) -->
+                      <div class="mb-4">
+                        <select name="customer" id="id_customer" class="form-select form-select-sm" required                >
+                          <option value="" selected>Select a customer</option>
+                            {% for customer in customers %}
+                                <option value="{{ customer.id }}">
+                                  {% if customer.customer_type == "individual" %}
+                                    {{customer.first_name }} {{customer.last_name }} - {{customer.email}} 
+                                    {% else %}
+                                    {{customer.company_name }} - {{customer.email}} 
+                                    {% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+  
+                    </div>
+                    
+                    <div class=" mb-3">
+                      <label for="id_description" class="form-label">Description</label>
+                      <textarea name="description" id="id_description" class="form-control form-control-sm" required></textarea>
+                    </div>
+                    <div class="d-flex mb-3">
+                      <div class="me-3 flex-fill">
+                          <label for="id_start_date" class="form-label d-flex align-items-center">
+                              Start Date
+                              <input type="checkbox" id="checkbox_start_date" class="ms-2">
+                          </label>
+                          <input type="date" name="start_date" id="id_start_date" class="form-control form-control-sm" disabled>
+                      </div>
+                      <div class="me-3 flex-fill">
+                          <label for="id_end_date" class="form-label d-flex align-items-center">
+                              End Date
+                              <input type="checkbox" id="checkbox_end_date" class="ms-2">
+                          </label>
+                          <input type="date" name="end_date" id="id_end_date" class="form-control form-control-sm" disabled>
+                      </div>
+                  </div>
+                    
+                  <div class="d-flex mb-3">
+                      <div class="me-3 flex-fill">
+                          <label for="id_estimated_cost" class="form-label">City</label>
+                          <input name="city" id="id_city" class="form-control form-control-sm" value='Hialeah'>
+                      </div>
+                      <div class="me-3 flex-fill">
+                          <label for="id_state" class="form-label">State/Province</label>
+                          <select name="state" id="id_state" class="form-select  form-control-search form-filter me-2">
+                            <option value="florida" selected>Florida</option>
+                          </select>                    </div>
+                      <div class="flex-fill">
+                          <label for="id_status" class="form-label">ZIP/Postal Code</label>
+                          <input type="text" name="zip_code" id="id_zip_code" class="form-control form-control-sm" value="">
+                      </div>
+                  </div>
+                  <div class="mb-3">
+                        <label for="id_address" class="form-label">Address</label>
+                        <textarea name="address" id="id_address" class="form-control form-control-sm"></textarea>
+                  </div>
+                  <div class="mb-3">
+                        <label for="id_country" class="form-label">Country</label>
+                        <select name="country" id="id_country" class="form-select  form-control-search form-filter me-2">
+                          <option value="united stated" selected>United Stated</option>
+                        </select>
+                    </div> 
+                  <div class="d-flex mb-auto">
+                    <div class="me-3 flex-fill">
+                        <label for="id_estimated_cost" class="form-label">Estimated Budget</label>
+                        <input type="number" name="estimated_cost" id="id_estimated_cost" class="form-control form-control-sm" step="0.01" min="0" placeholder="0.00" disabled>
+                      </div>
+                    <div class="flex-fill">
+                        <label for="id_status" class="form-label">Status</label>
+                        <select name="status" id="id_status" class="form-select  form-control-search form-filter me-2">
+                          <option value="new" selected>New</option>
+                          <option value="contacted">Contacted</option>
+                          <option value="quote_sent">Quote Sent</option>
+                          <option value="in_negotiation">In Negotiation</option>
+                          <option value="approved">Approved</option>
+                          <option value="not_approved">Not Approved</option>
+                          <option value="in_production">In Production</option>
+                          <option value="pending_payment">Pending Payment</option>
+                          <option value="inactive">Inactive</option>
+                          <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    </div>
+                  </div>
+                <button type="submit" id="submit-btn" class="btn btn-primary w-50 justify-item-center m-4 mx-auto" disabled>Create
+                  <span id="spinner" class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true" style="display: none;"></span>
+                </button>
+            </div>
+        </div>
+      </div>
+    </form>
+</div>

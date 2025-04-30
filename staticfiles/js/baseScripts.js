@@ -47,14 +47,19 @@ function ajaxGetRequest(url, successCallback, errorCallback) {
 
 
 function ajaxPostRequest(url, data, csrfToken, successCallback, errorCallback) {
-  console.log(url, data, csrfToken)
+  console.log(data instanceof FormData)
+  const isFormData = data instanceof FormData;
+  const headers = {
+    'X-CSRFToken': csrfToken,
+  };
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+    data = JSON.stringify(data);
+  }
   fetch(url, {
     method: 'POST',
-    body: JSON.stringify(data),
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': csrfToken
-    }
+    body: isFormData ? data : (typeof data === 'string' ? data : JSON.stringify(data)),
+    headers: headers,
   })
   .then(response => {
     if (!response.ok) {

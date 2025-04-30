@@ -7,46 +7,87 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 {% endblock %}
-<div class="container d-flex flex-column justify-content-center p-4 gap-4">
+<div class="container d-flex flex-column justify-content-center p-4 gap-4" data-view="my_space">
     <div class="d-flex flex-row  flex-nowrap gap-2 align-items-center justify-content-between" id="user-info">
         {% include 'components/user_metrics.html' %}
     </div>
     {% include 'components/proposal_table.html' %}
     {% include 'components/project_table.html' %}
 </div>
-
-<div class="modal fade" id="largeModal" tabindex="-1" role="dialog" aria-labelledby="largeModalLabel" aria-hidden="true">
-    <div class="modal-dialog bg-white rounded-4" role="document" style="max-width: 75%;">
-        <div class="modal-content w-100" style="overflow-y: auto; text-align: justify;">
-            <div class="modal-header">
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-">
-
-            </div>
-        </div>
-    </div>
-</div>
+{% include 'components/open_modal_quick_info.html' %}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{% static 'js/components/quick_projectInfo.js' %}"></script> 
 <script src="{% static 'js/components/pdf_proposal.js' %}"></script>
+<script src="{% static 'js/components/projects_tables.js' %}"></script>
 <script>
-    function initializeTooltips() {
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-            new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-    }
-    function toggleButtons(className) {
-        document.querySelectorAll(className).forEach(function(button) {
-            if (button.disabled) {
-                button.disabled = false;
-            } else {
-                button.disabled = true;
+
+    function loadProjectsStatusChart(dataChart) {
+        const projectsStatus = dataChart.projects_status;
+        const proposalsStatus = dataChart.proposals_status;
+
+        const commonOptions = {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        usePointStyle: true,
+                        pointStyle: 'circle',
+                        boxWidth: 10,
+                        padding: 10
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function (context) {
+                            const value = context.raw;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((value / total) * 100).toFixed(2);
+                            return `${context.label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                },
+                datalabels: {
+                    color: '#000',
+                    font: { weight: 'bold', size: 12 },
+                    formatter: (value) => value > 0 ? value : null
+                }
             }
+        };
+
+        new Chart(document.getElementById('projectsStatusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(projectsStatus),
+                datasets: [{
+                    label: 'Proyectos',
+                    data: Object.values(projectsStatus),
+                    backgroundColor: ['rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)'],
+                    borderColor: ['rgba(255, 255, 255)'],
+                    borderWidth: 1
+                }]
+            },
+            options: commonOptions,
+            plugins: [ChartDataLabels]
+        });
+
+        new Chart(document.getElementById('proposalsStatusChart'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(proposalsStatus),
+                datasets: [{
+                    label: 'Propuestas',
+                    data: Object.values(proposalsStatus),
+                    backgroundColor: ['rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)'],
+                    borderColor: ['rgba(255, 255, 255)'],
+                    borderWidth: 1
+                }]
+            },
+            options: commonOptions,
+            plugins: [ChartDataLabels]
         });
     }
-    
+
     function changeInnerHTML(element, proposal_id, status) {
         element.innerHTML = `
             <span class="d-flex flex-row status-empty status_${status}  status_proposal_${proposal_id} mr-3 align-items-center justifify-content-center" id="select-status" style="width: fit-content;">
@@ -82,53 +123,6 @@
         });
     }
 
-
-    function openModal(event, project_id=None, proposal_id=None, object) {
-        event.preventDefault();
-        console.log(project_id, proposal_id, object)
-        const button = event.currentTarget;
-        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
-        toggleButtons('.button-show_proposal');
-        let url;
-        if (object === 'proposal') {
-            url = `/get_${object}_quick_info/${proposal_id}/`;
-        } else {
-            url = `/get_${object}_quick_info/${project_id}/`;
-        }
-        ajaxGetRequest(url, function(data) {
-            if (data) {
-                const modalElement = document.getElementById('largeModal');
-                modalElement.querySelector('.modal-body').innerHTML = data.html;
-                modalElement.removeAttribute('inert');
-                const modal = new bootstrap.Modal(modalElement);
-                modal.show();
-                button.innerHTML = '<i class="bi bi-eye-fill"></i>';
-                initializeTooltips();
-                if (object === 'proposal') {
-                    toggleButtons('.button-show_proposal');
-                    setTimeout(() => {
-                        autorResizeAllTextAreas();
-                    }, 1000);
-                }else{
-                    toggleButtons('.button-show_project');
-                }
-                
-            }
-        }, function(error) {
-            button.innerHTML = '<i class="bi bi-eye-fill"></i>';
-            if (error.status === 404) {
-                showAlert(`This ${object} does not exist.`, 'danger');
-            } else if (error.status === 500) {
-                showAlert('Internal server error.', 'danger');
-            }
-            if (object === 'proposal') {
-                toggleButtons('.button-show_proposal');
-            }else{
-                toggleButtons('.button-show_project');
-            }
-        });
-    }
-
     document.getElementById('largeModal').addEventListener('hidden.bs.modal', function () {
         this.setAttribute('inert', '');
     });
@@ -137,19 +131,6 @@
         let emptyTable = '';
         for (let i = 0; i < 10; i++) {
             emptyTable += '<tr><td class="text-center placeholder-glow" colspan="8"><span class="placeholder col-12 rounded-4"></span></td></tr>';
-        }
-
-        async function fetchData(url) {
-            try {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return await response.json();
-            } catch (error) {
-                console.error('Error fetching data:', error);
-                return null;
-            }
         }
 
         async function loadProposals(page, filter = 'NaN') {
@@ -165,21 +146,6 @@
                 // Actualiza los controles de paginación
                 updatePaginationControls(page, data.has_more, data.total_pages);
                 initializeTooltips() 
-            }
-        }
-
-        async function loadProjects(page, filter = 'NaN') {
-            document.getElementById('projectsTableBody').innerHTML = emptyTable;
-            document.getElementById('projects-count').innerHTML = '0';
-            document.getElementById('paginationProjects').innerHTML = '';
-
-            const data = await fetchData(`/get_projects/${page}/?${filter}`);
-            if (data) {
-                // Actualiza el contenido de la tabla
-                document.getElementById('projectsTableBody').innerHTML = data.html;
-                document.getElementById('projects-count').innerHTML = data.total_projects;
-                // Actualiza los controles de paginación
-                updatePaginationControls(page, data.has_more, data.total_pages, 'projects');
             }
         }
 
@@ -199,72 +165,7 @@
             }
         }
 
-        function loadProjectsStatusChart(dataChart) {
-            const projectsStatus = dataChart.projects_status;
-            const proposalsStatus = dataChart.proposals_status;
-
-            const commonOptions = {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: {
-                            usePointStyle: true,
-                            pointStyle: 'circle',
-                            boxWidth: 10,
-                            padding: 10
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function (context) {
-                                const value = context.raw;
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((value / total) * 100).toFixed(2);
-                                return `${context.label}: ${value} (${percentage}%)`;
-                            }
-                        }
-                    },
-                    datalabels: {
-                        color: '#000',
-                        font: { weight: 'bold', size: 12 },
-                        formatter: (value) => value > 0 ? value : null
-                    }
-                }
-            };
-
-            new Chart(document.getElementById('projectsStatusChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(projectsStatus),
-                    datasets: [{
-                        label: 'Proyectos',
-                        data: Object.values(projectsStatus),
-                        backgroundColor: ['rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)', 'rgba(255, 159, 64, 0.8)'],
-                        borderColor: ['rgba(255, 255, 255)'],
-                        borderWidth: 1
-                    }]
-                },
-                options: commonOptions,
-                plugins: [ChartDataLabels]
-            });
-
-            new Chart(document.getElementById('proposalsStatusChart'), {
-                type: 'doughnut',
-                data: {
-                    labels: Object.keys(proposalsStatus),
-                    datasets: [{
-                        label: 'Propuestas',
-                        data: Object.values(proposalsStatus),
-                        backgroundColor: ['rgba(255, 99, 132, 0.8)', 'rgba(54, 162, 235, 0.8)', 'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)', 'rgba(153, 102, 255, 0.8)'],
-                        borderColor: ['rgba(255, 255, 255)'],
-                        borderWidth: 1
-                    }]
-                },
-                options: commonOptions,
-                plugins: [ChartDataLabels]
-            });
-        }
+    
 
         document.getElementById('pagination').addEventListener('click', async function (event) {
             const target = event.target.closest('a.page-link');
@@ -274,17 +175,6 @@
             const page = target.getAttribute('data-page');
             if (page) {
                 await loadProposals(page);
-            }
-        });
-        document.getElementById('paginationProjects').addEventListener('click', async function (event) {
-            const target = event.target.closest('a.page-link');
-            console.log(target)
-            if (!target) return;
-
-            event.preventDefault();
-            const page = target.getAttribute('data-page');
-            if (page) {
-                await loadProjects(page);
             }
         });
 
@@ -335,7 +225,6 @@
 
 
         loadProposals(1);
-        loadProjects(1);
         loadUserInfo();
     });
 </script>

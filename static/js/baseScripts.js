@@ -47,7 +47,6 @@ function ajaxGetRequest(url, successCallback, errorCallback) {
 
 
 function ajaxPostRequest(url, data, csrfToken, successCallback, errorCallback) {
-  console.log(url, data.entries() , csrfToken)
   console.log(data instanceof FormData)
   const isFormData = data instanceof FormData;
   const headers = {
@@ -59,7 +58,7 @@ function ajaxPostRequest(url, data, csrfToken, successCallback, errorCallback) {
   }
   fetch(url, {
     method: 'POST',
-    body:   data instanceof FormData ? data : JSON.stringify(data),
+    body: isFormData ? data : (typeof data === 'string' ? data : JSON.stringify(data)),
     headers: headers,
   })
   .then(response => {

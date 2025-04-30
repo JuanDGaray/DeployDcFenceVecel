@@ -6,117 +6,7 @@
 <div class="container d-flex flex-column justify-content-center p-4">
   {% include 'components/project_table.html' with projectindex=True %}
 
-<div id="customer-form" class="offcanvas-form ">
-  <form action="/projects/" method="POST">
-    {% csrf_token %}
-    <div class="row">
-      <div class="offset-md-0 m-0 p-0" style="box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);">
-          <div class="card shadow-lg rounded-4" style="height: 100vh;">
-              <div class="m-0 text-dark rounded-4">
-                  <h4 class="card-header fs-4">Create New Project
-                  <button type="button" id="close-form" class="btn-close float-end fs-6 m-1" aria-label="Close"></button>
-                  </h4>
-              </div>
-              <div class="card-body overflow-y" style="overflow-y: auto;">
-                  <div class="d-flex mb-3">
-                      <div class="me-3 flex-fill">
-                          <label for="id_project_name" class="form-label">Project Name *</label>
-                          <input type="text" name="project_name" id="id_project_name" class="form-control form-control-sm" value="" required>
-                      </div>
-                  </div>
-                    <!-- Customer (related field) -->
-                    <div class="mb-4">
-                      <select name="customer" id="id_customer" class="form-select form-select-sm" required                >
-                        <option value="" selected>Select a customer</option>
-                          {% for customer in customers %}
-                              <option value="{{ customer.id }}">
-                                {% if customer.customer_type == "individual" %}
-                                  {{customer.first_name }} {{customer.last_name }} - {{customer.email}} 
-                                  {% else %}
-                                  {{customer.company_name }} - {{customer.email}} 
-                                  {% endif %}
-                              </option>
-                          {% endfor %}
-                      </select>
 
-                  </div>
-                  
-                  <div class=" mb-3">
-                    <label for="id_description" class="form-label">Description</label>
-                    <textarea name="description" id="id_description" class="form-control form-control-sm" required></textarea>
-                  </div>
-                  <div class="d-flex mb-3">
-                    <div class="me-3 flex-fill">
-                        <label for="id_start_date" class="form-label d-flex align-items-center">
-                            Start Date
-                            <input type="checkbox" id="checkbox_start_date" class="ms-2">
-                        </label>
-                        <input type="date" name="start_date" id="id_start_date" class="form-control form-control-sm" disabled>
-                    </div>
-                    <div class="me-3 flex-fill">
-                        <label for="id_end_date" class="form-label d-flex align-items-center">
-                            End Date
-                            <input type="checkbox" id="checkbox_end_date" class="ms-2">
-                        </label>
-                        <input type="date" name="end_date" id="id_end_date" class="form-control form-control-sm" disabled>
-                    </div>
-                </div>
-                  
-                <div class="d-flex mb-3">
-                    <div class="me-3 flex-fill">
-                        <label for="id_estimated_cost" class="form-label">City</label>
-                        <input name="city" id="id_city" class="form-control form-control-sm" value='Hialeah'>
-                    </div>
-                    <div class="me-3 flex-fill">
-                        <label for="id_state" class="form-label">State/Province</label>
-                        <select name="state" id="id_state" class="form-select  form-control-search form-filter me-2">
-                          <option value="florida" selected>Florida</option>
-                        </select>                    </div>
-                    <div class="flex-fill">
-                        <label for="id_status" class="form-label">ZIP/Postal Code</label>
-                        <input type="text" name="zip_code" id="id_zip_code" class="form-control form-control-sm" value="">
-                    </div>
-                </div>
-                <div class="mb-3">
-                      <label for="id_address" class="form-label">Address</label>
-                      <textarea name="address" id="id_address" class="form-control form-control-sm"></textarea>
-                </div>
-                <div class="mb-3">
-                      <label for="id_country" class="form-label">Country</label>
-                      <select name="country" id="id_country" class="form-select  form-control-search form-filter me-2">
-                        <option value="united stated" selected>United Stated</option>
-                      </select>
-                  </div> 
-                <div class="d-flex mb-auto">
-                  <div class="me-3 flex-fill">
-                      <label for="id_estimated_cost" class="form-label">Estimated Budget</label>
-                      <input type="number" name="estimated_cost" id="id_estimated_cost" class="form-control form-control-sm" step="0.01" min="0" placeholder="0.00" disabled>
-                    </div>
-                  <div class="flex-fill">
-                      <label for="id_status" class="form-label">Status</label>
-                      <select name="status" id="id_status" class="form-select  form-control-search form-filter me-2">
-                        <option value="new" selected>New</option>
-                        <option value="contacted">Contacted</option>
-                        <option value="quote_sent">Quote Sent</option>
-                        <option value="in_negotiation">In Negotiation</option>
-                        <option value="approved">Approved</option>
-                        <option value="not_approved">Not Approved</option>
-                        <option value="in_production">In Production</option>
-                        <option value="pending_payment">Pending Payment</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
-                  </div>
-                  </div>
-                </div>
-              <button type="submit" id="submit-btn" class="btn btn-primary w-50 justify-item-center m-4 mx-auto" disabled>Create
-                <span id="spinner" class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true" style="display: none;"></span>
-              </button>
-          </div>
-      </div>
-    </div>
-  </form>
-<div>
   {% if warning %}
   <div class="alert alert-danger alert-dismissible fade show position-fixed bottom-0 end-0 m-3" role="alert">
       {{ warning }}
@@ -124,11 +14,14 @@
   </div>
   {% endif %}
 </div>
+{% include 'components/modal_form_project.html' %}
+{% include 'components/open_modal_quick_info.html' %}
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{% static 'js/projects_Scripts.js' %}"></script>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
+<script src="{% static 'js/components/projects_tables.js' %}"></script>
 <script>
   $(document).ready(function() {
     $('#id_customer').select2({
@@ -136,6 +29,28 @@
       allowClear: true
     });
   });
+  
+  function changeStatusProposal(event, proposal_id) {
+    event.preventDefault();
+    parentContainer = event.currentTarget.parentElement.parentElement;
+    parentSelect = event.currentTarget.parentElement;
+    parentSelect.innerHTML = parentSelect.innerHTML + '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+    const newStatus = event.target.value;
+    data = {status: newStatus}
+    ajaxPostRequest(`/update_proposal_status/${proposal_id}/`,  data, '{{ csrf_token }}', function(data) {
+        if (data.status === 'success') {
+            selectAllStatusByProposal = document.querySelectorAll('.status_proposal_' + proposal_id);
+            for (let select of selectAllStatusByProposal) {
+                changeInnerHTML(select.parentElement, proposal_id,  newStatus);
+            }
+            showAlert('Status updated successfully.', 'success');
+            parentSelect.querySelector('.spinner-border').remove();
+        } else {
+            showAlert('Error updating status.', 'danger');
+            parentSelect.querySelector('.spinner-border').remove();
+        }
+    });
+  }
 
   document.querySelector('form').addEventListener('submit', function(event) {
     event.preventDefault();
@@ -165,173 +80,6 @@
       const customerForm = document.getElementById("customer-form");
       customerForm.classList.toggle("visible")
     });
-});
-
-let emptyTable = '';
-for (let i = 0; i < 10; i++) {
-    emptyTable += '<tr><td class="text-center placeholder-glow" colspan="8"><span class="placeholder col-12 rounded-4"></span></td></tr>';
-}
-
-async function fetchData(url) {
-    try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return await response.json();
-    } catch (error) {
-        console.error('Error fetching data:', error);
-        return null;
-    }
-}
-
-function renderTable(data) {
-  const projectsTableBody = document.getElementById('projectsTableBody');
-  projectsTableBody.innerHTML = '';
-
-  data.projects.forEach(project => {
-      const row = document.createElement('tr');
-
-      // Asegúrate de convertir `created_at` en un objeto `Date`
-      const formattedDate = new Date(project.created_at).toLocaleDateString("en-US", {
-          day: "numeric",
-          month: "numeric",
-          year: "numeric",
-
-      });
-
-      row.innerHTML = `
-          <td class="position-relative text-center">
-              <a href="/projects/${project.id}" class="mt-2" target="_blank">${project.id}</a>
-          </td>
-          <td class="">${formattedDate}</td>
-          <td>
-              <a href="/projects/${project.id}" target="_blank">
-                  <span class="border border-primary rounded-4 px-2 text-truncate">${project.project_name}</span>
-              </a>
-          </td>
-          <td class="text-center">
-              <span class="status-empty status_${project.status} m-0">
-                  <strong>•</strong> ${project.status}
-              </span>
-          </td>
-          <td>
-              <a href="/customers/${project.customer_id}">
-                  <span class="status title_${project.customer_type} fs-6">
-                      ${project.customer_type === 'individual' ? 
-                          '<i class="bi bi-person-arms-up"></i>' : 
-                          '<i class="bi bi-buildings-fill"></i>'}
-                      ${project.customer_id}
-                  </span>
-              </a>
-          </td>
-          <td class="text-center">${project.sales_advisor_id}</td>
-          <td class="text-center">${project.estimated_cost}</td>
-          ${
-              project.estimated_cost > project.actual_cost || project.actual_cost === 0
-              ? `<td><span class="status title_budgetUp"><i class="bi bi-graph-up-arrow fs-6"></i> ${project.actual_cost}</span></td>`
-              : `<td><span class="status title_budgetDown"><i class="bi bi-graph-down-arrow fs-6"></i> ${project.actual_cost}</span></td>`
-          }
-      `;
-      projectsTableBody.appendChild(row);
-  });
-}
-
-async function loadProjects(page, filters= '', view = 'view=view_project', sort = '') {
-  document.getElementById('projectsTableBody').innerHTML = emptyTable;
-  document.getElementById('projects-count').innerHTML = '0';
-  document.getElementById('paginationProjects').innerHTML = '';
-  const all = document.getElementById('view-all-projects').checked
-  console.log(sort)
-  const url = `/get_projects/${page}/?${filters}&${filters ? '&' : ''}${view}&all=${all}&sort=${sort}`;
-  const data = await fetchData(url);
-  if (data) {
-      renderTable(data);
-      document.getElementById('projects-count').innerHTML = data.total_projects;
-      updatePaginationControls(page, data.has_more, data.total_pages, 'projects');
-  }
-}
-
-
-document.getElementById('paginationProjects').addEventListener('click', async function (event) {
-  const target = event.target.closest('a.page-link');
-  console.log(target)
-  if (!target) return;
-
-  event.preventDefault();
-  const page = target.getAttribute('data-page');
-  if (page) {
-      await loadProjects(page);
-  }
-});
-
-
-
-
-document.getElementById('applyFiltersProject').addEventListener('click', async function () {
-  let filters = [
-      'searchInputProjectId',
-      'searchInputProjectName',
-      'searchInputStatus',
-      'searchInputDueDate',
-  ]
-  .map(id => `${id}=${document.getElementById(id).value}`).join('&');
-
-  await loadProjects(1, filters);
-});
-
-document.getElementById('view-all-projects').addEventListener('click', async function () {
-  await loadProjects(1);
-});
-
-
-
-document.getElementById('clearFilters').addEventListener('click', async function () {
-  [
-      'searchInputProjectId',
-      'searchInputProjectName',
-      'searchInputStatus',
-      'searchInputDueDate',
-  ]
-      .forEach(id => document.getElementById(id).value = '');
-
-  await loadProjects(1);
-});
-
-document.querySelectorAll('[data-sort]').forEach(element => {
-  element.addEventListener('click', function () {
-      const sortField = this.getAttribute('data-sort');
-      console.log(sortField);
-      loadProjects(1, '', 'view=view_project', sortField); // Llama a tu función con el valor correspondiente
-  });
-});
-
-function updatePaginationControls(currentPage, hasMore, totalPages, type = 'proposals') {
-  const pagination = document.getElementById('pagination');
-  if (type == 'proposals') {
-      pagination.innerHTML = `
-      <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
-          <a class="page-link" href="#" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
-      </li>
-      <li class="page-item mx-2"><span>Page ${currentPage} of ${totalPages}</span></li>
-      <li class="page-item ${!hasMore ? 'disabled' : ''}">
-          <a class="page-link" href="#" data-page="${+currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
-      </li>`;
-  } else {
-      const pagination = document.getElementById('paginationProjects');
-      pagination.innerHTML = `
-      <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
-          <a class="page-link" href="#" data-page="${currentPage - 1}"><i class="bi bi-chevron-left"></i></a>
-      </li>
-      <li class="page-item mx-2"><span>Page ${currentPage} of ${totalPages}</span></li>
-      <li class="page-item ${!hasMore ? 'disabled' : ''}">
-          <a class="page-link" href="#" data-page="${+currentPage + 1}"><i class="bi bi-chevron-right"></i></a>
-      </li>`;
-  }              
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-  loadProjects(1)
 });
 </script>
 {% endblock %}
