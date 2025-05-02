@@ -13,20 +13,33 @@ import os
 
 drive_id = '0AF4IswhouZv_Uk9PVA'
 
-class DriveService:
+class GoogleService:
     _service = None
     _creds = None
+    _creds_gmail = None
+    _gmail_service = None
 
     @staticmethod
     def get_service():
-        if DriveService._service is None:
+        if GoogleService._service is None:
             credentials_info = json.loads(os.getenv('GOOGLE_CREDENTIALS', '{}'))
+            credentials_gmail = json.loads(os.getenv('GMAIL_CREDENTIALS', '{}'))
             if 'private_key' in credentials_info:
                 credentials_info['private_key'] = credentials_info['private_key'].replace("\\n", "\n")
+                
+            if 'private_key' in credentials_gmail:
+                credentials_gmail['private_key'] = credentials_gmail['private_key'].replace("\\n", "\n")    
             
             creds = Credentials.from_service_account_info(
                 credentials_info,
-                scopes=["https://www.googleapis.com/auth/drive"]
+                scopes=["https://www.googleapis.com/auth/drive",
+                        ]
+            )
+            
+            creds_gmail = Credentials.from_service_account_info(
+                credentials_gmail,
+                scopes=["https://mail.google.com/"],
+                subject='dcfenceapp@dcfence.org'
             )
             
                 
@@ -34,10 +47,14 @@ class DriveService:
             if creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             
-            DriveService._creds = creds
-            DriveService._service = build('drive', 'v3', credentials=creds)
-        
-        return DriveService._service
+            if creds_gmail.expired and creds_gmail.refresh_token:
+                creds_gmail.refresh(Request())
+            
+            GoogleService._creds = creds
+            GoogleService._service = build('drive', 'v3', credentials=creds)
+            GoogleService._gmail_service = build('gmail', 'v1', credentials=creds_gmail)
+        return {'drive': GoogleService._service,
+                'gmail': GoogleService._gmail_service}
 
 @csrf_exempt
 def get_folders_in_drive(request):
@@ -47,7 +64,7 @@ def get_folders_in_drive(request):
         if not project_name:
             return JsonResponse({'error': 'El nombre del proyecto es necesario'}, status=400)
 
-        service = DriveService.get_service()  # Asegúrate de implementar esta función para autenticar tu servicio
+        service = GoogleService.get_service()['drive']  # Asegúrate de implementar esta función para autenticar tu servicio
         parent_folder_id = '0AF4IswhouZv_Uk9PVA'
         
         def fetch_children(folder_id):
@@ -141,7 +158,7 @@ def delete_file_to_drive(request):
             if not file_id:
                 return JsonResponse({'message': 'No file ID provided'}, status=400)
 
-            service = DriveService.get_service()
+            service = GoogleService.get_service()['drive']
             file_metadata = {'trashed': True}
             response = service.files().update(fileId=file_id, body=file_metadata, supportsAllDrives=True).execute()
 
@@ -191,7 +208,7 @@ def create_folder_in_drive(request):
         if parent_folder_id:
             file_metadata['parents'] = [parent_folder_id]
         
-            service = DriveService.get_service()
+            service = GoogleService.get_service()['drive']
             folder = service.files().create(
                 body=file_metadata,
                 fields='id, name',
@@ -231,7 +248,7 @@ def rename_folder_in_drive(request):
 
         if not folder_id or not new_folder_name:
             return JsonResponse({'message': 'Folder ID and new folder name are required'}, status=400)
-        service = DriveService.get_service()
+        service = GoogleService.get_service()
 
         try:
             file_metadata = {'name': new_folder_name}
@@ -280,7 +297,7 @@ def create_folders_by_projects(folder_name):
         }
         file_metadata['parents'] = [drive_id]
 
-        service = DriveService.get_service()
+        service = GoogleService.get_service()['drive']
         folder = service.files().create(
             body=file_metadata,
             fields='id, name',
@@ -344,7 +361,7 @@ def delete_folders_by_projects(folder_name, folder_root_value):
     '''
     try:
         print(folder_root_value)
-        service = DriveService.get_service()
+        service = GoogleService.get_service()['drive']
         file_metadata = {'trashed': True}
         service.files().update(fileId=folder_root_value, body=file_metadata, supportsAllDrives=True).execute()
         return {
@@ -357,7 +374,7 @@ def delete_folders_by_projects(folder_name, folder_root_value):
 def upload_file_to_drive(request):
     if request.method == 'POST':
         try:
-            service = DriveService.get_service()
+            service = GoogleService.get_service()['drive']
             files = request.FILES.getlist('file[]')
             folder_id = request.POST.get('folder_id')
 
@@ -413,7 +430,7 @@ def search_file_in_drive(folder_id, file_name):
     '''
     try:
         print(folder_id)
-        service = DriveService.get_service()
+        service = GoogleService.get_service()['drive']
         query = f"'{folder_id}' in parents and name='Invoices' and trashed=false"
         results = service.files().list(
             corpora='drive', 
@@ -490,7 +507,7 @@ def search_file_in_drive(folder_id, file_name):
     '''
     try:
         print(folder_id)
-        service = DriveService.get_service()
+        service = GoogleService.get_service()['drive']
         query = f"'{folder_id}' in parents and name='Invoices' and trashed=false"
         results = service.files().list(
             corpora='drive', 
@@ -541,8 +558,6 @@ def search_file_in_drive(folder_id, file_name):
         print(f"Error al listar archivos en la carpeta: {e}")
         return []
 
-
-
 def new_aia5_xlxs_template(request,project_id):
     project = get_object_or_404(Project, pk=project_id)
     folderID = project.folder_id
@@ -554,3 +569,49 @@ def new_aia10_xlxs_template(request,project_id):
     folderID = project.folder_id
     result = search_file_in_drive(folderID, 'AIA TEMPLATE 10% GC')
     return JsonResponse({'data': result})  
+
+
+
+from email.mime.text import MIMEText
+import base64
+
+def send_email(subject, html_body, recipient_email):
+    """
+    Envía un correo electrónico con contenido HTML utilizando la API de Gmail.
+
+    Args:
+        subject (str): Asunto del correo.
+        html_body (str): Contenido HTML del mensaje.
+        recipient_email (str): Dirección de correo del destinatario.
+
+    Returns:
+        dict: Resultado del envío con 'status' y detalles adicionales.
+    """
+    try:
+        # Obtén el servicio de Gmail (asegúrate de que esté correctamente implementado)
+        service = GoogleService.get_service()['gmail']
+
+        # Crear el mensaje con HTML
+        message = MIMEText(html_body, 'html')  # Ahora el mensaje es HTML
+        message['to'] = recipient_email
+        message['from'] = "tu_correo@gmail.com"  # Configura correctamente tu correo remitente
+        message['subject'] = subject
+
+        # Codificar el mensaje en base64url
+        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+
+        # Enviar el mensaje
+        send_message = (
+            service.users()
+            .messages()
+            .send(userId='me', body={'raw': raw_message})
+            .execute()
+        )
+
+        return {'status': 'success', 'messageId': send_message['id']}
+    
+    except HttpError as error:
+        return {'status': 'error', 'message': str(error)}
+
+    except Exception as e:
+        return {'status': 'error', 'message': f"Unexpected error: {e}"}

@@ -19,6 +19,7 @@ async function fetchData(url) {
 function renderTable(data) {
     const projectsTableBody = document.getElementById('projectsTableBody');
     projectsTableBody.innerHTML = '';
+    console.log(data);
 
     data.projects.forEach(project => {
         const row = document.createElement('tr');
@@ -28,9 +29,12 @@ function renderTable(data) {
             day: "numeric",
             month: "numeric",
             year: "numeric",
-
         });
 
+        const fomrattedCost = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(project.estimated_cost);
+
+        const formattedRealCost = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(project.estimated_cost);
+        console.log(typeof project.estimated_cost, project.estimated_cost);
         row.innerHTML = `
         <td class="position-relative text-center">
             <a href="/projects/${project.id}" class="mt-2" target="_blank">${project.id}</a>
@@ -56,10 +60,10 @@ function renderTable(data) {
             </a>
         </td>
         <td class="text-center text-truncate">${project.sales_advisor__username}</td>
-        <td class="text-center text-truncate">${project.estimated_cost}</td>
+        <td class="text-center text-truncate">${fomrattedCost}</td>
         ${project.estimated_cost > project.actual_cost || project.actual_cost === 0
-                ? `<td><span class="status title_budgetUp text-truncate"><i class="bi bi-graph-up-arrow fs-6"></i> ${project.actual_cost}</span></td>`
-                : `<td><span class="status title_budgetDown text-truncate"><i class="bi bi-graph-down-arrow fs-6"></i> ${project.actual_cost}</span></td>`}           
+                ? `<td><span class="status title_budgetUp text-truncate"><i class="bi bi-graph-up-arrow fs-6"></i> ${formattedRealCost}</span></td>`
+                : `<td><span class="status title_budgetDown text-truncate"><i class="bi bi-graph-down-arrow fs-6"></i> ${formattedRealCost}</span></td>`}           
         <td class="text-center"><button class="btn btn-primary btn-sm rounded-2 p-1 modal-open button-show_project" id='button-show_project' onclick="openModal(event, project_id='${project.id}',proposal_id='None', object='project')"><i class="bi bi-eye-fill"></i></button></td>`
         projectsTableBody.appendChild(row);
     });

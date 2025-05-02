@@ -23,8 +23,11 @@
     <div id="alert-container"></div>
     <script src="{% static 'js/baseScripts.js' %}"></script>
     <div class="container-fluid ">
-    <div class="row ">
-      <div class="d-flex flex-column justify-content-between col-sm-auto bg-light sticky-top border-end p-0"  style="height: 100vh;">
+    <div class="row">
+    <div class='position-fixed start-0 top-0 w-25 vh-100 z-2' id="notifications" style="height: 100vh; background-color:rgba(155, 155, 155, 0.89); backdrop-filter: blur(5px); margin-left: 70px; transform: translateX(-100%);">
+        <h6 class="text-center fs-5 fw-bold mt-2">Notifications <span class="spinner-border spinner-border-sm m-auto text-light" id="spinner-notifications""></span></h6>
+    </div>
+    <div class="d-flex flex-column justify-content-between col-sm-auto bg-light sticky-top border-end p-0 z-3"   style="height: 100vh;">
               <ul class="nav nav-pills nav-flush flex-sm-column flex-row flex-nowrap text-center align-items-center p-0">
                 <li>
                     <a href="/" class="nav-link ">
@@ -32,8 +35,11 @@
                     </a>
                 </li>
                 <li>
-                    <button class="nav-link ">
-                        <i class=" btn btn-pri bi bi-bell-fill fs-6 text-light bg-secondary "></i>
+                    <button class="nav-link " aria-current="page" onclick="notificationsToggle()">
+                    <div class="position-relative">
+                        <i class=" btn btn-pri bi bi-bell-fill fs-6 text-light bg-secondary"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.8rem; transform: translate(-50%, -50%);" id="notification-count">0</span>
+                    </div>
                     </button>
                 </li>
             </ul>
@@ -96,17 +102,86 @@
                 </li>
             </ul>
     </div>
-    
-        <div class="col-sm p-0 min-vh-100">
-            
-        {% block content %}
+    <div class="col-sm p-0 min-vh-100">
+        
+    {% block content %}
 
-        {% endblock %}
-        </div>
+    {% endblock %}
     </div>
     </div>
-    
+    </div>
 </body>
 {% include "bubbleIAChat.html" %} 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function notificationsToggle() {
+        const notifications = document.getElementById('notifications');
+        if (notifications.style.transform === 'translateX(-100%)') {
+            notifications.style.transform = 'translateX(0%)';
+        } else {
+            notifications.style.transform = 'translateX(-100%)';
+        }
+        notifications.style.transition = 'transform 0.3s ease-in-out';
+    }
+
+    
+    
+    document.addEventListener('DOMContentLoaded', function () {
+        ajaxGetRequest(
+            '/get_notifications/',
+            function successCallback(data) {
+                const notificationContainer = document.getElementById('notifications');
+                if (!notificationContainer) {
+                    console.error('Notification container not found!');
+                    return;
+                }
+                const count = data.notifications.length;
+                document.getElementById('notification-count').textContent = count;
+
+                for (const notification of data.notifications) {
+                    // Crear el contenedor de notificación
+                    const notificationElement = document.createElement('div');
+                    notificationElement.classList.add(
+                        'w-full',
+                        'm-2',
+                        'h-auto',
+                        'p-2',
+                        'bg-light',
+                        'rounded-2',
+                        'border',
+                        'border-2',
+                        `border-${notification.type}`,
+                        'position-relative',
+                        'd-flex',
+                        'flex-row',
+                        'justify-content-between',
+                        'gap-2'
+
+                    );
+                    notificationElement.innerHTML = `<span><i class="bi bi-exclamation-circle-fill fs-4 text-${notification.type}"></i></span>
+                        <p class="m-0">${notification.message}</p>
+                        <a href="${notification.link}">
+                            <button class="bg-${notification.type} text-light rounded-1 border-0 w-auto mt-2 position-absolute bottom-0 end-0">
+                                View
+                            </button>
+                        </a>
+                    `;
+                    notificationContainer.appendChild(notificationElement);
+                }
+                document.getElementById('spinner-notifications').style.display = 'none';
+            },
+            function errorCallback(error) {
+                console.error('Failed to fetch notifications:', error);
+                const notificationContainer = document.getElementById('notifications');
+                if (notificationContainer) {
+                    notificationContainer.innerHTML = `
+                        <div class="w-full m-2 h-auto p-2 bg-danger text-light rounded-2">
+                            <p class="m-0">Failed to load notifications. Please try again later.</p>
+                        </div>
+                    `;
+                }
+            }
+        );
+    });    
+</script>
 </html>

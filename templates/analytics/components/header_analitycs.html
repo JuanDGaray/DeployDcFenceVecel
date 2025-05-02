@@ -1,0 +1,54 @@
+<div class="general-description mb-4">
+    <h2>Analytics Overview</h2>
+    <p>Welcome to the Analytics & Reports section. Here, you can generate detailed reports on performance, sales, and customer acquisition. Select a report type, choose a customer, and get insights to drive your business decisions.</p>
+</div>
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card report-card h-100">
+            <div class="card-body text-center position-rela">
+                <h5 class="card-title">Performance Report</h5>
+                <p class="card-text">Comprehensive analysis of user performance metrics including sales, projects, and customer acquisition.</p>
+                <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#performanceCollapse" aria-expanded="false" aria-controls="performanceCollapse">Choose Worker</button>
+                <div class="collapse mt-3" id="performanceCollapse">
+                    {% include 'analytics/components/user_select.html' with id_select="performanceUserSelect" report_type='performance' %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card report-card h-100">
+            <div class="card-body text-center position-rela">
+                <h5 class="card-title">Sales Report</h5>
+                <p class="card-text">Detailed breakdown of sales metrics, conversion rates, and revenue generation by user.</p>
+                <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#salesCollapse" aria-expanded="false" aria-controls="salesCollapse">Choose Salesperson</button>
+                <div class="collapse mt-3" id="salesCollapse">
+                    {% include 'analytics/components/user_select.html' with id_select="salesUserSelect" report_type='sales' %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card report-card h-100">
+            <div class="card-body text-center position-rela">
+                <h5 class="card-title">Customer Acquisition</h5>
+                <p class="card-text">Analysis of new customers, retention rates, and customer satisfaction metrics.</p>
+                <button class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#customerAcquisitionCollapse" aria-expanded="false" aria-controls="customerAcquisitionCollapse">Choose Worker</button>
+                <div class="collapse mt-3" id="customerAcquisitionCollapse">
+                    {% include 'analytics/components/user_select.html' with id_select="customerAcquisitionUserSelect" report_type='customer_acquisition' %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card report-card h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title">General Analysis</h5>
+                <p class="card-text">Get a comprehensive overview of all key metrics combined into a single report for a holistic view of your performance.</p>
+                <button class="btn btn-primary">Generate General Analysis</button>
+            </div>
+        </div>
+    </div>
+</div>
+

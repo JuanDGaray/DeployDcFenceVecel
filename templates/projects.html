@@ -52,34 +52,51 @@
     });
   }
 
-  document.querySelector('form').addEventListener('submit', function(event) {
+  document.querySelector('form').addEventListener('submit', function (event) {
     event.preventDefault();
+  
     const loadingOverlay = document.getElementById('loadingOverlay');
     const spinner = document.getElementById('spinner');
     spinner.style.display = 'inline-block';
     this.disabled = true;
     document.getElementById('submit-btn').disabled = true;
     loadingOverlay.classList.remove('d-none');
+  
     const formData = new FormData(this);
     console.log([...formData.entries()]);
+  
     const allInputs = this.querySelectorAll('input:disabled, select:disabled, textarea:disabled');
-    allInputs.forEach(input => input.disabled = false);
-    ajaxPostRequest('/projects/create/', formData, '{{ csrf_token }}', function(data) {
-      if (data.status === 'success') {
-        showAlert(data.message, 'success');
-        window.open(data.redirect, '_blank');
-      }else {
-        showAlert(data.message);
+    allInputs.forEach(input => (input.disabled = false));
+  
+    ajaxPostRequest(
+      '/projects/create/',
+      formData,
+      '{{ csrf_token }}',
+      function (data) {
+        if (data.status === 'success') {
+          showAlert(data.message, 'success');
+          window.open(data.redirect, '_blank');
+        } else {
+          showAlert(data.message, 'danger');
+        }
+        resetForm();
+      },
+      function (error) {
+        // Mostrar un mensaje de error detallado
+        showAlert(error.message || 'An unexpected error occurred.', 'danger');
+        resetForm();
       }
+    );
+  
+    const resetForm = () => {
       loadingOverlay.classList.add('d-none');
-      allInputs.forEach(input => input.disabled = true);
+      allInputs.forEach(input => (input.disabled = true));
       spinner.style.display = 'none';
       this.disabled = false;
       document.getElementById('submit-btn').disabled = false;
-      loadProjects(1);
-      const customerForm = document.getElementById("customer-form");
-      customerForm.classList.toggle("visible")
-    });
-});
+      this.reset();
+    };
+  });
+  
 </script>
 {% endblock %}

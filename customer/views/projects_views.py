@@ -29,7 +29,7 @@ from datetime import datetime
 
 
 from groq import Groq
-from ..promts import basePromt, AsisPromt,  QueryReviewPrompt, ModelReviewPrompt, AnalysiData, SystemPromtReviewData
+from ..promts import basePromt, AsisPromt,  QueryReviewPrompt, ModelReviewPrompt, AnalysiData, SystemPromtReviewData, SalesMetricsAnalysis
 import re, traceback
 from typing import Optional, List
 from pydantic import BaseModel
@@ -995,7 +995,6 @@ def chat_with_groq(request):
             model="deepseek-r1-distill-llama-70b",)
             response_message = Recipe.model_validate_json(chat_completion.choices[0].message.content)
             data = response_message
-            print(data)
             # Extraer la respuesta del modelo
             if data.type == 'consulta':
                 result = QueryIA(data.content, data.table, data.model)
@@ -1057,6 +1056,24 @@ def ReviewQueryIA(query, model):
     except Exception as e:
         return JsonResponse({"error": 'Lo Lamento actualmente no cuento con sufiencientes datos para hacer consultas, solo te puedo asistir'}, status=400)
     
+    
+def ReviewAnalisisSalesMetrics(context):
+    promt = SalesMetricsAnalysis.replace('{context}', str(context))
+    chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                "role": "system",
+                "content": "you are a helpful assistant. Your responses should always be in json that have a type, content, model, table. Remember that the output must always be in this format: {\"type\": \"consulta\", \"content\": \"SELECT * FROM customer_project WHERE is_active = TRUE LIMIT 5;\", \"model\": \"BudgetEstimate\", \"table\": \"customer_invoiceprojects\"}"
+                },
+                {"role": "user",
+                "content": promt,
+                }
+            ],
+            stream=False,
+            response_format={"type": "json_object"},
+            model="deepseek-r1-distill-llama-70b",)
+    return chat_completion.choices[0].message.content
+
     
 def ReviewAnalisisIA(json, model, context):
     if context:

@@ -31,9 +31,10 @@ urlpatterns = [
     path('', views.home, name='home'),
     path('accounting/', include('accounting.urls')), 
     path('', include('customer.urls')), 
+    path('analytics/', include('analytics.urls')),
     path('admin/', admin.site.urls),
     path('signup/', views.signup, name='signup'),
-    re_path(r'^home(/(?P<user_id>\d+))?/$', views.my_space, name='my_space'),
+    re_path(r'^home(/(?P<focus>\w+))?/$', views.my_space, name='home'),
     path('signin/', views.signin, name='signin'),
     path('logout/', views.closeSession, name='logout'),
     path('customers/', views.customers, name='customers'),
@@ -89,6 +90,7 @@ urlpatterns = [
     path('metrics/proposals_donut_chart/', views.proposals_donut_chart, name='proposals_donut_chart'),
     path('project/<int:project_id>/history/', project_history, name='project_history'), 
     path('active_users/', views.active_users_view, name='active_users'),
+    
 ]
 
 

@@ -11,7 +11,7 @@
     <div class="d-flex flex-row  flex-nowrap gap-2 align-items-center justify-content-between" id="user-info">
         {% include 'components/user_metrics.html' %}
     </div>
-    {% include 'components/proposal_table.html' %}
+    {% include 'components/proposal_table.html' with focus=focus %}
     {% include 'components/project_table.html' %}
 </div>
 {% include 'components/open_modal_quick_info.html' %}
@@ -133,11 +133,16 @@
             emptyTable += '<tr><td class="text-center placeholder-glow" colspan="8"><span class="placeholder col-12 rounded-4"></span></td></tr>';
         }
 
-        async function loadProposals(page, filter = 'NaN') {
+        async function loadProposals(page, filter = '') {
             document.getElementById('resultsTableBody').innerHTML = emptyTable;
             document.getElementById('proposals-count').innerHTML = '0';
             document.getElementById('pagination').innerHTML = '';
-
+            const onlyOverdue = document.getElementById('proposals_overdue').checked;
+            const onlySoonDue = document.getElementById('proposal_soon_due').checked;
+            if (filter) {
+                filter = filter + '&';
+            }
+            filter = filter + 'onlyOverdue=' + onlyOverdue + '&onlySoonDue=' + onlySoonDue;
             const data = await fetchData(`/get_proposals/${page}/?${filter}`);
             if (data) {
                 // Actualiza el contenido de la tabla
@@ -223,10 +228,41 @@
             await loadProposals(1);
         });
 
+        document.getElementById('proposal_soon_due').addEventListener('click', async function () {
+            await loadProposals(1);
+        });
+        document.getElementById('proposals_overdue').addEventListener('click', async function () {
+            await loadProposals(1);
+        });
+
+        function extendDueDate(event,proposal_id, quick_info = false) {
+            event.preventDefault();
+            button = event.currentTarget;
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border border-primary spinner-border-sm" role="status" aria-hidden="true"></span>';
+            ajaxGetRequest(`/extend_due_date/${proposal_id}/`, function(data) {
+                if (data.status === 'success') {
+                    showAlert('Due date extended successfully.', 'success');
+                    loadProposals(1);
+                    button.disabled = false;
+                    button.innerHTML = '<i class="bi bi-stopwatch"></i>';
+                } else {
+                    showAlert('Error extending due date.', 'danger');
+                    button.disabled = false;
+                    button.innerHTML = '<i class="bi bi-stopwatch"></i>';
+                }
+                if (quick_info) {
+                    largeModal = bootstrap.Modal.getInstance(document.getElementById('largeModal'));
+                    largeModal.hide();
+                }
+    
+            });
+        }
 
         loadProposals(1);
         loadUserInfo();
     });
-</script>
 
+
+</script>
 {% endblock %}

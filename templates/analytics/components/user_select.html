@@ -1,0 +1,15 @@
+<div class='select-container'>
+    <select name="user" class="form-select form-select-sm" required aria-label="Select a user">
+        <option value="" disabled selected>Select a user</option>
+        {% if users %}
+            {% for user in users %}
+                <option value="{{ user.id }}">{{ user.first_name }} {{ user.last_name }} ({{ user.email }})</option>
+            {% endfor %}
+        {% else %}
+            <option value="" disabled>No users available</option>
+        {% endif %}
+    </select>
+    <button  class="btn btn-success mt-2 w-full" onclick="generateReport(event, '{{ report_type }}')">Generate Report 
+        <span class='spinner-border spinner-border-sm d-none' role="status" aria-hidden="true"></span>
+    </button>
+</div>

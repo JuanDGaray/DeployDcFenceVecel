@@ -11,13 +11,13 @@ from django.template.loader import render_to_string
 from django.contrib.auth.models import User
 import json
 
-
+from django.utils.timezone import now
 
 @login_required
 def get_proposals(request, page=1):
     try:
         # Obtén todas las propuestas
-        proposals = ProposalProjects.objects.all().filter(sales_advisor=request.user).order_by('-date_created')
+        proposals = ProposalProjects.objects.all().filter(sales_advisor=request.user, status__in=['new', 'sent', 'pending', 'approved']).order_by('-date_created')
         # Si hay un filtro proporcionado
         if request.GET.get('searchInputProjectName') or request.GET.get('searchInputStatus') or request.GET.get('searchInputDueDate') or request.GET.get('quoteYear') or request.GET.get('quoteMonth') or request.GET.get('quoteDay') or request.GET.get('quoteProjectId'):
             project_name = request.GET.get('searchInputProjectName', '')
@@ -45,6 +45,13 @@ def get_proposals(request, page=1):
 
             # Aplica todos los filtros en una sola consulta
             proposals = proposals.filter(filters)
+        print(request.GET.get('onlyOverdue'))
+        if request.GET.get('onlyOverdue') == 'true' and request.GET.get('onlySoonDue') == 'false':
+            proposals = proposals.filter(due_date__lt=timezone.now().date())
+        elif request.GET.get('onlySoonDue') == 'true' and request.GET.get('onlyOverdue') == 'false':
+            proposals = proposals.filter(due_date__lt=timezone.now().date() + timezone.timedelta(days=2))
+        elif request.GET.get('onlyOverdue') == 'true' and request.GET.get('onlySoonDue') == 'true':
+            proposals = proposals.filter(due_date__lt=timezone.now().date() + timezone.timedelta(days=2))
 
 
         # Paginación
@@ -247,4 +254,52 @@ def update_proposal_status(request, proposal_id):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 
+from django.db.models import Count, Case, When
+from django.utils.timezone import now
+from datetime import timedelta
+from django.http import JsonResponse
 
+@login_required
+def get_notifications(request):
+    try:
+        today = now().date()
+        soon_due_date = today + timedelta(days=2)
+        
+        proposal_counts = ProposalProjects.objects.filter(sales_advisor=request.user, status__in=['new', 'sent', 'pending', 'approved']).aggregate(
+            overdue=Count(Case(When(due_date__lt=today, then=1))),
+            soon_due=Count(Case(When(due_date__gte=today, due_date__lt=soon_due_date, then=1)))
+        )
+        
+        # Construcción de notificaciones
+        notifications = []
+        if proposal_counts['overdue'] > 0:
+            notifications.append({
+                'title': 'Overdue Proposals',
+                'message': f'You have <strong class="text-danger fw-bold">{proposal_counts["overdue"]} overdue proposals</strong> that require your attention.',
+                'link': '/home/proposals_overdue',
+                'type': 'danger'
+            })
+        if proposal_counts['soon_due'] > 0:
+            notifications.append({
+                'title': 'Soon Due Proposals',
+                'message': f'You have <strong class="text-warning fw-bold">{proposal_counts["soon_due"]} proposals due soon</strong> that require your attention.',
+                'link': '/home/proposals_soon_due',
+                'type': 'warning'
+            })
+        
+        return JsonResponse({'notifications': notifications})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def extend_due_date(request, proposal_id):
+    try:
+        proposal = ProposalProjects.objects.get(id=proposal_id)
+        proposal.due_date = now().date() + timedelta(days=15)  # Extend the due date by 15 days
+        proposal.save()
+        return JsonResponse({'status': 'success', 'message': 'Due date extended successfully.'})
+    except ProposalProjects.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Proposal not found.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)

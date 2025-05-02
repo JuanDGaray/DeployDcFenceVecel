@@ -4,8 +4,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 
 @login_required
-def my_space(request):
+def my_space(request, focus=None):
     sales_advisors = User.objects.filter()
     user_id = request.user.id
-    return render(request, 'my_space.html', {'sales_advisors': sales_advisors, 'user_id': user_id})
+    return render(request, 'my_space.html', {'sales_advisors': sales_advisors, 'user_id': user_id, 'focus': focus}) 
+
+
 

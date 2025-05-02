@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_filters %}
+{% block title %}Analytics & Reports{% endblock %}
+{% block content %}
+<div class="container d-flex flex-column justify-content-center p-4 gap-4" data-view="my_space">
+    {% include 'analytics/components/header_analitycs.html' %}
+    <button class="btn btn-primary d-none" id='sendEmail' onclick="sendEmail()">
+        <i class="bi bi-envelope"></i> Send to email <span class='spinner-border spinner-border-sm d-none' role="status" aria-hidden="true"></span>
+    </button>
+    <section id='analytics-container'>
+        
+    </section>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+    let htmlEmail = null;
+    let userIdEmail = null;
+    let base64imgs = {};
+
+    function sendEmail() {
+        if (userIdEmail) {
+            const formData = new FormData();
+            ajaxPostRequest(`/analytics/send/gmail_metrics/${userIdEmail}/`, formData, '{{ csrf_token }}', function(data) {
+                showAlert('Email sent successfully.', 'success');
+                console.log(data)
+            }, function(error) {
+                console.error('Failed to fetch notifications:', error);
+                showAlert('Failed to send email.', 'danger');
+            });
+        } else {
+            showAlert('Please generate a report before sending it.', 'warning');
+        }
+    }
+
+        
+    function drawDonutChart(data, chartId) {
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const radius = 75;
+        const centerX = canvas.width / 2; // Centro del canvas en X
+        const centerY = canvas.height / 2; // Centro del canvas en Y
+        let currentAngle = -0.5 * Math.PI; // Comenzar en la parte superior del círculo
+    
+        // Dibujar los segmentos
+        data.forEach(segment => {
+            const segmentAngle = (segment.percentage / 100) * 2 * Math.PI; // Calcular el ángulo del segmento
+    
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY); // Mover al centro
+            ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + segmentAngle); // Dibujar el arco
+            ctx.fillStyle = segment.color; // Color del segmento
+            ctx.fill();
+            currentAngle += segmentAngle; // Actualizar el ángulo actual
+        });
+    
+        // Crear el círculo interno para el hueco del donut
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius - 30, 0, 2 * Math.PI); // Radio más pequeño para el hueco
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+    
+        // Añadir texto al centro
+        ctx.fillStyle = "#333";
+        ctx.font = "bold 16px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("100%", centerX, centerY); // Texto centrado
+    
+        // Obtener la imagen en base64
+        const base64Image = canvas.toDataURL();
+    
+        base64imgs[chartId] = base64Image;
+        document.getElementById(chartId).src = base64Image;
+    }
+    function changeCanvasToBase64(data) {
+        drawDonutChart(data.customer_by_type, 'chart_figure_client');  
+        drawDonutChart(data.proposals_by_status, 'chart_figure_proposal');
+        drawDonutChart(data.projects_by_status, 'chart_figure_project');  
+    }
+    
+    function generateReport(event, reportType) {
+        userId = event.target.closest('.select-container').querySelector('select').value;
+        event.target.querySelector('.spinner-border').classList.remove('d-none');
+        event.target.disabled = true;
+        if (!userId) {
+            showAlert('Please select a user.', 'danger');
+            event.target.querySelector('.spinner-border').classList.add('d-none');
+            event.target.disabled = false;
+            return;
+        }
+        ajaxGetRequest(`/analytics/${reportType}/${userId}/`, 
+        function successCallback(data) {
+            document.getElementById('analytics-container').innerHTML = data.html;
+            changeCanvasToBase64(data.context[0]);
+            event.target.querySelector('.spinner-border').classList.add('d-none');
+            event.target.disabled = false;
+            userIdEmail = userId;
+            document.getElementById('sendEmail').classList.remove('d-none');
+            sendBase64img();
+
+        }, function errorCallback(error) {
+            console.error('Failed to fetch notifications:', error);
+            event.target.querySelector('.spinner-border').classList.add('d-none');
+            event.target.disabled = false;}
+        );
+    }
+
+    function sendBase64img(){
+        const formData = new FormData();
+        formData.append('base64img', JSON.stringify(base64imgs));
+        ajaxPostRequest(`update_base64/`, formData, '{{ csrf_token }}', function(data) {
+            console.log(data)
+        }, function(error) {
+            console.error('Failed to fetch notifications:', error);
+        });
+    }
+</script>   
+{% endblock %}

@@ -47,37 +47,40 @@ function ajaxGetRequest(url, successCallback, errorCallback) {
 
 
 function ajaxPostRequest(url, data, csrfToken, successCallback, errorCallback) {
-  console.log(data instanceof FormData)
   const isFormData = data instanceof FormData;
   const headers = {
     'X-CSRFToken': csrfToken,
   };
   if (!isFormData) {
     headers['Content-Type'] = 'application/json';
-    data = JSON.stringify(data);
   }
+
   fetch(url, {
     method: 'POST',
-    body: isFormData ? data : (typeof data === 'string' ? data : JSON.stringify(data)),
+    body: isFormData ? data : JSON.stringify(data),
     headers: headers,
   })
-  .then(response => {
-    if (!response.ok) {
-      return response.json().then(errData => {
-        throw { status: response.status, ...errData };
-      });
-    }
-    return response.json();
-  })
-  .then(data => {
-    // Llamar al callback de éxito
-    successCallback(data);
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    if (errorCallback) {
-      errorCallback(error);
-    }
-  });
+    .then(response => {
+      if (!response.ok) {
+        // Intentar leer la respuesta como JSON. Si falla, lanzar un error genérico.
+        return response
+          .json()
+          .then(errData => {
+            throw { status: response.status, ...errData };
+          })
+          .catch(() => {
+            throw { status: response.status, message: 'An unknown error occurred.' };
+          });
+      }
+      return response.json();
+    })
+    .then(data => {
+      successCallback(data);
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      if (errorCallback) {
+        errorCallback(error);
+      }
+    });
 }
-

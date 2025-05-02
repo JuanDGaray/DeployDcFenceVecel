@@ -18,7 +18,7 @@
               <div class="card-header m-0">Description</div>
               <div class="p-4 d-flex flex-column gap-2 text-justify"> 
                   <p><strong>Date Created:</strong> {{ proposal.date_created | date:'M/d/y' }}</p>
-                  <p><strong>Due Date:</strong> {{ proposal.due_date | date:'M/d/y' }} {% if proposal.is_overdue %} <span class="text-danger">(Overdue)</span><button class="btn btn-warning btn-sm rounded-2 p-1 modal-open" id='button-show_project' title="Prolonged Due date" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Extend 15 days from today" onclick="openModal(event, '{{ project.id }}', {{proposal_id}}, 'proposal')"><i class="bi bi-stopwatch"></i></button>{% endif %}</p>      
+                  <p><strong>Due Date:</strong> {{ proposal.due_date | date:'M/d/y' }} {% if proposal.is_overdue %} <span class="text-danger">(Overdue)</span><button class="btn btn-outline-primary btn-sm text-primary rounded-2 p-1" id='button-show_project' title="Prolonged Due date" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Extend 15 days from today" onclick="extendDueDate(event, {{ proposal.id }}, true)"><i class="bi bi-stopwatch"></i></button>{% endif %}</p>      
                   <div>
                     <span class="d-flex flex-row status-empty status_{{ proposal.status }}  status_proposal_{{ proposal.id }} mr-3 align-items-center justifify-content-center" id="select-status" style="width: fit-content;">
                       <select class="w-auto mx-1 border-0" name="status" onchange="changeStatusProposal(event, {{ proposal.id }})" title="Change Status">

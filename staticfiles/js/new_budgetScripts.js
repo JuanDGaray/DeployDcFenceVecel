@@ -2551,6 +2551,8 @@ function getCostManagementData() {
         budgetId = hiddenDataElementCO.getAttribute('data-budget-id');
         } 
 
+    
+
     if (isChangeOrder) {
         // Llamada para crear una orden de cambio
         fetch(`/projects/${projectId}/new_change_order/${budgetId}`, {
@@ -2571,8 +2573,6 @@ function getCostManagementData() {
         })
         .then(() => {
             const loadingOverlay = document.getElementById('loadingOverlay');
-            loadingOverlay.classList.add('d-none');
-            window.location.href = `/projects/${projectId}/`;
         })
         .catch((error) => {
             console.error('Error al crear la orden de cambio:', error.message);
@@ -2590,6 +2590,7 @@ function getCostManagementData() {
         })
         .then((response) => {
             if (!response.ok) {
+                closeLoadingOverlay();
                 return response.json().then((errorData) => {
                     throw new Error(errorData.message || 'Error desconocido al editar el presupuesto');
                 });
@@ -2597,11 +2598,11 @@ function getCostManagementData() {
             return response.json();
         })
         .then(() => {
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            loadingOverlay.classList.add('d-none');
+            closeLoadingOverlay();
             window.location.href = `/projects/${projectId}/`;
         })
         .catch((error) => {
+            closeLoadingOverlay();
             console.error('Error al editar el presupuesto:', error.message);
             alert('No se pudo editar el presupuesto: ' + error.message);
         });
@@ -2617,6 +2618,7 @@ function getCostManagementData() {
         })
         .then((response) => {
             if (!response.ok) {
+                closeLoadingOverlay();
                 return response.json().then((errorData) => {
                     throw new Error(errorData.message || 'Error desconocido al crear el presupuesto');
                 });
@@ -2624,15 +2626,23 @@ function getCostManagementData() {
             return response.json();
         })
         .then(() => {
+            closeLoadingOverlay();
             window.location.href = `/projects/${projectId}/`;
         })
         .catch((error) => {
+            closeLoadingOverlay();
             console.error('Error al crear el presupuesto:', error.message);
             alert('No se pudo crear el presupuesto: ' + error.message);
         });
     }
 }
- 
+function closeLoadingOverlay() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (!loadingOverlay || loadingOverlay.classList.contains('d-none')) {
+        return;
+    }
+    loadingOverlay.classList.add('d-none');
+}
 
 document.getElementById('save-btn').addEventListener('click', function(event) {
     event.preventDefault();
