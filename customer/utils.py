@@ -51,7 +51,7 @@ class GoogleService:
                 creds_gmail.refresh(Request())
             
             GoogleService._creds = creds
-            GoogleService._service = build('drive', 'v3', credentials=creds)
+            GoogleService._service = build('drive', 'v3', credentials=creds, cache_discovery=False)
             GoogleService._gmail_service = build('gmail', 'v1', credentials=creds_gmail)
         return {'drive': GoogleService._service,
                 'gmail': GoogleService._gmail_service}
@@ -385,21 +385,21 @@ def upload_file_to_drive(request):
                     'parents': [folder_id]
                 }
                 
-                media = MediaIoBaseUpload(file.file, mimetype=file.content_type)
+                media = MediaIoBaseUpload(file.file, mimetype=file.content_type, resumable=True)
                 
                 try:
                     file_uploaded = service.files().create(
                         body=file_metadata,
                         media_body=media,
                         fields='id',
-                        supportsAllDrives=True
+                        supportsAllDrives=True,
                     ).execute()
                     file_ids.append(file_uploaded['id'])
                 except HttpError as error:
                     print(f"Failed to upload {file.name}: {error}")
                     continue
 
-            return JsonResponse({'message': 'Files uploaded successfully', 'file_ids': file_ids})
+            return JsonResponse({'message': 'Files uploaded successfully', 'file_ids': file_ids}, )
         
         except Exception as e:
             return JsonResponse({'message': f'Error occurred: {str(e)}'}, status=500)
