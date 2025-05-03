@@ -994,6 +994,9 @@ function loadFolder() {
   const deleteButton = document.getElementById('button-delete-project');
   formData.append('project_name', projectName);
   const loadingOverlay = document.getElementById('loadingOverlay-file');
+  if (loadingOverlay.classList.contains('d-none')) {
+    loadingOverlay.classList.remove('d-none');
+  }
   fetch("{% url 'get_folders_in_drive' %}", {
     method: 'POST',
     body: formData,
@@ -1010,7 +1013,6 @@ function loadFolder() {
   })
   .then(data => {
     if (data.structure && data.structure.length > 0) {
-      console.log(data);
       const folderHtml = renderFolderStructure(data.structure[0].children);
       document.getElementById("document-list").innerHTML = folderHtml;
       document.getElementById("document-list").setAttribute("data-folder-root", data.structure[0].id);
@@ -1147,6 +1149,32 @@ document.addEventListener("DOMContentLoaded", function () {
       textbox.text(filesCount + ' files selected');
     }
   });
+
+
+  async function uploadFile(file, uploadUrl) {
+    const filesize = file.size; // Tamaño del archivo en bytes
+    const response = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type,
+          'Content-Length': filesize,
+        },
+        body: file
+    }); 
+
+    if (response.ok) {
+        const data = await response.json();
+        loadFolder();
+        showAlert("Archivos subidos exitosamente.", 'success');
+        const modal = document.getElementById('modal');
+        modal.style.display = 'none';
+        loadingOverlay.classList.add('d-none');
+    } else {
+        const errorText = await response.text();
+        showAlert("Error uploading file: " + errorText, 'warning');
+    }
+}
+
   
   form.addEventListener("submit", function (e) {
     loadingOverlay.classList.remove('d-none');
@@ -1155,22 +1183,15 @@ document.addEventListener("DOMContentLoaded", function () {
     const fileInput = document.querySelector(".file-input");
     const folderIdInput = document.getElementById("folder-id");
     const projectId = $("#document-list").data("project-id");
-
-    console.log(fileInput.files)
-    
-    
     if (fileInput.files.length > 0) {
-        for (let i = 0; i < fileInput.files.length; i++) {
-            formData.append('file[]', fileInput.files[i]);
-        }
+        formData.append('file_name', fileInput.files[0].name);
+        formData.append('mimeType', fileInput.files[0].type);
     } else {
         showAlert("No se han seleccionado archivos.", 'warning');
         loadingOverlay.classList.add('d-none');
         return; 
     }
-    console.log(formData)
     formData.append('folder_id', folderIdInput.value);
-
     fetch("{% url 'upload_file_to_drive' %}", {
       method: 'POST',
       body: formData,
@@ -1180,11 +1201,7 @@ document.addEventListener("DOMContentLoaded", function () {
     })
     .then(response => response.json())
     .then(data => {
-      loadFolder();
-      showAlert("Archivos subidos exitosamente.", 'success');
-      const modal = document.getElementById('modal');
-      modal.style.display = 'none';
-      loadingOverlay.classList.add('d-none');
+      uploadFile(fileInput.files[0], data.uploadUrl);
     })
     .catch(error => {
       showAlert("Error uploading file: " + error, 'warning');
@@ -1428,7 +1445,6 @@ document.addEventListener('DOMContentLoaded', function() {
           modal.show();
           const confirmDeleteButton = document.getElementById('confirmDeleteBtn');
           confirmDeleteButton.onclick = function() {
-              console.log('click')
               window.location.href = deleteUrl;
           };
       });
@@ -1484,7 +1500,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 document.getElementById("sendToProductionBtn").addEventListener("click", function() {
   var selectElement = document.getElementById("selectManager");
-  console.log(selectElement)
   if (selectElement.style.display === "none" || selectElement.offsetHeight === 0) {
     alert("Please select a manager before sending to production.");
     return;
@@ -1503,7 +1518,6 @@ function showSelectProject() {
   const selectProject = document.getElementById('selectProject');
   selectProject.classList.toggle('d-none');
   ajaxGetRequest(`/get_projects/`, function (data) {
-    console.log(data);
 
     const projectSelect = document.getElementById('projectSelect');
     if (typeof data === 'object' && data !== null) {
@@ -1572,7 +1586,6 @@ function sendBudgetDuplicate(budgetId ) {
       duplicateProjectButton.innerHTML = 'Duplicate';
     }
   }, function(error) {
-    console.log(error)
     container.classList.add('d-none');
     showAlert('Error duplicating budget.', 'danger');
     duplicateProjectButton.disabled = false;
@@ -1582,7 +1595,6 @@ function sendBudgetDuplicate(budgetId ) {
 }
 
 function sendProjectDuplicate() {
-  console.log('sendProjectDuplicate')
   const selectCustomerProject = document.getElementById('selectCustomerProject');
   selectCustomerProject.classList.toggle('d-none');
   const customerId = document.getElementById('id_customer').value;
@@ -1593,7 +1605,6 @@ function sendProjectDuplicate() {
     duplicateProjectButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Duplicating... ';
     ajaxPostRequest(`/duplicate_project/{{project.id}}/${customerId}/`, {
     }, '{{ csrf_token }}', function(data) {
-      console.log(data)
       duplicateProjectButton.disabled = false;
       duplicateProjectButton.classList.remove('bg-secondary');
       duplicateProjectButton.innerHTML = 'Duplicate';

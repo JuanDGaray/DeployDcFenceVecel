@@ -10,6 +10,8 @@ import json
 from .models import (Project)
 from django.shortcuts import get_object_or_404
 import os
+import requests
+
 
 drive_id = '0AF4IswhouZv_Uk9PVA'
 
@@ -55,6 +57,12 @@ class GoogleService:
             GoogleService._gmail_service = build('gmail', 'v1', credentials=creds_gmail)
         return {'drive': GoogleService._service,
                 'gmail': GoogleService._gmail_service}
+        
+    @staticmethod
+    def get_creds():
+        if GoogleService._creds is None:
+            GoogleService.get_service()
+        return GoogleService._creds
 
 @csrf_exempt
 def get_folders_in_drive(request):
@@ -360,7 +368,6 @@ def delete_folders_by_projects(folder_name, folder_root_value):
     
     '''
     try:
-        print(folder_root_value)
         service = GoogleService.get_service()['drive']
         file_metadata = {'trashed': True}
         service.files().update(fileId=folder_root_value, body=file_metadata, supportsAllDrives=True).execute()
@@ -370,41 +377,98 @@ def delete_folders_by_projects(folder_name, folder_root_value):
     except Exception as e:
         return {'status': 'error', 'message': str(e)}
 
+def list_all_folders(service, drive_id):
+    try:
+        # Lista para almacenar todas las carpetas
+        all_folders = []
+        page_token = None
+        
+        # Consulta para obtener solo carpetas
+        query = "mimeType = 'application/vnd.google-apps.folder'"
+        
+        while True:
+            # Llamada a la API para obtener las carpetas
+            response = service.files().list(
+                q=query, 
+                spaces='drive', 
+                fields='nextPageToken, files(id, name)', 
+                pageToken=page_token,
+                corpora='drive',  # Establece corpora como 'drive' para especificar el contexto del drive
+                driveId=drive_id,  # Asegúrate de pasar el ID del drive correcto
+                includeItemsFromAllDrives=True,
+                supportsAllDrives=True
+            ).execute()
+            
+            # Agregar las carpetas a la lista
+            for file in response.get('files', []):
+                all_folders.append({'id': file.get('id'), 'name': file.get('name')})
+            
+            # Imprimir las carpetas encontradas
+            for folder in all_folders:
+                print(f"Folder Name: {folder['name']}, ID: {folder['id']}")
+            
+            # Verificar si hay una página siguiente
+            page_token = response.get('nextPageToken', None)
+            if not page_token:
+                break  # No hay más carpetas, terminamos el ciclo
 
+        return all_folders
+    
+    except HttpError as error:
+        print(f"An error occurred: {error}")
+        return None
+
+@csrf_exempt
 def upload_file_to_drive(request):
     if request.method == 'POST':
-        try:
+        # try:
             service = GoogleService.get_service()['drive']
-            files = request.FILES.getlist('file[]')
-            folder_id = request.POST.get('folder_id')
+            file_name = request.POST.get('file_name')
+            mimeType = request.POST.get('mimeType')
+            folder_id = str(request.POST.get('folder_id'))
+            origin = request.META.get('HTTP_ORIGIN')
 
-            file_ids = []
-            for file in files:
-                file_metadata = {
-                    'name': file.name,
-                    'parents': [folder_id]
-                }
-                
-                media = MediaIoBaseUpload(file.file, mimetype=file.content_type, resumable=True)
-                
-                try:
-                    file_uploaded = service.files().create(
-                        body=file_metadata,
-                        media_body=media,
-                        fields='id',
-                        supportsAllDrives=True,
-                    ).execute()
-                    file_ids.append(file_uploaded['id'])
-                except HttpError as error:
-                    print(f"Failed to upload {file.name}: {error}")
-                    continue
+            
+            file_metadata = {
+                'mimeType': mimeType,
+                'name': file_name,
+                'parents': [folder_id],
+            }
+            headers = {'Content-Type': 'application/json; charset=UTF-8',
+                       'X-Upload-Content-Type': mimeType,
+                       'Authorization': f'Bearer {service._http.credentials.token}',
+                       'Origin': origin}
+            
+            params = {
+                'corpora': 'drive',
+                'driveId': drive_id,
+                'includeItemsFromAllDrives': 'true',
+                'supportsAllDrives': 'true', 
+            }
 
-            return JsonResponse({'message': 'Files uploaded successfully', 'file_ids': file_ids}, )
-        
-        except Exception as e:
-            return JsonResponse({'message': f'Error occurred: {str(e)}'}, status=500)
+            try:
+                response = requests.post(
+                    'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable',
+                    headers=headers,
+                    json=file_metadata,
+                    params=params,
+                )
+                
+                if response.status_code != 200:
+                    print(f"Failed to initiate resumable upload: {response.text}")
+                    return JsonResponse({'message': 'Failed to initiate resumable upload'}, status=500)
+                print(response.headers)
+                upload_url = response.headers['Location']
+                return JsonResponse({'uploadUrl': upload_url}, status=200)
+
+            except HttpError as error:
+                print(f"Failed to upload {file_name}: {error}")
+        # except Exception as e:
+        #     return JsonResponse({'message': f'Error occurred: {str(e)}'}, status=500)
 
     return JsonResponse({'message': 'Method not allowed'}, status=405)
+
+
 
 def search_file_in_drive(folder_id, file_name):
     '''The function `search_file_in_drive` searches for a file in a specific folder in Google Drive,
@@ -454,7 +518,6 @@ def search_file_in_drive(folder_id, file_name):
                     supportsAllDrives=True,
                     includeItemsFromAllDrives=True,
                 ).execute()
-                print(proposal_results)
                 proposal_files = proposal_results.get('files', [])
                 if not proposal_files:
                     print("No se encontró el archivo 'File Name'. Creando una copia.")
@@ -506,7 +569,6 @@ def search_file_in_drive(folder_id, file_name):
     
     '''
     try:
-        print(folder_id)
         service = GoogleService.get_service()['drive']
         query = f"'{folder_id}' in parents and name='Invoices' and trashed=false"
         results = service.files().list(
