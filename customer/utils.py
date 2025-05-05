@@ -64,56 +64,81 @@ class GoogleService:
             GoogleService.get_service()
         return GoogleService._creds
 
+mime_to_extension = {
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/gif": "gif",
+    "image/svg+xml": "svg",
+    "image/bmp": "bmp",
+    "image/tiff": "tiff",
+    "image/x-icon": "ico",
+    "image/vnd.microsoft.icon": "ico",
+    "image/heif": "heif",
+    "image/heic": "heic",
+    "application/pdf": "pdf",
+    "application/msword": "doc",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "application/vnd.ms-excel": "xls",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+    "application/vnd.ms-powerpoint": "ppt",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+}
+
+def fetch_children(request, folder_id):
+    try:
+        parent_folder_id = '0AF4IswhouZv_Uk9PVA'
+        service = GoogleService.get_service()['drive']
+        print(folder_id)
+        query = f"'{folder_id}' in parents and trashed = false"
+        results = service.files().list(
+            corpora='drive', 
+            driveId=parent_folder_id, 
+            q=query,
+            fields="files(id, name, mimeType, size)",
+            includeItemsFromAllDrives=True,
+            supportsAllDrives=True
+        ).execute()
+        files = results.get('files', [])
+        structure = []
+        for file in files:
+            if file['mimeType'] in mime_to_extension:
+                extension = 'filetype-'+mime_to_extension[file['mimeType']]
+            else:
+                extension = "file-earmark"   
+            formatName = file['mimeType'].split('/')[-1]
+            structure.append({
+                "id": file['id'],
+                "name": file['name'],
+                "type": "file",
+                "url": f"https://drive.google.com/file/d/{file['id']}/preview",
+                "size": file['size'],
+                "mimeType": extension,
+                "formatName": formatName
+            })
+        print(structure)
+        return JsonResponse({"message": "Estructura obtenida con éxito", "structure": structure})
+    except HttpError as error:
+        return JsonResponse({"message": "Error al obtener la estructura", "error": str(error)}, status=500)
+
+
 @csrf_exempt
 def get_folders_in_drive(request):
-    if request.method == 'POST':
-        project_name = request.POST.get('project_name')
-        
-        if not project_name:
-            return JsonResponse({'error': 'El nombre del proyecto es necesario'}, status=400)
+    try:
+        if request.method == 'POST':
+            folder_id= request.POST.get('folder_id')
 
-        service = GoogleService.get_service()['drive']  # Asegúrate de implementar esta función para autenticar tu servicio
-        parent_folder_id = '0AF4IswhouZv_Uk9PVA'
-        
-        def fetch_children(folder_id):
-            """Recursivamente obtiene los elementos hijos de una carpeta."""
-            try:
-                query = f"'{folder_id}' in parents and trashed = false"
-                results = service.files().list(
-                    corpora='drive', 
-                    driveId=parent_folder_id, 
-                    q=query,
-                    fields="files(id, name, mimeType)",
-                    includeItemsFromAllDrives=True,
-                    supportsAllDrives=True
-                ).execute()
-                files = results.get('files', [])
-                structure = []
-                for file in files:
-                    if file['mimeType'] == 'application/vnd.google-apps.folder':
-                        structure.append({
-                            "id": file['id'],
-                            "name": file['name'],
-                            "type": "folder",
-                            "children": fetch_children(file['id'])  # Recursividad para obtener subcarpetas
-                        })
-                    else:
-                        structure.append({
-                            "id": file['id'],
-                            "name": file['name'],
-                            "type": "file",
-                            "url": f"https://drive.google.com/file/d/{file['id']}"
-                        })
-                return structure
-            except HttpError as error:
-                return []
+            
+            if not folder_id:
+                return JsonResponse({'error': 'El nombre del proyecto es necesario'}, status=400)
 
-        try:
-            # Buscar la carpeta del proyecto
-            query = f"'{parent_folder_id}' in parents and mimeType = 'application/vnd.google-apps.folder' and name = '{project_name}' and trashed = false"
+            service = GoogleService.get_service()['drive']  # Asegúrate de implementar esta
+            parent_folder_id = '0AF4IswhouZv_Uk9PVA'
+
+            query = f"'{folder_id}' in parents and trashed = false"
+
             results = service.files().list(
-                corpora='drive', 
-                driveId=parent_folder_id, 
+                corpora="drive",
+                driveId=parent_folder_id,
                 q=query,
                 fields="files(id, name, mimeType)",
                 includeItemsFromAllDrives=True,
@@ -129,14 +154,10 @@ def get_folders_in_drive(request):
                 structure.append({
                     "id": folder['id'],
                     "name": folder['name'],
-                    "type": "folder",
-                    "children": fetch_children(folder['id'])
-                })
-
+                    "type": "folder",})
             return JsonResponse({"message": "Estructura obtenida con éxito", "structure": structure})
-
-        except HttpError as error:
-            return JsonResponse({"message": "Error al obtener la estructura", "error": str(error)}, status=500)
+    except HttpError as error:
+        return JsonResponse({"message": "Error al obtener la estructura", "error": str(error)}, status=500)
 
 @csrf_exempt
 def delete_file_to_drive(request):
@@ -422,12 +443,13 @@ def list_all_folders(service, drive_id):
 def upload_file_to_drive(request):
     if request.method == 'POST':
         # try:
+
             service = GoogleService.get_service()['drive']
             file_name = request.POST.get('file_name')
             mimeType = request.POST.get('mimeType')
             folder_id = str(request.POST.get('folder_id'))
             origin = request.META.get('HTTP_ORIGIN')
-
+            print(request.POST.get('folder_id'))
             
             file_metadata = {
                 'mimeType': mimeType,

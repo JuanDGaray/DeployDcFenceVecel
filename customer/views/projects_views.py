@@ -267,13 +267,19 @@ def copy_info_item_table(exclusionList, original_object):
 
 @login_required
 def detail_project(request, project_id):
-    project = get_object_or_404(Project, pk=project_id) 
-    budgets = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=True, isChangeOrder=False)
-    invoices = InvoiceProjects.objects.filter(project_id=project_id)
-    proposals = ProposalProjects.objects.filter(project_id=project_id)
-    changes_orders = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True)
+    project = project = get_object_or_404(
+        Project.objects.only(
+            'id', 'project_name', 'customer', 'status', 'estimated_cost', 
+            'actual_cost', 'sales_advisor', 'project_manager', 'created_at', 
+            'updated_at', 'city', 'state', 'zip_code', 'country', 'folder_id'
+        ), 
+        pk=project_id
+    )
+    budgets = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=True, isChangeOrder=False).only('id', 'projected_cost', 'status', 'sales_advisor', 'date_created', 'id_related_budget', 'isChangeOrder')
+    invoices = InvoiceProjects.objects.filter(project_id=project_id).only('id', 'date_created', 'due_date', 'total_invoice', 'total_paid', 'status', 'proposal', 'sales_advisor')
+    proposals = ProposalProjects.objects.filter(project_id=project_id).only('id', 'date_created', 'due_date', 'status', 'sales_advisor', 'total_proposal', 'sales_advisor', 'billed_proposal')
+    changes_orders = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True).only('id', 'projected_cost', 'status', 'sales_advisor', 'date_created', 'id_related_budget', 'isChangeOrder')
     customers = Customer.objects.all()
-    
     if (len(invoices) <= 0 and len(budgets) <= 0) and project.status not in ['new', 'cancelled', 'inactive', 'pending_payment', 'not_approved']:
         project.status = 'new'
         project.save()

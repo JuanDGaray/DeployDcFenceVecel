@@ -1623,7 +1623,7 @@ function updateMarginError() {
         const data = {
             item_value: item,
             MarginError_description: 'Margin of Error (' + item + ')',
-            MarginError_cost: margin,
+            MarginError_cost: (margin.toFixed(2)),
             lead_time: 'inmediate'
         }
         createRowMarginError(data) 
@@ -2571,12 +2571,14 @@ function getCostManagementData() {
             }
             return response.json();
         })
-        .then(() => {
-            const loadingOverlay = document.getElementById('loadingOverlay');
+        .then(() => { 
+            window.location.href = `/projects/${projectId}/`;
+            closeLoadingOverlay();
         })
         .catch((error) => {
             console.error('Error al crear la orden de cambio:', error.message);
-            alert('No se pudo crear la orden de cambio: ' + error.message);
+            alert('The change order could not be created, by internal error: ' + error.message);
+            closeLoadingOverlay();
         });
     } else if (isModify) {
         // Llamada para editar un presupuesto
@@ -2604,7 +2606,7 @@ function getCostManagementData() {
         .catch((error) => {
             closeLoadingOverlay();
             console.error('Error al editar el presupuesto:', error.message);
-            alert('No se pudo editar el presupuesto: ' + error.message);
+            alert('The budget could not be edited, by internal error: ' + error.message);
         });
     } else if (!isChangeOrder && !isModify) {
         // Llamada para crear un presupuesto nuevo
@@ -2632,7 +2634,7 @@ function getCostManagementData() {
         .catch((error) => {
             closeLoadingOverlay();
             console.error('Error al crear el presupuesto:', error.message);
-            alert('No se pudo crear el presupuesto: ' + error.message);
+            alert('The budget could not be created, by internal error: ' + error.message);
         });
     }
 }
@@ -2642,6 +2644,7 @@ function closeLoadingOverlay() {
         return;
     }
     loadingOverlay.classList.add('d-none');
+    validateInputs();
 }
 
 document.getElementById('save-btn').addEventListener('click', function(event) {

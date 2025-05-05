@@ -1,0 +1,647 @@
+<style>
+    .file-manager-container {
+        display: flex;
+        height: calc(100vh - 56px);
+    }
+    
+    .sidebar {
+        width: 20%;
+        background-color: #f8f9fa;
+        border-right: 1px solid #dee2e6;
+        padding: 15px;
+        transition: all 0.3s ease;
+        overflow-y: auto;
+    }
+    
+    .main-content {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+    }
+    
+    .folder-item, .breadcrumb-item {
+        cursor: pointer;
+        padding: 8px 10px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+    }
+    
+    .folder-item:hover, .breadcrumb-item:hover {
+        background-color: #e9ecef;
+    }
+    
+    .folder-item.active {
+        background-color: #0d6efd;
+        color: white;
+    }
+    
+    .file-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+    
+    .file-card {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+    }
+    
+    .file-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .file-card.selected {
+        background-color: #e7f1ff;
+        border-color: #0d6efd;
+    }
+    
+    .file-icon {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+    }
+    
+    .file-name {
+        font-size: 0.9rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .folder-icon {
+        color: #ffc107;
+    }
+    
+    .image-icon {
+        color: #28a745;
+    }
+    
+    .document-icon {
+        color: #0d6efd;
+    }
+    
+    .pdf-icon {
+        color: #dc3545;
+    }
+    
+    .audio-icon {
+        color: #6f42c1;
+    }
+    
+    .video-icon {
+        color: #fd7e14;
+    }
+    
+    .zip-icon {
+        color: #6c757d;
+    }
+    
+    .selection-checkbox {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        display: none;
+    }
+    
+    .file-card.selected .selection-checkbox {
+        display: block;
+    }
+    
+    @media (max-width: 768px) {
+        .sidebar {
+            position: fixed;
+            left: -100%;
+            top: 56px;
+            width: 80%;
+            height: calc(100vh - 56px);
+            z-index: 1000;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar.show {
+            left: 0;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 56px;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
+        
+        .overlay.show {
+            display: block;
+        }
+    }
+    
+    .path-breadcrumb {
+        background-color: #f8f9fa;
+        padding: 10px 15px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+    }
+    
+    .action-buttons {
+        margin-bottom: 15px;
+    }
+</style>
+<section>
+<!-- Header -->
+<div class="file-manager-container">
+    <!-- Sidebar for folders -->
+    <div class="sidebar" id="sidebar">
+        <h5 class="mb-3">Carpetas</h5>
+        <div class="folder-list">
+            <div class="folder-item" data-folder="documentos">
+                <i class="bi bi-folder-fill me-2 folder-icon"></i> Documentos
+            </div>
+            <div class="folder-item" data-folder="imagenes">
+                <i class="bi bi-folder-fill me-2 folder-icon"></i> Imágenes
+            </div>
+            <div class="folder-item" data-folder="musica">
+                <i class="bi bi-folder-fill me-2 folder-icon"></i> Música
+            </div>
+            <div class="folder-item" data-folder="videos">
+                <i class="bi bi-folder-fill me-2 folder-icon"></i> Videos
+            </div>
+            <div class="folder-item" data-folder="descargas">
+                <i class="bi bi-folder-fill me-2 folder-icon"></i> Descargas
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay for mobile -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- Main content area -->
+    <div class="main-content">
+        <div class="action-buttons d-flex justify-content-between align-items-center">
+            <div>
+                <button class="btn btn-primary me-2" id="uploadBtn">
+                    <i class="bi bi-upload me-1"></i> Subir archivo
+                </button>
+                <button class="btn btn-danger me-2" id="deleteBtn" disabled>
+                    <i class="bi bi-trash me-1"></i> Eliminar
+                </button>
+            </div>
+            <div class="d-flex align-items-center">
+                <div class="form-check form-switch me-3">
+                    <input class="form-check-input" type="checkbox" id="selectAllCheckbox">
+                    <label class="form-check-label" for="selectAllCheckbox">Seleccionar todo</label>
+                </div>
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="viewDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-grid-3x3-gap-fill"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="viewDropdown">
+                        <li><a class="dropdown-item" href="#" data-view="grid"><i class="bi bi-grid-3x3-gap-fill me-2"></i>Vista de cuadrícula</a></li>
+                        <li><a class="dropdown-item" href="#" data-view="list"><i class="bi bi-list me-2"></i>Vista de lista</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="path-breadcrumb">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item" data-path="home"><i class="bi bi-house-door me-1"></i>Inicio</li>
+                </ol>
+            </nav>
+        </div>
+
+        <div class="file-grid" id="fileGrid">
+            <!-- Files will be populated here by JavaScript -->
+        </div>
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadModalLabel">Subir archivo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="fileUpload" class="form-label">Seleccionar archivo</label>
+                    <input class="form-control" type="file" id="fileUpload" multiple>
+                </div>
+                <div class="progress d-none" id="uploadProgress">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="confirmUpload">Subir</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Confirmar eliminación</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Estás seguro de que deseas eliminar los elementos seleccionados?</p>
+                <p class="text-danger">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Sample data structure for files and folders
+        const fileSystem = {
+            home: {
+                documentos: {
+                    'informe.docx': { type: 'document', size: '2.5 MB', date: '2023-09-15' },
+                    'presupuesto.xlsx': { type: 'document', size: '1.8 MB', date: '2023-09-10' },
+                    'contrato.pdf': { type: 'pdf', size: '3.2 MB', date: '2023-08-25' }
+                },
+                imagenes: {
+                    'vacaciones.jpg': { type: 'image', size: '4.7 MB', date: '2023-07-20' },
+                    'familia.png': { type: 'image', size: '3.1 MB', date: '2023-08-05' },
+                    'mascota.jpg': { type: 'image', size: '2.3 MB', date: '2023-09-01' }
+                },
+                musica: {
+                    'cancion1.mp3': { type: 'audio', size: '8.2 MB', date: '2023-06-15' },
+                    'album.zip': { type: 'zip', size: '45.6 MB', date: '2023-05-10' },
+                    'playlist.m3u': { type: 'document', size: '1.2 KB', date: '2023-09-12' }
+                },
+                videos: {
+                    'pelicula.mp4': { type: 'video', size: '1.2 GB', date: '2023-04-18' },
+                    'tutorial.mp4': { type: 'video', size: '450 MB', date: '2023-08-30' }
+                },
+                descargas: {
+                    'programa.exe': { type: 'application', size: '65.3 MB', date: '2023-09-05' },
+                    'manual.pdf': { type: 'pdf', size: '12.7 MB', date: '2023-09-08' },
+                    'datos.zip': { type: 'zip', size: '78.9 MB', date: '2023-07-25' }
+                }
+            }
+        };
+
+        // Current path and selected files
+        let currentPath = ['home'];
+        let selectedFiles = [];
+
+        // DOM elements
+        const fileGrid = document.getElementById('fileGrid');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const folderItems = document.querySelectorAll('.folder-item');
+        const breadcrumb = document.querySelector('.breadcrumb');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const deleteBtn = document.getElementById('deleteBtn');
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        const confirmUploadBtn = document.getElementById('confirmUpload');
+        const confirmDeleteBtn = document.getElementById('confirmDelete');
+
+        // Bootstrap modals
+        const uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+        // Initialize file display
+        displayFiles();
+
+        // Toggle sidebar on mobile
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
+        });
+
+        // Close sidebar when clicking overlay
+        overlay.addEventListener('click', function() {
+            sidebar.classList.remove('show');
+            overlay.classList.remove('show');
+        });
+
+        // Handle folder clicks in sidebar
+        folderItems.forEach(item => {
+            item.addEventListener('click', function() {
+                const folder = this.getAttribute('data-folder');
+                currentPath = ['home', folder];
+                displayFiles();
+                
+                // Update active folder in sidebar
+                folderItems.forEach(f => f.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Close sidebar on mobile after selection
+                if (window.innerWidth <= 768) {
+                    sidebar.classList.remove('show');
+                    overlay.classList.remove('show');
+                }
+            });
+        });
+
+        // Handle breadcrumb navigation
+        breadcrumb.addEventListener('click', function(e) {
+            if (e.target.classList.contains('breadcrumb-item')) {
+                const path = e.target.getAttribute('data-path');
+                const index = currentPath.indexOf(path);
+                if (index !== -1) {
+                    currentPath = currentPath.slice(0, index + 1);
+                    displayFiles();
+                }
+            }
+        });
+
+        // Upload button click
+        uploadBtn.addEventListener('click', function() {
+            uploadModal.show();
+        });
+
+        // Delete button click
+        deleteBtn.addEventListener('click', function() {
+            if (selectedFiles.length > 0) {
+                deleteModal.show();
+            }
+        });
+
+        // Confirm upload
+        confirmUploadBtn.addEventListener('click', function() {
+            const fileInput = document.getElementById('fileUpload');
+            if (fileInput.files.length > 0) {
+                // Show progress bar
+                const progressBar = document.querySelector('.progress-bar');
+                const progressContainer = document.getElementById('uploadProgress');
+                progressContainer.classList.remove('d-none');
+                
+                // Simulate upload progress
+                let progress = 0;
+                const interval = setInterval(function() {
+                    progress += 10;
+                    progressBar.style.width = progress + '%';
+                    progressBar.setAttribute('aria-valuenow', progress);
+                    
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        
+                        // Add the uploaded files to the current directory
+                        Array.from(fileInput.files).forEach(file => {
+                            // Determine file type
+                            let type = 'document';
+                            if (file.type.startsWith('image/')) type = 'image';
+                            else if (file.type.startsWith('audio/')) type = 'audio';
+                            else if (file.type.startsWith('video/')) type = 'video';
+                            else if (file.type.includes('pdf')) type = 'pdf';
+                            else if (file.type.includes('zip') || file.name.endsWith('.zip')) type = 'zip';
+                            
+                            // Add file to current directory
+                            let current = fileSystem;
+                            for (const part of currentPath) {
+                                current = current[part];
+                            }
+                            
+                            current[file.name] = {
+                                type: type,
+                                size: formatFileSize(file.size),
+                                date: new Date().toISOString().split('T')[0]
+                            };
+                        });
+                        
+                        // Reset and close modal
+                        setTimeout(function() {
+                            uploadModal.hide();
+                            progressContainer.classList.add('d-none');
+                            progressBar.style.width = '0%';
+                            progressBar.setAttribute('aria-valuenow', 0);
+                            fileInput.value = '';
+                            displayFiles();
+                        }, 500);
+                    }
+                }, 200);
+            }
+        });
+
+        // Confirm delete
+        confirmDeleteBtn.addEventListener('click', function() {
+            if (selectedFiles.length > 0) {
+                // Get current directory
+                let current = fileSystem;
+                for (const part of currentPath) {
+                    current = current[part];
+                }
+                
+                // Remove selected files
+                selectedFiles.forEach(file => {
+                    delete current[file];
+                });
+                
+                // Reset selection and update display
+                selectedFiles = [];
+                deleteBtn.disabled = true;
+                selectAllCheckbox.checked = false;
+                displayFiles();
+                deleteModal.hide();
+            }
+        });
+
+        // Select all checkbox
+        selectAllCheckbox.addEventListener('change', function() {
+            const fileCards = document.querySelectorAll('.file-card');
+            if (this.checked) {
+                // Select all files
+                selectedFiles = [];
+                fileCards.forEach(card => {
+                    const fileName = card.getAttribute('data-name');
+                    if (fileName) {
+                        card.classList.add('selected');
+                        selectedFiles.push(fileName);
+                    }
+                });
+            } else {
+                // Deselect all files
+                fileCards.forEach(card => {
+                    card.classList.remove('selected');
+                });
+                selectedFiles = [];
+            }
+            
+            // Update delete button state
+            deleteBtn.disabled = selectedFiles.length === 0;
+        });
+
+        // Function to display files based on current path
+        function displayFiles() {
+            // Clear file grid
+            fileGrid.innerHTML = '';
+            
+            // Update breadcrumb
+            updateBreadcrumb();
+            
+            // Get current directory
+            let current = fileSystem;
+            for (const part of currentPath) {
+                current = current[part];
+            }
+            
+            // Reset selection
+            selectedFiles = [];
+            deleteBtn.disabled = true;
+            selectAllCheckbox.checked = false;
+            
+            // Display files and folders
+            for (const name in current) {
+                if (typeof current[name] === 'object' && !current[name].type) {
+                    // This is a folder
+                    createFileCard(name, 'folder');
+                } else {
+                    // This is a file
+                    createFileCard(name, current[name].type);
+                }
+            }
+        }
+
+        // Function to create a file or folder card
+        function createFileCard(name, type) {
+            const card = document.createElement('div');
+            card.className = 'file-card';
+            card.setAttribute('data-name', name);
+            
+            // Icon based on type
+            let iconClass = 'bi-file-earmark';
+            let iconColorClass = '';
+            
+            switch (type) {
+                case 'folder':
+                    iconClass = 'bi-folder-fill';
+                    iconColorClass = 'folder-icon';
+                    break;
+                case 'image':
+                    iconClass = 'bi-file-earmark-image';
+                    iconColorClass = 'image-icon';
+                    break;
+                case 'document':
+                    iconClass = 'bi-file-earmark-text';
+                    iconColorClass = 'document-icon';
+                    break;
+                case 'pdf':
+                    iconClass = 'bi-file-earmark-pdf';
+                    iconColorClass = 'pdf-icon';
+                    break;
+                case 'audio':
+                    iconClass = 'bi-file-earmark-music';
+                    iconColorClass = 'audio-icon';
+                    break;
+                case 'video':
+                    iconClass = 'bi-file-earmark-play';
+                    iconColorClass = 'video-icon';
+                    break;
+                case 'zip':
+                    iconClass = 'bi-file-earmark-zip';
+                    iconColorClass = 'zip-icon';
+                    break;
+            }
+            
+            card.innerHTML = `
+                <div class="file-icon">
+                    <i class="bi ${iconClass} ${iconColorClass}"></i>
+                </div>
+                <div class="file-name">${name}</div>
+                <div class="selection-checkbox">
+                    <i class="bi bi-check-circle-fill text-primary"></i>
+                </div>
+            `;
+            
+            // Add click event
+            card.addEventListener('click', function(e) {
+                if (type === 'folder') {
+                    // Navigate into folder
+                    currentPath.push(name);
+                    displayFiles();
+                } else {
+                    // Select/deselect file
+                    if (e.ctrlKey || e.metaKey) {
+                        // Toggle selection with Ctrl/Cmd key
+                        this.classList.toggle('selected');
+                        
+                        if (this.classList.contains('selected')) {
+                            selectedFiles.push(name);
+                        } else {
+                            const index = selectedFiles.indexOf(name);
+                            if (index !== -1) {
+                                selectedFiles.splice(index, 1);
+                            }
+                        }
+                    } else {
+                        // Clear previous selection
+                        document.querySelectorAll('.file-card').forEach(card => {
+                            card.classList.remove('selected');
+                        });
+                        selectedFiles = [];
+                        
+                        // Select this file
+                        this.classList.add('selected');
+                        selectedFiles.push(name);
+                    }
+                    
+                    // Update delete button state
+                    deleteBtn.disabled = selectedFiles.length === 0;
+                    
+                    // Update select all checkbox
+                    const totalFiles = document.querySelectorAll('.file-card').length;
+                    selectAllCheckbox.checked = selectedFiles.length === totalFiles;
+                }
+            });
+            
+            fileGrid.appendChild(card);
+        }
+
+        // Function to update breadcrumb
+        function updateBreadcrumb() {
+            breadcrumb.innerHTML = '';
+            
+            currentPath.forEach((part, index) => {
+                const item = document.createElement('li');
+                item.className = 'breadcrumb-item';
+                if (index === currentPath.length - 1) {
+                    item.classList.add('active');
+                    item.setAttribute('aria-current', 'page');
+                }
+                
+                item.setAttribute('data-path', part);
+                
+                // Add icon for home
+                if (part === 'home') {
+                    item.innerHTML = '<i class="bi bi-house-door me-1"></i>Inicio';
+                } else {
+                    item.textContent = part.charAt(0).toUpperCase() + part.slice(1);
+                }
+                
+                breadcrumb.appendChild(item);
+            });
+        }
+
+        // Helper function to format file size
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            else if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+            else return (bytes / 1073741824).toFixed(1) + ' GB';
+        }
+    });
+</script>
+</section>

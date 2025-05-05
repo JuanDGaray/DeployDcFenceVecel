@@ -74,6 +74,7 @@ urlpatterns = [
     path('projects/rename-folder/', utils.rename_folder_in_drive, name='rename_folder_in_drive'),
     path('projects/upload-file/', utils.upload_file_to_drive, name='upload_file_to_drive'),
     path('projects/get-folder/', utils.get_folders_in_drive, name='get_folders_in_drive'),
+    path('projects/get-files/<str:folder_id>', utils.fetch_children, name='get_files'),
     path('projects/delete-file/', utils.delete_file_to_drive, name='delete_file'),
     path('projects/<int:project_id>/new_change_order/<int:proposal_id>', views.new_change_order, name='new_change_order'),
     path('projects/<int:project_id>/view_changeOrder/<int:budget_id>', views.view_changeOrder, name='view_changeOrder'),
