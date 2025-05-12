@@ -62,7 +62,7 @@
                             <td class='text-end'><strong>{{data}}</strong></td>
                         {% endfor %}
                         <td class="text-end"><strong>{{ realCostItems|get_item_value:item.0 | currency_usd }}</strong>
-                            <button class="bg-primary text-white ms-2 incrementButton" onclick=showUpdateCostModal('{{item.0}}','{{item.1}}')>+</button>
+                            <button class="bg-primary text-white ms-2 incrementButton" onclick="showUpdateCostModal('{{item.0}}','{{item.1}}')">+</button>
                         </td>
                         {% endif %}
                     </tr>
