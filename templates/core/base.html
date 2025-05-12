@@ -49,7 +49,7 @@
     {% endif %}
 
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light border border-2 border-dark-secondary mb-4 rounded-4 opacity-75 blur-sm sticky-top">
+    <nav style="z-index: 500;" class="navbar navbar-expand-lg navbar-light bg-light border border-2 border-dark-secondary mb-4 rounded-4 opacity-75 blur-sm sticky-top">
         <div class="container">
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
@@ -61,29 +61,57 @@
                     </li>
                     <li class="nav-item">
                         <a class="nav-link bg-white bg-opacity-75 px-3 py-2 rounded-3 mx-1" href="{% url 'account-list' %}">
-                            <i class="bi bi-journal-text"></i> Cuentas
+                            <i class="bi bi-journal-text"></i> Accounts
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link bg-white bg-opacity-75 px-3 py-2 rounded-3 mx-1" href="{% url 'transaction-list' %}">
-                            <i class="bi bi-arrow-left-right"></i> Transacciones
+                            <i class="bi bi-arrow-left-right"></i> Transactions
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link bg-white bg-opacity-75 px-3 py-2 rounded-3 mx-1" href="{% url 'invoice-list' %}">
-                            <i class="bi bi-receipt"></i> Facturas
+                            <i class="bi bi-receipt"></i> Invoices
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link bg-white bg-opacity-75 px-3 py-2 rounded-3 mx-1" href="{% url 'expense-list' %}">
-                            <i class="bi bi-cash-stack"></i> Gastos
+                            <i class="bi bi-cash-stack"></i> Expenses
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link bg-white bg-opacity-75 px-3 py-2 rounded-3 mx-1" href="{% url 'financial-report' %}">
-                            <i class="bi bi-graph-up"></i> Reportes
+                            <i class="bi bi-graph-up"></i> Reports
                         </a>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle bg-white bg-opacity-75 px-3 py-2 rounded-3 mx-1" href="#" id="revenueDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-cash-coin"></i> Revenue
+                        </a>
+                        <ul class="dropdown-menu p-1" aria-labelledby="revenueDropdown">
+                            <li>
+                                <a class="dropdown-item" data-bs-toggle="offcanvas" data-bs-target="#salesInvoiceCanvas" aria-controls="salesInvoiceCanvas">
+                                    <i class="bi bi-receipt"></i> + Add sales invoice
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" data-bs-toggle="offcanvas" data-bs-target="#paymentsReceivedCanvas" aria-controls="paymentsReceivedCanvas">
+                                    <i class="bi bi-wallet2"></i> + Add payments received
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" data-bs-toggle="offcanvas" data-bs-target="#quotesCanvas" aria-controls="quotesCanvas">
+                                    <i class="bi bi-file-text"></i> + Add quotes
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" data-bs-toggle="offcanvas" data-bs-target="#purchaseInvoiceCanvas" aria-controls="purchaseInvoiceCanvas">
+                                    <i class="bi bi-cart"></i> + Add purchase invoice
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    
                     {% endif %}
                 </ul>
             </div>
@@ -92,5 +120,47 @@
 
     {% block accounting_content %}
     {% endblock %}
+
+    <!-- Sales Invoice Offcanvas -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="salesInvoiceCanvas" aria-labelledby="salesInvoiceCanvasLabel" style="background-color: #f8f9fa; width: 50%;">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="salesInvoiceCanvasLabel">Add Sales Invoice</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body" >
+            {% include 'core/components/form_newInvoice.html' %}
+        </div>
+    </div>
+
+    <!-- Payments Received Offcanvas -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="paymentsReceivedCanvas" aria-labelledby="paymentsReceivedCanvasLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="paymentsReceivedCanvasLabel">Add Payments Received</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        
+    </div>
+
+    <!-- Quotes Offcanvas -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="quotesCanvas" aria-labelledby="quotesCanvasLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="quotesCanvasLabel">Add Quote</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <!-- Add your quotes form here -->
+        </div>
+    </div>
+
+    <!-- Purchase Invoice Offcanvas -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="purchaseInvoiceCanvas" aria-labelledby="purchaseInvoiceCanvasLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="purchaseInvoiceCanvasLabel">Add Purchase Invoice</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <!-- Add your purchase invoice form here -->
+        </div>
+    </div>
 </div>
 {% endblock %}

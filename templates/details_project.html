@@ -131,7 +131,7 @@
               
           </div>
           {% if project.status == 'approved' and project.project_manager == None %}
-              <a class="productionButton" id="sendToProductionBtn">
+              <a class="productionButton" id="sendToProductionBtn" onclick="sendToProduction()">
                 <i class="bi bi-wrench-adjustable-circle-fill"></i> Send to production
               </a>
               <select id="selectManager">
@@ -505,7 +505,7 @@
                       </a>
                   {% endif %}
                 </td>
-                <td>{{ proposal.total_proposal | currency_usd }}</td>
+                <td>{{proposal.budget.total_value | currency_usd }}</td>
                 <td>{{ proposal.billed_proposal | currency_usd }}</td>
                 <td style='width:120px' class="p-0">
                   <div class="d-inline-flex gap-2 align-items-center p-1">
@@ -1209,6 +1209,13 @@ function cancelBudgetDuplicate() {
   const container = document.getElementById('selectProject');
   container.classList.add('d-none');
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+  const sendToProductionBtn = document.getElementById('sendToProductionBtn');
+  if (sendToProductionBtn) {
+    sendToProductionBtn.addEventListener('click', sendToProduction);
+  }
+});
 
 </script>
 {% endblock %}

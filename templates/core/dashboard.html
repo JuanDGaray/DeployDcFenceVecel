@@ -4,17 +4,17 @@
 
 {% block accounting_content %}
 <div class="row">
-    <!-- Resumen Financiero -->
+    <!-- Financial Summary -->
     <div class="col-md-3 mb-4">
         <div class="card h-100">
             <div class="card-body">
-                <h6 class="card-title text-muted">Ingresos del Mes</h6>
+                <h6 class="card-title text-muted">Monthly Income</h6>
                 <h3 class="mb-0">${{ monthly_income|floatformat:2 }}</h3>
                 <div class="mt-2">
                     <span class="badge bg-success">
                         <i class="bi bi-arrow-up"></i> {{ income_growth|floatformat:1 }}%
                     </span>
-                    <small class="text-muted">vs mes anterior</small>
+                    <small class="text-muted">vs last month</small>
                 </div>
             </div>
         </div>
@@ -22,14 +22,14 @@
     <div class="col-md-3 mb-4">
         <div class="card h-100">
             <div class="card-body">
-                <h6 class="card-title text-muted">Gastos del Mes</h6>
+                <h6 class="card-title text-muted">Monthly Expenses</h6>
                 <h3 class="mb-0">${{ monthly_expenses|floatformat:2 }}</h3>
                 <div class="mt-2">
                     <span class="badge {% if expense_growth > 0 %}bg-danger{% else %}bg-success{% endif %}">
                         <i class="bi bi-arrow-{% if expense_growth > 0 %}up{% else %}down{% endif %}"></i> 
                         {% if expense_growth < 0 %}-{% endif %}{{ expense_growth|floatformat:1 }}%
                     </span>
-                    <small class="text-muted">vs mes anterior</small>
+                    <small class="text-muted">vs last month</small>
                 </div>
             </div>
         </div>
@@ -37,14 +37,14 @@
     <div class="col-md-3 mb-4">
         <div class="card h-100">
             <div class="card-body">
-                <h6 class="card-title text-muted">Balance Total</h6>
+                <h6 class="card-title text-muted">Total Balance</h6>
                 <h3 class="mb-0">${{ total_balance|floatformat:2 }}</h3>
                 <div class="mt-2">
                     <span class="badge {% if balance_change > 0 %}bg-success{% else %}bg-danger{% endif %}">
                         <i class="bi bi-arrow-{% if balance_change > 0 %}up{% else %}down{% endif %}"></i> 
                         {% if balance_change < 0 %}-{% endif %}{{ balance_change|floatformat:1 }}%
                     </span>
-                    <small class="text-muted">vs mes anterior</small>
+                    <small class="text-muted">vs last month</small>
                 </div>
             </div>
         </div>
@@ -52,13 +52,13 @@
     <div class="col-md-3 mb-4">
         <div class="card h-100">
             <div class="card-body">
-                <h6 class="card-title text-muted">Facturas Pendientes</h6>
+                <h6 class="card-title text-muted">Pending Invoices</h6>
                 <h3 class="mb-0">{{ pending_invoices_count }}</h3>
                 <div class="mt-2">
                     <span class="badge bg-warning">
                         ${{ pending_invoices_amount|floatformat:2 }}
                     </span>
-                    <small class="text-muted">por cobrar</small>
+                    <small class="text-muted">to be collected</small>
                 </div>
             </div>
         </div>
@@ -66,12 +66,12 @@
 </div>
 
 <div class="row">
-    <!-- Gráfico de Distribución de Cuentas -->
+    <!-- Account Distribution Chart -->
     <div class="col-md-6 mb-4">
         <div class="card h-100">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-pie-chart"></i> Distribución de Cuentas
+                    <i class="bi bi-pie-chart"></i> Account Distribution
                 </h5>
             </div>
             <div class="card-body">
@@ -80,12 +80,12 @@
         </div>
     </div>
     
-    <!-- Gráfico de Flujo de Efectivo -->
+    <!-- Cash Flow Chart -->
     <div class="col-md-6 mb-4">
         <div class="card h-100">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-graph-up"></i> Análisis Financiero
+                    <i class="bi bi-graph-up"></i> Financial Analysis
                 </h5>
             </div>
             <div class="card-body">
@@ -96,15 +96,15 @@
 </div>
 
 <div class="row">
-    <!-- Transacciones Recientes -->
+    <!-- Recent Transactions -->
     <div class="col-md-6 mb-4">
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-arrow-left-right"></i> Transacciones Recientes
+                    <i class="bi bi-arrow-left-right"></i> Recent Transactions
                 </h5>
                 <a href="{% url 'transaction-list' %}" class="btn btn-sm btn-outline-primary">
-                    Ver todas
+                    View All
                 </a>
             </div>
             <div class="card-body p-0">
@@ -112,10 +112,10 @@
                     <table class="table table-hover mb-0">
                         <thead>
                             <tr>
-                                <th>Fecha</th>
-                                <th>Cuenta</th>
-                                <th>Tipo</th>
-                                <th>Monto</th>
+                                <th>Date</th>
+                                <th>Account</th>
+                                <th>Type</th>
+                                <th>Amount</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -132,7 +132,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="4" class="text-center py-3">No hay transacciones recientes</td>
+                                <td colspan="4" class="text-center py-3">No recent transactions</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -142,15 +142,15 @@
         </div>
     </div>
     
-    <!-- Facturas Pendientes -->
+    <!-- Pending Invoices -->
     <div class="col-md-6 mb-4">
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-receipt"></i> Facturas Pendientes
+                    <i class="bi bi-receipt"></i> Pending Invoices
                 </h5>
                 <a href="{% url 'invoice-list' %}" class="btn btn-sm btn-outline-primary">
-                    Ver todas
+                    View All
                 </a>
             </div>
             <div class="card-body p-0">
@@ -158,10 +158,10 @@
                     <table class="table table-hover mb-0">
                         <thead>
                             <tr>
-                                <th>Número</th>
-                                <th>Cliente</th>
-                                <th>Vencimiento</th>
-                                <th>Monto</th>
+                                <th>Invoice No.</th>
+                                <th>Client</th>
+                                <th>Due Date</th>
+                                <th>Amount</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -174,7 +174,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="4" class="text-center py-3">No hay facturas pendientes</td>
+                                <td colspan="4" class="text-center py-3">No pending invoices</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -186,41 +186,41 @@
 </div>
 
 <div class="row">
-    <!-- Acciones Rápidas -->
+    <!-- Quick Actions -->
     <div class="col-md-12 mb-4">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="bi bi-lightning"></i> Acciones Rápidas
+                    <i class="bi bi-lightning"></i> Quick Actions
                 </h5>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-3 mb-3">
                         <a href="{% url 'transaction-create' %}" class="btn btn-primary w-100">
-                            <i class="bi bi-plus-circle"></i> Nueva Transacción
+                            <i class="bi bi-plus-circle"></i> New Transaction
                         </a>
                     </div>
                     <div class="col-md-3 mb-3">
                         <a href="{% url 'invoice-create' %}" class="btn btn-success w-100">
-                            <i class="bi bi-file-earmark-plus"></i> Nueva Factura
+                            <i class="bi bi-file-earmark-plus"></i> New Invoice
                         </a>
                     </div>
                     <div class="col-md-3 mb-3">
                         <a href="{% url 'expense-create' %}" class="btn btn-danger w-100">
-                            <i class="bi bi-cash"></i> Registrar Gasto
+                            <i class="bi bi-cash"></i> Record Expense
                         </a>
                     </div>
                     <div class="col-md-3 mb-3">
                         <a href="{% url 'financial-report' %}" class="btn btn-info w-100">
-                            <i class="bi bi-graph-up"></i> Ver Reportes
+                            <i class="bi bi-graph-up"></i> View Reports
                         </a>
                     </div>
                 </div>
                 <div class="row mt-3">
                     <div class="col-md-3 mb-3">
                         <a href="{% url 'account-list' %}" class="btn btn-secondary w-100">
-                            <i class="bi bi-gear"></i> Configuración de Cuentas
+                            <i class="bi bi-gear"></i> Account Settings
                         </a>
                     </div>
                 </div>
@@ -229,7 +229,6 @@
     </div>
 </div>
 {% endblock %}
-
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>

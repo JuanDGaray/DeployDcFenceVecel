@@ -1,0 +1,400 @@
+{% load custom_filters %}
+{% for nameAccount, value in accounts.items %}
+    {% if value.accounts|length > 0 %}
+    <div class="col-12">
+        <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center"
+                {% if nameAccount == 'Assets' %}
+                    style="background-color: #9fffc7 !important;"
+                {% elif nameAccount == 'Liabilities' %}
+                    style="background-color: #f08181 !important;"
+                {% elif nameAccount == 'Equity' %}
+                    style="background-color: #d7ff78 !important;"
+                {% elif nameAccount == 'Revenue' %}
+                    style="background-color: #bedeff !important;"
+                {% elif nameAccount == 'Expense' %}
+                    style="background-color: #c0c0c0 !important;"
+                {% endif %}>
+                    <h5 class="mb-0">{{ nameAccount }}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>    
+                                    <th colspan="5">ID</th>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>Initial Balance</th>
+                                    <th>Active</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for account in value.accounts %}
+                                    <tr>
+                                        <td class="p-0" colspan="5">
+                                                <button class="p-0 btn bg-light border-2" data-bs-toggle="collapse" data-bs-target="#subaccounts{{ account.pk }}-{{ forloop.counter }}">
+                                                    <i class="bi bi-caret-down-fill p-0"  
+                                                    {% if nameAccount == 'Assets' %}
+                                                        style="color: #9fffc7 !important;"
+                                                    {% elif nameAccount == 'Liabilities' %}
+                                                        style="color: #f08181 !important;"
+                                                    {% elif nameAccount == 'Equity' %}
+                                                        style="color: #d7ff78 !important;"
+                                                    {% elif nameAccount == 'Revenue' %}
+                                                        style="color: #bedeff !important;"
+                                                    {% elif nameAccount == 'Expense' %}
+                                                        style="color: #c0c0c0 !important;"
+                                                    {% else %}
+                                                        style="color: #c0c0c0 !important;"
+                                                    {% endif %}></i>
+                                                </button>
+                                            {{ account.type_id }}.{{ account.account_code }}
+                                        </td>
+                                        <td class="p-1">{{ account.name }}</td>
+                                        <td class="p-1 w-50 text-justify">{{ account.description }}</td>
+                                        <td class="p-1">${{ account.initial_balance|floatformat:2 }}</td>
+                                        <td class="p-1">
+                                            <input type="checkbox" class="form-check-input p-1" id="is_active{{ account.pk }}" name="is_active{{ account.pk }}" {% if account.is_active %}checked{% endif %}>
+                                        </td>
+                                    </tr>
+                                    {% if value.subaccounts|get_item:account.name|length > 0 %}
+                                        {% for sub in value.subaccounts|get_item:account.name %}
+                                            <tr class="collapse bg-light" id="subaccounts{{ account.pk }}-{{ forloop.parentloop.counter }}">
+                                                <td style="background-color: #dfdfdf;"></td>
+                                                <td style="background-color: #dfdfdf;" colspan="4">
+                                                        <button class="p-0 btn bg-light border-2" data-bs-toggle="collapse" data-bs-target="#subsubaccounts{{ sub.pk }}-{{ forloop.counter }}-{{ forloop.parentloop.counter }}">
+                                                            <i class="bi bi-caret-down-fill p-0"
+                                                            {% if value.sub_subaccounts|get_item:sub.name|length < 1 %}
+                                                                style="color: #c0c0c0 !important;"  
+                                                            {% elif nameAccount == 'Assets' %}
+                                                                style="color: #9fffc7 !important;"
+                                                            {% elif nameAccount == 'Liabilities' %}
+                                                                style="color: #f08181 !important;"
+                                                            {% elif nameAccount == 'Equity' %}
+                                                                style="color: #d7ff78 !important;"
+                                                            {% elif nameAccount == 'Revenue' %}
+                                                                style="color: #bedeff !important;"
+                                                            {% elif nameAccount == 'Expense' %}
+                                                                style="color: #dfdfdf !important;"
+                                                            {% else %}
+                                                                style="color: #c0c0c0 !important;"
+                                                            {% endif %}></i>
+                                                        </button>
+                                                    {{ sub.type_id }}.{{ sub.account_code }}.{{ sub.subaccount_code }}  
+                                                </td>
+                                                <td style="background-color: #dfdfdf;">
+                                                    {{ sub.name }}
+                                                             <button class="p-0 btn btn-sm bg-light border-2" id="add_item_group" data-account-type-id="{{ sub.type_id }}"
+                                                                                                                                    data-account-code="{{ sub.account_code }}"
+                                                                                                                                    data-account-parent="{{ sub.id }}"
+                                                                                                                                    data-subaccount-code="{{ sub.subaccount_code }}"
+                                                                                                                                    data-subsubaccount-code="{{ value.sub_subaccounts|get_item:sub.name|length|add:1 }}"
+                                                                                                                                    data-group-code="None"
+                                                                                                                                    data-account-type="{{ sub.account_type }}"
+                                                                                                                                    data-type-element="SUB-SUBACCOUNT"
+                                                                                                                                    data-parent-new-item-group="{{sub.id }}"
+                                                                                                                                    data-new-item-group='None' onclick="add_item_group(this)">
+                                                                            <i class="bi bi-plus-circle text-primary"></i>
+                                                            </button>
+                                                            {% if sub.is_created_by_user %}
+                                                                <button class="btn btn-sm bg-light border-2" id="delete_item_group" data-item-group-id="{{ sub.id }}" onclick="delete_item_group(this)">
+                                                                    <i class="bi bi-trash text-danger"></i>
+                                                                </button>
+                                                            {% endif %}
+                                                </td>
+                                                <td style="background-color: #dfdfdf;" class="w-50 text-justify">{{ sub.description }}</td>
+                                                <td style="background-color: #dfdfdf;">${{ sub.initial_balance|floatformat:2 }}</td>
+                                                <td style="background-color: #dfdfdf;">
+                                                    <input type="checkbox" class="form-check-input" id="is_active{{ sub.pk }}" name="is_active{{ sub.pk }}" {% if sub.is_active %}checked{% endif %}>
+                                                </td>
+                                            </tr>
+                                            {% if value.sub_subaccounts|get_item:sub.name|length > 0 %}
+                                                {% for sub_sub in value.sub_subaccounts|get_item:sub.name %}
+                                                    <tr class="collapse bg-light" id="subsubaccounts{{ sub.pk }}-{{ forloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.counter }}">
+                                                        <td></td>
+                                                        <td></td>
+                                                        <td colspan="3">
+                                                                <button class="p-0 btn bg-light border-2" data-bs-toggle="collapse" data-bs-target="#subsubsubaccounts{{ sub_sub.pk }}-{{ forloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.counter }}">
+                                                                    <i class="bi bi-caret-down-fill p-0"  
+                                                                    {% if value.groups|get_item:sub_sub.name|length < 1 %}
+                                                                        style="color: #c0c0c0 !important;"
+                                                                    {% elif nameAccount == 'Assets' %}
+                                                                        style="color: #9fffc7 !important;"
+                                                                    {% elif nameAccount == 'Liabilities' %}
+                                                                        style="color: #f08181 !important;"
+                                                                    {% elif nameAccount == 'Equity' %}
+                                                                        style="color: #d7ff78 !important;"      
+                                                                    {% elif nameAccount == 'Revenue' %}
+                                                                        style="color: #bedeff !important;"
+                                                                    {% elif nameAccount == 'Expense' %}
+                                                                        style="color: #c0c0c0 !important;"
+                                                                    {% endif %}
+                                                                    ></i>
+                                                                </button>
+                                                            {{ sub_sub.type_id }}.{{ sub.account_code }}.{{ sub.subaccount_code }}.{{ sub_sub.sub_subaccount_code }}
+                                                        </td>
+                                                        <td>
+                                                             {{ sub_sub.name }}
+                                                             <button class="p-0 btn btn-sm bg-light border-2" id="add_item_group" data-account-type-id="{{ sub_sub.type_id }}"
+                                                                                                                                    data-account-code="{{ sub_sub.account_code }}"
+                                                                                                                                    data-account-parent="{{ sub_sub.id }}"
+                                                                                                                                    data-subaccount-code="{{ sub_sub.subaccount_code }}"
+                                                                                                                                    data-subsubaccount-code="{{ sub_sub.sub_subaccount_code }}"
+                                                                                                                                    data-group-code="{{ value.groups|get_item:sub_sub.name|length|add:1 }}"
+                                                                                                                                    data-account-type="{{ sub_sub.account_type }}"
+                                                                                                                                    data-type-element="GROUP"
+                                                                                                                                    data-parent-new-item-group="{{  sub_sub.id }}"
+                                                                                                                                    data-new-item-group='None' onclick="add_item_group(this)">
+                                                                            <i class="bi bi-plus-circle text-primary"></i>
+                                                            </button>
+                                                            {% if sub_sub.is_created_by_user %}
+                                                                <button class="btn btn-sm bg-light border-2" id="delete_item_group" data-item-group-id="{{ sub_sub.id }}" onclick="delete_item_group(this)">
+                                                                    <i class="bi bi-trash text-danger"></i>
+                                                                </button>
+                                                            {% endif %}
+                                                        </td>
+                                                        <td class="w-50 text-justify">{{ sub_sub.description }}</td>
+                                                        <td>${{ sub_sub.initial_balance|floatformat:2 }}</td>
+                                                        <td>
+                                                            <input type="checkbox" class="form-check-input" id="is_active{{ sub_sub.pk }}" name="is_active{{ sub_sub.pk }}" {% if sub_sub.is_active %}checked{% endif %}>
+                                                        </td>
+                                                    </tr>
+                                                    {% if value.groups|get_item:sub_sub.name|length > 0 %}
+                                                        {% for sub_sub_sub in value.groups|get_item:sub_sub.name %}
+                                                            <tr class="collapse bg-light" id="subsubsubaccounts{{ sub_sub.pk }}-{{ forloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.parentloop.counter }}">
+                                                                <td></td>
+                                                                <td></td>
+                                                                <td></td>
+                                                                <td colspan="2">
+                                                                        <button class="p-0 btn bg-light border-2" data-bs-toggle="collapse" data-bs-target="#subsubsubsubaccounts{{ sub_sub_sub.pk }}-{{ forloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.parentloop.parentloop.counter }}">
+                                                                            <i class="bi bi-caret-down-fill p-0" 
+                                                                            {% if value.subgroups|get_item:sub_sub_sub.name|length < 1 %}
+                                                                                 style="color: #c0c0c0 !important;"
+                                                                            {% elif nameAccount == 'Assets' %}
+                                                                                style="color: #9fffc7 !important;"
+                                                                            {% elif nameAccount == 'Liabilities' %}
+                                                                                style="color: #f08181 !important;"
+                                                                            {% elif nameAccount == 'Equity' %}
+                                                                                style="color: #d7ff78 !important;"      
+                                                                            {% elif nameAccount == 'Revenue' %}
+                                                                                style="color: #bedeff !important;"
+                                                                            {% elif nameAccount == 'Expense' %}
+                                                                                style="color: #c0c0c0 !important;"
+                                                                            {% endif %}></i>
+                                                                        </button>
+                                                                    {{ sub_sub.type_id }}.{{ sub.account_code }}.{{ sub.subaccount_code }}.{{ sub_sub.sub_subaccount_code }}.{{ sub_sub_sub.group_code }}
+                                                                </td>
+                                                                <td>
+                                                                    {{ sub_sub_sub.name }}
+                                                                    <button class="p-0 btn btn-sm bg-light border-2" id="add_item_group" data-account-type-id="{{ sub_sub_sub.type_id }}"
+                                                                                                                                    data-account-code="{{ sub_sub_sub.account_code }}"
+                                                                                                                                    data-account-parent="{{ sub_sub_sub.id }}"
+                                                                                                                                    data-subaccount-code="{{ sub_sub_sub.subaccount_code }}"
+                                                                                                                                    data-subsubaccount-code="{{ sub_sub_sub.sub_subaccount_code }}"
+                                                                                                                                    data-group-code="{{ sub_sub_sub.group_code }}"
+                                                                                                                                    data-account-type="{{ sub_sub_sub.account_type }}"
+                                                                                                                                    data-type-element="SUBGROUP"
+                                                                                                                                    data-parent-new-item-group="{{  sub_sub_sub.id }}"
+                                                                                                                                    data-new-item-group="{{ value.subgroups|get_item:sub_sub_sub.name|length|add:1 }}" onclick="add_item_group(this)">
+                                                                        <i class="bi bi-plus-circle text-primary"></i>
+                                                                    </button>
+                                                                    {% if sub_sub_sub.is_created_by_user %}
+                                                                        <button class="btn btn-sm bg-light border-2" id="delete_item_group" data-item-group-id="{{ sub_sub_sub.id }}" onclick="delete_item_group(this)">
+                                                                            <i class="bi bi-trash text-danger"></i>
+                                                                        </button>
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td class="w-50 text-justify">{{ sub_sub_sub.description }}</td>
+                                                                <td>${{ sub_sub_sub.initial_balance|floatformat:2 }}</td>
+                                                                <td>
+                                                                    <input type="checkbox" class="form-check-input" id="is_active{{ sub_sub_sub.pk }}" name="is_active{{ sub_sub_sub.pk }}" {% if sub_sub_sub.is_active %}checked{% endif %}>
+                                                                </td>
+                                                            </tr>
+                                                            {{ value.subgroups|get_item:sub_sub_sub.name|length }}
+                                                            {% if value.subgroups|get_item:sub_sub_sub.name|length > 0 %}
+                                                                {% for sub_sub_sub_sub in value.subgroups|get_item:sub_sub_sub.name %}
+                                                                    <tr class="collapse bg-light" id="subsubsubsubaccounts{{ sub_sub_sub.pk }}-{{ forloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.parentloop.parentloop.counter }}">
+                                                                        <td></td>
+                                                                        <td></td>
+                                                                        <td></td>
+                                                                        <td></td>
+                                                                        <td>
+                                                                            <button class="p-0 btn bg-light border-2" data-bs-toggle="collapse" data-bs-target="#itemgroups{{ sub_sub_sub_sub.pk }}-{{ forloop.counter }}-{{ forloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.counter }}-{{ forloop.parentloop.parentloop.parentloop.parentloop.counter }}">
+                                                                                <i class="bi bi-caret-down-fill p-0" 
+                                                                                {% if value.itemgroups|get_item:sub_sub_sub_sub.name|length < 1 %}
+                                                                                     style="color: #c0c0c0 !important;"
+                                                                                {% elif nameAccount == 'Assets' %}
+                                                                                    style="color: #9fffc7 !important;"
+                                                                                {% elif nameAccount == 'Liabilities' %}
+                                                                                    style="color: #f08181 !important;"
+                                                                                {% elif nameAccount == 'Equity' %}
+                                                                                    style="color: #d7ff78 !important;"      
+                                                                                {% elif nameAccount == 'Revenue' %}
+                                                                                    style="color: #bedeff !important;"
+                                                                                {% elif nameAccount == 'Expense' %}
+                                                                                    style="color: #c0c0c0 !important;"
+                                                                                {% endif %}></i>
+                                                                            </button>
+                                                                            {{ sub_sub_sub_sub.type_id }}.{{ sub_sub_sub_sub.account_code }}.{{ sub_sub_sub_sub.subaccount_code }}.{{ sub_sub_sub_sub.sub_subaccount_code }}.{{ sub_sub_sub_sub.group_code }}.{{ sub_sub_sub_sub.item_group_code }}
+                                                                        </td>
+                                                                        <td>
+                                                                            {{ sub_sub_sub_sub.name }}
+                                                                            {% if sub_sub_sub_sub.is_created_by_user %}
+                                                                                <button class="btn btn-sm bg-light border-2" id="delete_item_group" data-item-group-id="{{ sub_sub_sub_sub.id }}" onclick="delete_item_group(this)">
+                                                                                    <i class="bi bi-trash text-danger"></i>
+                                                                                </button>
+                                                                            {% endif %}
+                                                                        </td>
+                                                                        <td class="w-50 text-justify">{{ sub_sub_sub_sub.description }}</td>
+                                                                        <td>${{ sub_sub_sub_sub.initial_balance|floatformat:2 }}</td>
+                                                                        <td>
+                                                                            <input type="checkbox" class="form-check-input" id="is_active{{ sub_sub_sub_sub.pk }}" name="is_active{{ sub_sub_sub_sub.pk }}" {% if sub_sub_sub_sub.is_active %}checked{% endif %}>
+                                        
+                                                                        </td>
+                                                                    </tr>
+                                                                {% endfor %}
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                {% empty %}
+                                <tr>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        
+                    </div>
+                </div>
+        </div>
+    </div>
+    {% endif %}
+{% endfor %}
+
+<!-- Modal para agregar nueva cuenta -->
+<div class="modal fade" id="formAccount" tabindex="-1" aria-labelledby="formAccountLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="formAccountLabel">Add New Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="newAccountForm">
+                    <input type="hidden" id="csrf_token" name="csrf_token" value="{{ csrf_token }}">
+                    <input type="hidden" id="account_parent" name="account_parent">
+                    <input type="hidden" id="account_type" name="account_type">
+                    <input type="hidden" id="account_code" name="account_code">
+                    <input type="hidden" id="subaccount_code" name="subaccount_code">
+                    <input type="hidden" id="subsubaccount_code" name="subsubaccount_code">
+                    <input type="hidden" id="group_code" name="group_code">
+                    <input type="hidden" id="new_item_group" name="new_item_group">
+                    <input type="hidden" id="account_type_id" name="account_type_id">
+                    <input type="hidden" id="type_element" name="type_element">
+                    <input type="hidden" id="parent_new_item_group" name="parent_new_item_group">
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <span class="input-group-text" id="display_full_id" style="font-size: 0.9rem; color: #6c757d;"></span>
+                            <input type="text" class="form-control" id="account_name" name="account_name" placeholder="Name" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <textarea class="form-control" id="account_description" name="account_description" rows="3" placeholder="Description"></textarea>
+                    </div>
+                    <div class="mb-3 d-flex align-items-center flex-row gap-3">
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="initial_balance" name="initial_balance" value="0.00" step="0.01" placeholder="Initial Balance">
+                        </div>
+                        <input type="checkbox" class="form-check-input" id="is_active" name="is_active" checked>
+                        <label class="form-check-label" for="is_active">Active</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveNewAccount()">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function add_item_group(button) {
+        // Obtener los datos del botón
+        const account_parent = button.dataset.accountParent;
+        const account_type = button.dataset.accountType;
+        const account_code = button.dataset.accountCode;
+        const subaccount_code = button.dataset.subaccountCode;
+        const subsubaccount_code = button.dataset.subsubaccountCode;
+        const group_code = button.dataset.groupCode;
+        const new_item_group = button.dataset.newItemGroup;
+        const account_type_id = button.dataset.accountTypeId;
+        const type_element = button.dataset.typeElement;
+        const parent_new_item_group = button.dataset.parentNewItemGroup;
+        // Poblar los campos ocultos del formulario
+        document.getElementById('account_parent').value = account_parent;
+        document.getElementById('account_type').value = account_type;
+        document.getElementById('account_code').value = account_code;
+        document.getElementById('subaccount_code').value = subaccount_code;
+        document.getElementById('subsubaccount_code').value = subsubaccount_code;
+        document.getElementById('group_code').value = group_code;
+        document.getElementById('new_item_group').value = new_item_group;
+        document.getElementById('account_type_id').value = account_type_id;
+        document.getElementById('type_element').value = type_element;
+        document.getElementById('parent_new_item_group').value = parent_new_item_group;
+        // Mostrar el ID completo en el input group
+        let fullId = '';
+        if (type_element == 'GROUP') {
+            fullId = `${account_type_id}.${account_code}.${subaccount_code}.${subsubaccount_code}.${group_code}`;
+        } else if (type_element == 'SUBGROUP') {
+            fullId = `${account_type_id}.${account_code}.${subaccount_code}.${subsubaccount_code}.${group_code}.${new_item_group}`;
+        } else if (type_element == 'SUB-SUBACCOUNT') {
+            fullId = `${account_type_id}.${account_code}.${subaccount_code}.${subsubaccount_code}`;
+        }
+
+        // Limpiar los campos visibles
+        document.getElementById('display_full_id').textContent = fullId;
+        document.getElementById('account_name').value = '';
+        document.getElementById('account_description').value = '';
+        document.getElementById('initial_balance').value = '0.00';
+        document.getElementById('is_active').checked = true;
+
+        // Mostrar el modal
+        const modal = new bootstrap.Modal(document.getElementById('formAccount'));
+        modal.show();
+    }
+
+    function saveNewAccount() {
+        
+        const formData = new FormData(document.getElementById('newAccountForm')); // Obtener los valores del formulario
+
+        ajaxPostRequest('add_account/', formData,
+            document.getElementById('csrf_token').value, function(response) {
+            console.log(response);
+            if (response.success) {
+                location.reload();
+            } else {
+                console.log('Error al agregar la cuenta');
+            }
+        }, function(error) {
+            console.log(error);
+        }); 
+    }
+
+    function delete_item_group(button) {
+        const formData = new FormData();
+        formData.append('account_id', button.dataset.itemGroupId);
+        console.log(formData);
+        ajaxPostRequest('delete_account/', formData,  '{{ csrf_token }}', function(response) {
+            console.log(response);
+            location.reload();
+        }, function(error) {
+            console.log(error);
+        });
+    }
+</script>

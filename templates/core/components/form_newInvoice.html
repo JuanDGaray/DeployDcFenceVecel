@@ -1,0 +1,68 @@
+<div class="row d-flex justify-content-between flex-row">
+    <div class="col-md-4">      
+        <label for="project">Project</label>
+        <select name="project" class="form-select" id="projectSelect" onchange="handleProjectChange(this)"> 
+            <option value="">Select Project</option>
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label for="customer">Customer</label>
+        <select name="customer" class="form-select" id="customer">
+            <option value="">Select Customer</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label for="typeInvoice">Type Invoice</label>
+        <select name="typeInvoice" class="form-select" id="typeInvoice">
+            <option value="">Select Type Invoice</option>
+            <option value="MDCP">MDCP</option>
+            <option value="BROD">BROD</option>
+            <option value="AIA5">AIA5</option>
+            <option value="AIA6">AIA10</option>
+        </select>
+    </div>
+    <button class="btn btn-primary col-md-1" id="loadInvoiceButton">Load Invoice</button>
+</div>
+
+<script>
+    function showSelectProject() {
+        ajaxGetRequest(`/get_array_projects/`, function (data) {
+            const projectSelect = document.getElementById('projectSelect');
+            if (typeof data === 'object' && data !== null) {
+                let projectOptions = '';
+                for (const [status, projects] of Object.entries(data)) {
+                    const groupOptions = projects.map(project => {
+                        const sanitizedProjectName = project.project_name.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                        return `<option value="${project.id}" data-customer-id="${project.customer_id}">${sanitizedProjectName}</option>`;
+                    }).join('');
+                    projectOptions += `<optgroup label="${status}">${groupOptions}</optgroup>`;
+                }
+                projectSelect.innerHTML = `<option value="" disabled selected>Select a project</option>${projectOptions}`;
+            } else {
+                projectSelect.innerHTML = `<option value="" disabled>No projects available</option>`;
+            }
+        });
+    }
+    showSelectProject();
+
+    function handleProjectChange(selectElement) {
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        if (selectedOption && selectedOption.dataset.customerId) {
+            const customerId = selectedOption.dataset.customerId;
+            const customerSelect = document.getElementById('customer');
+            customerSelect.value = customerId;
+        }
+    }
+
+    function showSelectCustomer() {
+        const selectCustomer = document.getElementById('customer');
+        ajaxGetRequest(`/get_customer/`, function (data) {
+            console.log(data)
+            const customerOptions = data.customers.map(customer => 
+                `<option value="${customer.id}">${customer.first_name} ${customer.last_name} 🏢 ${customer.company_name} 📧 ${customer.email}</option>`
+            ).join('');
+            selectCustomer.innerHTML = `<option value="" disabled selected>Select a customer</option>${customerOptions}`;
+        });
+    }
+    showSelectCustomer();
+</script>

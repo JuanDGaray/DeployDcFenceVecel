@@ -9,10 +9,9 @@ urlpatterns = [
     path('financial-report/', views.financial_report, name='financial-report'),
 
     # Accounts
-    path('accounts/', views.AccountListView.as_view(), name='account-list'),
-    path('accounts/create/', views.AccountCreateView.as_view(), name='account-create'),
-    path('accounts/<int:pk>/update/', views.AccountUpdateView.as_view(), name='account-update'),
-    path('accounts/<int:pk>/delete/', views.AccountDeleteView.as_view(), name='account-delete'),
+    path('accounts/', views.account_list_view, name='account-list'),
+    path('accounts/add_account/', views.add_account, name='add-account'),
+    path('accounts/delete_account/', views.delete_account, name='delete-account'),
 
     # Transactions
     path('transactions/', views.TransactionListView.as_view(), name='transaction-list'),

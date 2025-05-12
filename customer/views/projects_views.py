@@ -29,14 +29,14 @@ from datetime import datetime
 
 
 from groq import Groq
-from ..promts import basePromt, AsisPromt,  QueryReviewPrompt, ModelReviewPrompt, AnalysiData, SystemPromtReviewData, SalesMetricsAnalysis
+from ..promts import basePromt, AsisPromt,  QueryReviewPrompt, ModelReviewPrompt, AnalysiData, SystemPromtReviewData, SalesMetricsAnalysis, DailyReportPrompt
 import re, traceback
 from typing import Optional, List
 from pydantic import BaseModel
 from customer.models import ProjectHistory
 
 client = Groq(
-    api_key="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",
+    api_key="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",
 )
 
 
@@ -918,12 +918,13 @@ def decimal_to_float(data):
         return data
     
 def save_invoice(data,project, budget, proposal, saleAdvisor):
-    if data['startDate']:
-        date_created = datetime.strptime(data['startDate'], '%Y-%m-%d')
+    print(data)
+    if 'startDate' in data:
+        date_created = datetime.strptime(data['dateId'], '%Y-%m-%d')
     else:
         date_created = datetime.strptime(data['dateId'], '%Y-%m-%d')
         
-    if data['endDate']:
+    if 'endDate' in data :
         due_date = data['endDate']
     else:
         due_date = date_created + timedelta(days=90)
@@ -1065,6 +1066,23 @@ def ReviewQueryIA(query, model):
     
 def ReviewAnalisisSalesMetrics(context):
     promt = SalesMetricsAnalysis.replace('{context}', str(context))
+    chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                "role": "system",
+                "content": "you are a helpful assistant. Your responses should always be in json that have a type, content, model, table. Remember that the output must always be in this format: {\"type\": \"consulta\", \"content\": \"SELECT * FROM customer_project WHERE is_active = TRUE LIMIT 5;\", \"model\": \"BudgetEstimate\", \"table\": \"customer_invoiceprojects\"}"
+                },
+                {"role": "user",
+                "content": promt,
+                }
+            ],
+            stream=False,
+            response_format={"type": "json_object"},
+            model="deepseek-r1-distill-llama-70b",)
+    return chat_completion.choices[0].message.content
+
+def ReviewAnalisisDailyReport(context):
+    promt = DailyReportPrompt.replace('{context}', str(context))
     chat_completion = client.chat.completions.create(
             messages=[
                 {

@@ -1,8 +1,7 @@
-
 from django.contrib.auth.decorators import login_required
 from customer.models import Project
 from django.http import JsonResponse
-from ..models import ProposalProjects, BudgetEstimate, Project, InvoiceProjects
+from ..models import ProposalProjects, BudgetEstimate, Project, InvoiceProjects, Customer
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Q, F
@@ -303,3 +302,23 @@ def extend_due_date(request, proposal_id):
         return JsonResponse({'status': 'error', 'message': 'Proposal not found.'}, status=404)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+@login_required
+def get_customer(request):
+    try:
+        customers = Customer.objects.only('id', 'customer_type', 'first_name', 'last_name', 'company_name', 'email').order_by('first_name', 'company_name')
+        customers_list = []
+        for customer in customers:
+            customers_list.append({
+                'id': customer.id,
+                'customer_type': customer.customer_type,
+                'first_name': customer.first_name,
+                'last_name': customer.last_name,
+                'company_name': customer.company_name,
+                'email': customer.email,
+                'full_name': customer.get_full_name(),
+                'display_name': str(customer)  # This will use the __str__ method
+            })
+        return JsonResponse({'customers': customers_list})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

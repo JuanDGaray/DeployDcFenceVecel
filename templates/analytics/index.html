@@ -8,6 +8,17 @@
     <button class="btn btn-primary d-none" id='sendEmail' onclick="sendEmail()">
         <i class="bi bi-envelope"></i> Send to email <span class='spinner-border spinner-border-sm d-none' role="status" aria-hidden="true"></span>
     </button>
+    <div class="d-flex flex-column gap-2 d-none" id='sendEmailDailyContainer'>
+        <select class="form-select" id="selectEmailDaily">
+            <option value="">Select email</option>
+            {% for user in users %}
+                <option value="{{ user.id }}">{{ user.email }}</option>
+            {% endfor %}
+        </select>
+        <button class="btn btn-primary" id='sendEmailDaily' onclick="sendEmailDaily()">
+            <i class="bi bi-envelope"></i> Send to email <span class='spinner-border spinner-border-sm d-none' role="status" aria-hidden="true"></span>
+        </button>
+    </div>
     <section id='analytics-container'>
         
     </section>
@@ -73,11 +84,40 @@
         base64imgs[chartId] = base64Image;
         document.getElementById(chartId).src = base64Image;
     }
+    
     function changeCanvasToBase64(data) {
         drawDonutChart(data.customer_by_type, 'chart_figure_client');  
         drawDonutChart(data.proposals_by_status, 'chart_figure_proposal');
         drawDonutChart(data.projects_by_status, 'chart_figure_project');  
     }
+
+    function generateDailyAnalysis() {
+        ajaxGetRequest(`/analytics/daily_analysis/`, 
+        function successCallback(data) {
+            document.getElementById('analytics-container').innerHTML = data.html;
+            changeCanvasToBase64(data.context[0]);
+            document.getElementById('sendEmailDailyContainer').classList.remove('d-none');
+        }, function errorCallback(error) {
+            console.error('Failed to fetch notifications:', error);
+        });
+    }
+
+    function sendEmailDaily() {
+        const userIdEmailDaily = document.getElementById('selectEmailDaily').value;
+        if (userIdEmailDaily) {
+            const formData = new FormData();
+            ajaxGetRequest(`/analytics/send/gmail_daily/${userIdEmailDaily}/`, function(data) {
+                showAlert('Email sent successfully.', 'success');
+                console.log(data)
+            }, function(error) {
+                console.error('Failed to fetch notifications:', error);
+                showAlert('Failed to send email.', 'danger');
+            });
+        } else {
+            showAlert('Please generate a report before sending it.', 'warning');
+        }
+    }
+
     
     function generateReport(event, reportType) {
         userId = event.target.closest('.select-container').querySelector('select').value;

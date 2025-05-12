@@ -1,22 +1,52 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Account, Transaction, Invoice, InvoiceItem, Expense, Report
+from .models import Account, Transaction, Invoice, InvoiceItem, Expense, Report, Subaccount
 
-class UserRegistrationForm(UserCreationForm):
-    email = forms.EmailField(required=True)
-    
-    class Meta:
-        model = User
-        fields = ('username', 'email', 'password1', 'password2')
+from django import forms
+from .models import Account
 
 class AccountForm(forms.ModelForm):
     class Meta:
         model = Account
-        fields = ['name', 'account_type', 'description', 'initial_balance']
+        fields = ['account_code', 'subaccount_code', 'sub_subaccount_code', 'name', 'type_element', 'account_type', 'description', 'initial_balance']
+
+class SubaccountForm(forms.ModelForm):
+    class Meta:
+        model = Subaccount
+        fields = ['name', 'account_type', 'description', 'parent_account', 'initial_balance']
         widgets = {
-            'description': forms.Textarea(attrs={'rows': 3}),
-            'initial_balance': forms.NumberInput(attrs={'step': '0.01'}),
+            'name': forms.TextInput(attrs={
+                'class': 'form-control border-success rounded-3',
+                'placeholder': 'Enter subaccount name',
+            }),
+            'account_type': forms.Select(attrs={
+                'class': 'form-select border-success rounded-3',
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control border-success rounded-3',
+                'rows': 3,
+                'placeholder': 'Enter a brief description of the subaccount',
+            }),
+            'parent_account': forms.Select(attrs={
+                'class': 'form-select border-success rounded-3',
+            }),
+            'initial_balance': forms.NumberInput(attrs={
+                'class': 'form-control border-success rounded-3',
+                'step': '0.01',
+                'placeholder': 'Enter the initial balance for the subaccount',
+            }),
+        }
+        labels = {
+            'name': 'Subaccount Name',
+            'account_type': 'Account Type',
+            'description': 'Description',
+            'parent_account': 'Parent Account',
+            'initial_balance': 'Initial Balance',
+        }
+        help_texts = {
+            'parent_account': 'Select the account to which this subaccount belongs.',
+            'initial_balance': 'Specify the starting balance for this subaccount. Use decimal values if needed.',
         }
 
 class TransactionForm(forms.ModelForm):

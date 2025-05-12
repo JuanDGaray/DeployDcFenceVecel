@@ -16,4 +16,5 @@ urlpatterns = [
     path('get_array_projects/', views.utils_get.get_array_projects, name='get_array_projects'),
     path('get_notifications/', views.utils_get.get_notifications, name='get_notifications'),
     path('extend_due_date/<int:proposal_id>/', views.utils_get.extend_due_date, name='extend_due_date'), # Extend due date for a proposal
+    path('get_customer/', views.utils_get.get_customer, name='get_customer'),
     ]
