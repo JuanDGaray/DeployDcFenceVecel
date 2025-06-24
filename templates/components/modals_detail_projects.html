@@ -1,0 +1,145 @@
+<!-- Modal para Adjuntar Pago -->
+<div class="modal fade" id="attachPaymentModal" tabindex="-1" aria-labelledby="attachPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog p-1 d-flex justify-content-center">
+      <div class="modal-content p-1">
+        <div class="modal-header">
+          <h5 class="modal-title" id="attachPaymentModalLabel">Attach Payment to Invoice</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <!-- Formulario para adjuntar el pago -->
+          <form id="paymentForm" enctype="multipart/form-data">
+            <div class="row">
+              <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}">
+  
+              <div class="col-md-6 mb-3">
+                <label for="paymentAmount" class="form-label">Amount*</label>
+                <input type="number" class="form-control" id="paymentAmount" placeholder="Enter payment amount" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="paymentDate" class="form-label">Payment Date*</label>
+                <input type="date" class="form-control" id="paymentDate" required>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-success" id="confirmPaymentBtn">Attach Payment</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal para Confirmar Asignación de Accounting Manager -->
+  <div class="modal fade" id="confirmAccountingManagerModal" tabindex="-1" aria-labelledby="confirmAccountingManagerModalLabel" aria-hidden="true">
+    <div class="modal-dialog p-1 d-flex justify-content-center">
+      <div class="modal-content p-1">
+        <div class="modal-header">
+          <h5 class="modal-title" id="confirmAccountingManagerModalLabel">Confirm Accounting Manager Assignment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to assign <strong id="selectedManagerName"></strong> as Accounting Manager for this project? <br>  <br> This action cannot be undone and will affect the project status.</p>
+          <input type="hidden" id="selectedManagerId" value="">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-success" id="confirmAccountingManagerBtn">Yes, Assign</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal para Confirmar Asignación de Project Manager -->
+  <div class="modal fade" id="confirmProjectManagerModal" tabindex="-1" aria-labelledby="confirmProjectManagerModalLabel" aria-hidden="true">
+    <div class="modal-dialog p-1 d-flex justify-content-center">
+      <div class="modal-content p-1">
+        <div class="modal-header">
+          <h5 class="modal-title" id="confirmProjectManagerModalLabel">Confirm Project Manager Assignment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to assign <strong id="selectedProjectManagerName"></strong> as Project Manager for this project? <br>  <br> This action cannot be undone and will affect the project status.</p>
+          <input type="hidden" id="selectedProjectManagerId" value="">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-success" id="confirmProjectManagerBtn">Yes, Assign</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal para agregar comentario -->
+  <div class="modal fade" id="addCommentModal" tabindex="-1" aria-labelledby="addCommentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addCommentModalLabel">Add Comment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <div class="mb-3">
+              <label for="commentText" class="form-label">Comment</label>
+              <textarea class="form-control" id="commentText" rows="4" placeholder="Write your comment here... Use @username to mention someone"></textarea>
+              <div class="form-text">
+                <small>Tip: Type @ followed by a username to mention someone. They will receive a notification.</small>
+              </div>
+            </div>
+            <input type="hidden" id="parentCommentId" value="">
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="confirmCommentBtn">Add Comment</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+
+  <!-- Modal para agregar documento -->
+  <div class="modal fade" id="addDocumentModal" tabindex="-1" aria-labelledby="addDocumentModalLabel" aria-hidden="true">
+    <div class="modal-dialog" style="width: 600px;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title bg-white rounded-4" id="addDocumentModalLabel">Add Document Required</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form>
+            <input type="hidden" id="projectId" value="{{ project.id }}">
+            <div class="w-100 row d-flex justify-content-between flex-row">
+              <div class="w-50">
+                <label for="documentName" class="form-label">Document Name</label>
+                <input type="text" class="form-control" id="documentName" placeholder="Enter document name">
+              </div>
+              <div class="w-50">
+                <label for="documentType" class="form-label">Document Type</label>
+                <select class="form-control" id="documentType">
+                  <option value="Permit">Permit</option>
+                  <option value="SOV">SOV</option>
+                  <option value="Materials">Materials</option>
+                  <option value="Plans/Drawings">Plans/Drawings</option>
+                  <option value="Documents">Documents</option>
+                  <option value="COI Insurance">COI Insurance</option>
+                  <option value="NTC/PO">NTC/PO</option>
+                  <option value="Contract">Contract</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="documentDescription" class="form-label">Document Description</label>
+              <textarea class="form-control" id="documentDescription" rows="4" placeholder="Enter document description" required></textarea>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="confirmDocumentBtn">Add Document</button>
+        </div>
+      </div>
+    </div>
+  </div>

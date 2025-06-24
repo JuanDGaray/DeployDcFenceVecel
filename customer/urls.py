@@ -17,4 +17,12 @@ urlpatterns = [
     path('get_notifications/', views.utils_get.get_notifications, name='get_notifications'),
     path('extend_due_date/<int:proposal_id>/', views.utils_get.extend_due_date, name='extend_due_date'), # Extend due date for a proposal
     path('get_customer/', views.utils_get.get_customer, name='get_customer'),
-    ]
+    path('create_new_invoice_by_project_id/<int:project_id>/', views.utils_get.create_new_invoice_by_project_id, name='create_new_invoice_by_project_id'),
+    path('get_invoices/<int:page>/', views.utils_get.get_invoices, name='get_invoices'),    
+    path('update_invoice_status/<int:invoice_id>/', views.utils_get.update_invoice_status, name='update_invoice_status'),
+    path('get_customers_primary_info/', views.utils_get.get_customers_primary_info, name='get_customers_primary_info'),
+    path('get_documents_checklist/<int:project_id>/', views.utils_get.get_documents_checklist, name='get_documents_checklist'),
+    path('save_document_checklist/', views.planning_accounting.save_document_checklist, name='save_document_checklist'),
+    path('update_document_checklist/', views.planning_accounting.update_document_checklist, name='update_document_checklist'),
+    path('delete_document_checklist/', views.planning_accounting.delete_document_checklist, name='delete_document_checklist'),
+]   

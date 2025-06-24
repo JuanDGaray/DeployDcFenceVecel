@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 import os
 from pathlib import Path
-from re import template
 from dotenv import load_dotenv
 load_dotenv()
 import json
@@ -45,6 +44,8 @@ INSTALLED_APPS = [
     'analytics',
     
 ]
+
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -81,26 +82,24 @@ WSGI_APPLICATION = 'dcfence.wsgi.application'
 # # # Database
 # # # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 DATABASES = {
-     'default': {
+    'default': {
          'ENGINE': 'django.db.backends.postgresql',
-         'NAME': 'postgres',
-         'USER': 'postgres.tlxqprpsepzdgnupyroa',
-         'HOST': os.environ.get("SUPABASE_HOST"),
-         'PASSWORD': os.environ.get("SUPABASE_PASSWORD"),
-         'PORT': '6543',
-         'OPTIONS': {
+          'NAME': 'postgres',
+          'USER': 'postgres.tlxqprpsepzdgnupyroa',
+          'HOST': os.environ.get("SUPABASE_HOST"),
+          'PASSWORD': os.environ.get("SUPABASE_PASSWORD"),
+          'PORT': '6543',
+          'OPTIONS': {
              'sslmode': 'verify-full',
              'sslrootcert': os.path.join(BASE_DIR, 'prod-ca-2021.crt'),
-         },
-     }
+          },
+      }
  }
 
 # #Database local
-# DATABASES = {
-#       "default": {
-#           "ENGINE": "django.db.backends.sqlite3",
-#           "NAME": "db.sqlite3",
-#       }}
+#     "default": {
+#         "ENGINE": "django.db.backends.sqlite3",
+#         "NAME": "db.sqlite3",}}
 
 
 LOGIN_URL = '/signin/'
@@ -151,3 +150,4 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 WSGI_APPLICATION = 'dcfence.wsgi.app'
+

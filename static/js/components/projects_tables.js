@@ -84,7 +84,6 @@ async function loadProjects(page, filters = '', sort = '') {
 
 document.getElementById('paginationProjects').addEventListener('click', async function (event) {
     const target = event.target.closest('a.page-link');
-    console.log(target)
     if (!target) return;
 
     event.preventDefault();

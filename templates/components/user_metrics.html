@@ -1,33 +1,41 @@
 <!-- Customer Card -->
 <div style="width: 30%;">
     <div class="card shadow-sm rounded-4">
-        <div class="card-header d-flex align-items-center rounded-4 w-100 bg-light {% if not dataUser %}placeholder-glow{% endif %}">
-            <span
-                class="customer-avatar me-3 text-light rounded-circle {% if not dataUser %}placeholder{% endif %}"
-                style="font-size: 2rem; font-weight: bold; width: 50px; height: 50px;">
-                {% if dataUser %}
-                    {{ dataUser.user.first_name|first }}{{ dataUser.user.last_name|first }}
-                {% else %}
-                    &nbsp;
-                {% endif %}
-            </span>
-            <div class="d-flex flex-column justify-content-center w-50 {% if not dataUser %}placeholder-glow{% endif %}">
-                <h1 class="card-header-title fs-5 mb-0 p-0 border-0 w-100">
+        <div class="card-header d-flex align-items-center justify-content-between rounded-4 w-100 bg-light {% if not dataUser %}placeholder-glow{% endif %}">
+            <div class="d-flex flex-row align-items-center justify-content-start gap-2 w-100">
+                <span
+                    class="customer-avatar text-light rounded-circle {% if not dataUser %}placeholder{% endif %}"
+                    style="font-size: 2rem; font-weight: bold; width: 50px; height: 50px;">
                     {% if dataUser %}
-                        {{ dataUser.user.first_name }} {{ dataUser.user.last_name }}
+                        {{ dataUser.user.first_name|first }}{{ dataUser.user.last_name|first }}
                     {% else %}
-                        <span class="placeholder col-6 rounded-pill">&nbsp;</span>
+                        &nbsp;
                     {% endif %}
-                </h1>
-                <p class="fs-6 text-muted mb-0 w-100">
-                    {% if dataUser %}
-                        {{ dataUser.user.group }}
-                    {% else %}
-                        <span class="placeholder col-4 rounded-pill">&nbsp;</span>
-                    {% endif %}
-                </p>
+                </span>
+                <div class="d-flex flex-column justify-content-center w-50 {% if not dataUser %}placeholder-glow{% endif %}">
+                    <h1 class="card-header-title fs-5 mb-0 p-0 border-0 w-100">
+                        {% if dataUser %}
+                            <strong class="border-bottom border-2 mb-2">{{ dataUser.user.first_name }} {{ dataUser.user.last_name }}</strong>
+                            <br>
+                            <span class="text-muted text-center text-nowrap" style="font-size: 0.8rem;">{{ dataUser.user.groups.first.name }}</span>
+                        {% else %}
+                            <span class="placeholder col-6 rounded-pill">&nbsp;</span>
+                        {% endif %}
+                    </h1>
+                    <p class="fs-6 text-muted mb-0 w-100">
+                        {% if dataUser %}
+                            {{ dataUser.user.group }}
+                        {% else %}
+                            <span class="placeholder col-4 rounded-pill">&nbsp;</span>
+                        {% endif %}
+                    </p>
+                </div>
             </div>
+            <a href="/logout" class="nav-link">
+                <i class="fs-4 bi bi-box-arrow-right bg-danger text-white px-2 py-1 rounded-5"></i>
+            </a>
         </div>
+
         <div class="card-body">
             <p class="d-flex align-items-center mb-2">
                 <i class="bi bi-envelope me-2 text-primary"></i>

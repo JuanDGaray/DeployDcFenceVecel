@@ -22,23 +22,19 @@ def customers(request):
             - Renders the 'customers.html' template with a success or error message after form submission on POST.
     """
     # Retrieves the list of all customers and paginates it
-    clients_list = Customer.objects.all()
-    paginator = Paginator(clients_list, 20)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
-    sellers = User.objects.all()
+    
 
     if request.method == 'GET':
         # Renders the customer list view with pagination
+        sellers = User.objects.only('id', 'first_name', 'last_name', 'username').order_by('first_name')
         return render(request, 'customers.html', {
             'form': CustomerForm(),
-            'clients': page_obj,
-            'total_clients': clients_list.count(),
             'view': 'costumer',
             'sellers': sellers
         })
     else:  # If the request method is POST
         try:
+            sellers = User.objects.only('id', 'first_name', 'last_name', 'username').order_by('first_name')
             form = CustomerForm(request.POST)
             if form.is_valid():
                 new_client = form.save(commit=False)
@@ -52,9 +48,7 @@ def customers(request):
                 # If the form is invalid, reload the page with the error messages
                 return render(request, 'customers.html', {
                     'form': form,
-                    'clients': page_obj,
                     'warning': 'Invalid data. Please correct the errors.',
-                    'total_clients': clients_list.count(),
                     'view': 'costumer',
                     'sellers': sellers
                 })
@@ -63,8 +57,6 @@ def customers(request):
             return render(request, 'customers.html', {
                 'form': CustomerForm(),
                 'warning': f'Error: {e}',
-                'clients': page_obj,
-                'total_clients': clients_list.count(),
                 'view': 'costumer',
                 'sellers': sellers
             })

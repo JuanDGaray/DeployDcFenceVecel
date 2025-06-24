@@ -7,7 +7,7 @@
   <div class="spinner-border text-primary" role="status"></div>
   <span>Loading...</span>
 </div>
-<div class="container d-flex flex-column justify-content-center m-0 p-2">
+<div class="d-flex flex-column justify-content-center m-0 p-2 w-100">
   <!-- navigation.html -->
   <nav class="d-flex justify-content-between">
     <div>
@@ -29,6 +29,10 @@
       / <span>AIA 10%</span>
       <div id="project-container" data-project-id="{{ project.id }}"></div>
     </div>
+    <div class="buttons-container">
+      <button class="btn btn-primary" onclick="downloadTemplate()"> <i class="bi bi-download"></i> Download PDF</button>
+      <button class="btn btn-success" onclick="downloadTemplateXlsx()"> <i class="bi bi-file-earmark-spreadsheet"></i> Download Excel</button>
+    </div>
   </nav>
 
   <div class="row">
@@ -36,7 +40,7 @@
       <div id="budget-template-container"></div>
     </div>
   </div>
-  <div class="mt-4 d-flex d-row" id="action-container">
+  <div class="mt-4 d-flex d-row position-absolute bottom-0 mx-auto my-2" id="action-container">
     <div class="d-flex flex-row cd-flex d-row p-2 bg-secondary mx-2 rounded-2">
       <div class="d-flex flex-row">
         <div class="d-flex flex-row">
@@ -71,6 +75,18 @@
   <img src="{% static 'img/loading.gif' %}" alt="Cargando" class="img-fluid rounded-1" style="width: 100px; height: auto;">
 </div>
 <script>
+  let urlDownload = null;
+  let urlDownloadXlsx = null;
+  let urlPrint = null;
+  
+  function downloadTemplate() {
+      window.open(urlDownload, "_blank");
+    }
+
+  function downloadTemplateXlsx() {
+    window.open(urlDownloadXlsx, "_blank");
+  }
+  
   document.addEventListener("DOMContentLoaded", function () {
     const loadingContainer = document.getElementById("loading-container");
     const mainContent = document.getElementById("main-content");
@@ -78,7 +94,6 @@
     const actionContainer = document.getElementById("action-container");
     const projectId = projectContainer.dataset.projectId;
 
-    
     // Fetch para obtener datos del proyecto
     fetch(`/projects/${projectId}/new_aia10_xlxs_template/search/`)
       .then((response) => response.json())
@@ -92,6 +107,8 @@
           iframe.setAttribute("id", "iframe-budget");
           iframe.setAttribute("data-file-id", fileData.id);
           iframe.src = `https://docs.google.com/spreadsheets/d/${fileData.id}/edit?rm=minimal`;
+          urlDownload =  `https://docs.google.com/spreadsheets/d/${fileData.id}/export?format=pdf&portrait=false&gridlines=false&fitw=true&top_margin=0.1&bottom_margin=0.1&left_margin=0.1&right_margin=0.1&scale=4&size=letter`;
+          urlDownloadXlsx = `https://docs.google.com/spreadsheets/d/${fileData.id}/export?format=xlsx`;
           iframe.width = "100%";
           iframe.height = "100%";
           document
@@ -135,7 +152,7 @@
         type:'AIA10%'
       };
       
-      fetch(`/projects/{{project.id}}/aiaInvoice5/{{proposal.id}}`, {
+      fetch(`/projects/{{project.id}}/aiaInvoice10/{{proposal.id}}`, {
           method: 'POST',
           headers: {
               'Content-Type': 'application/json',

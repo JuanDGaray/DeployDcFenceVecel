@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from customer.models import Project
 from django.http import JsonResponse
-from ..models import ProposalProjects, BudgetEstimate, Project, InvoiceProjects, Customer
+from ..models import ProposalProjects, BudgetEstimate, Project, InvoiceProjects, Customer, commentsProject, ProjectHistory, Notification, ProjectDocumentRequirement
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Q, F
@@ -9,6 +9,7 @@ from django.utils import timezone
 from django.template.loader import render_to_string
 from django.contrib.auth.models import User
 import json
+from django.shortcuts import get_object_or_404
 
 from django.utils.timezone import now
 
@@ -44,7 +45,6 @@ def get_proposals(request, page=1):
 
             # Aplica todos los filtros en una sola consulta
             proposals = proposals.filter(filters)
-        print(request.GET.get('onlyOverdue'))
         if request.GET.get('onlyOverdue') == 'true' and request.GET.get('onlySoonDue') == 'false':
             proposals = proposals.filter(due_date__lt=timezone.now().date())
         elif request.GET.get('onlySoonDue') == 'true' and request.GET.get('onlyOverdue') == 'false':
@@ -79,7 +79,6 @@ def get_array_projects(request):
         if status not in projects_by_status:
             projects_by_status[status] = []
         projects_by_status[status].append(project)
-    print(projects_by_status)
     return JsonResponse(projects_by_status, safe=False)
 
 
@@ -90,12 +89,10 @@ def get_projects(request, page=1):
         allProjects = request.GET.get('all')
         sort = request.GET.get('sort')
 
-        if (sort == '' or sort == None) and not view == 'view_project':
+        if (sort == '' or sort == None):
             sort = '-id'
-        elif view == 'view_project' and (sort == '' or sort == None):
-            sort = 'project_name'
-            
-        print(sort)
+
+
         if view == 'view_project':
             projects = Project.objects.order_by(sort).values(
                 'id', 'project_name', 'status', 
@@ -110,7 +107,7 @@ def get_projects(request, page=1):
                 'customer__customer_type', 'customer__first_name', 'customer__last_name', 'customer__company_name'
             )
             numberProjects = 10
-        
+
         if request.GET.get('searchInputProjectId') or request.GET.get('searchInputProjectName') or request.GET.get('searchInputStatus') or request.GET.get('searchInputDueDate'):
             project_name = request.GET.get('searchInputProjectName', '')
             status = request.GET.get('searchInputStatus', '')
@@ -242,7 +239,6 @@ def get_proposal_quick_info(request, proposal_id):
 @login_required
 def update_proposal_status(request, proposal_id):
     try:
-        print(request.body)
         proposal = ProposalProjects.objects.get(id=proposal_id)
         proposal.status = json.loads(request.body).get('status')
         proposal.save()
@@ -269,8 +265,37 @@ def get_notifications(request):
             soon_due=Count(Case(When(due_date__gte=today, due_date__lt=soon_due_date, then=1)))
         )
         
+        # Obtener notificaciones de menciones y respuestas
+        mention_notifications = []
+        try:
+            # Intentar obtener notificaciones de menciones (solo si el modelo existe)
+            notifications = Notification.objects.filter(
+                recipient=request.user,
+                is_read=False
+            ).select_related('sender', 'project', 'comment').order_by('-date_created')[:5]
+            print(notifications)
+            for notification in notifications:
+                mention_notifications.append({
+                    'id': notification.id,
+                    'title': f'{notification.get_notification_type_display()}',
+                    'message': notification.message,
+                    'link': f'/projects/{notification.project.id}/',
+                    'type': 'primary',
+                    'date': notification.date_created.strftime('%M/%d %H:%M'),
+                    'sender': notification.sender.get_full_name() if notification.sender else 'System'
+                })
+        except Exception as e:
+            # Si el modelo Notification no existe aún, continuar sin menciones
+            print(f"Notification model not available: {e}")
+            pass
+        
         # Construcción de notificaciones
         notifications = []
+        
+        # Agregar notificaciones de menciones primero
+        notifications.extend(mention_notifications)
+        
+        # Agregar notificaciones de propuestas
         if proposal_counts['overdue'] > 0:
             notifications.append({
                 'title': 'Overdue Proposals',
@@ -322,3 +347,385 @@ def get_customer(request):
         return JsonResponse({'customers': customers_list})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+def create_new_invoice_by_project_id(request, project_id):
+
+        project = Project.objects.get(id=project_id)
+        has_invoice = InvoiceProjects.objects.filter(project_id=project_id).exists()
+        proposal = ProposalProjects.objects.filter(project_id=project_id).filter(status='approved')
+        proposal_list = []
+        for proposal in proposal:
+            proposal_list.append({
+                'id': proposal.id,
+                'project_id': proposal.project.id,
+                'budget_id': proposal.budget.id,
+                'date': proposal.date_created,
+                'project_name': proposal.project_name,
+                'status': proposal.status,
+                'due_date': proposal.due_date,
+                'created_by': proposal.sales_advisor.get_full_name(),
+                'total_proposal': proposal.total_proposal,
+                'billed': proposal.billed_proposal,
+            })
+        if has_invoice:
+            return JsonResponse({'status': 'success', 'message': 'This project already has an invoice.', 'proposal': proposal_list}, status=200)
+        else:
+            return JsonResponse({'status': 'success', 'message': 'Please select a proposal to create the invoice.', 'proposal': proposal_list}, status=200)
+
+@login_required
+def get_invoices(request, page=1):
+        view = request.GET.get('view')
+        allInvoices = request.GET.get('all')
+        sort = request.GET.get('sort')
+
+        if (sort == '' or sort == None) and not view == 'view_invoice':
+            sort = '-id'
+        elif view == 'view_invoice' and (sort == '' or sort == None):
+            sort = 'project_name'
+            
+        if view == 'view_invoice':
+            invoices = InvoiceProjects.objects.order_by(sort)
+            numberProjects = 15
+        else:
+            invoices = InvoiceProjects.objects.filter(sales_advisor=request.user).order_by(sort)
+            numberProjects = 10
+        
+        if request.GET.get('searchInputProjectId') or request.GET.get('searchInputProjectName') or request.GET.get('searchInputStatus') or request.GET.get('searchInputDueDate'):
+            invoice_name = request.GET.get('searchInputInvoiceName', '')
+            status = request.GET.get('searchInputStatus', '')
+            due_date = request.GET.get('searchInputDueDate', '')
+            invoice_id = request.GET.get('searchInputInvoiceId', '')
+            filters = Q()
+            if invoice_id:
+                filters &= Q(id=invoice_id)
+            if status:
+                filters &= Q(status=status)
+            if due_date:
+                filters &= Q(created_at=due_date)
+            # Aplica todos los filtros en una sola consulta
+            invoices = invoices.filter(filters)
+
+        # Paginación
+        if allInvoices == 'true':
+            numberProjects = 1000
+        paginator = Paginator(invoices, numberProjects)
+        page_obj = paginator.get_page(page)
+        
+        # Convert invoices to a list of dictionaries
+        invoices_list = []
+        for invoice in page_obj.object_list:
+            invoice_dict = {
+                'id': invoice.id,
+                'project_id': invoice.project.id,
+                'budget_id': invoice.budget.id,
+                'project_name': invoice.project.project_name,
+                'date_created': invoice.date_created.strftime('%Y-%m-%d'),
+                'due_date': invoice.due_date.strftime('%Y-%m-%d') if invoice.due_date else None,
+                'status': invoice.status,
+                'total_invoice': float(invoice.total_invoice),
+                'total_paid': float(invoice.total_paid),
+                'sales_advisor': invoice.sales_advisor.username if invoice.sales_advisor else None,
+                'customer_type': invoice.project.customer.customer_type,
+                'customer_name': invoice.project.customer.get_full_name() if invoice.project.customer.customer_type == 'individual' else invoice.project.customer.company_name,
+                'percentage_paid': invoice.percentage_paid
+            }
+            invoices_list.append(invoice_dict)
+
+        return JsonResponse({   
+            'invoices': invoices_list,
+            'has_more': page_obj.has_next(),
+            'total_pages': paginator.num_pages,
+            'total_invoices': paginator.count
+        })
+
+@login_required
+def update_invoice_status(request, invoice_id):
+    try:
+        invoice = InvoiceProjects.objects.get(id=invoice_id)
+        invoice.status = request.POST.get('status')
+        invoice.save()
+        return JsonResponse({'status': 'success', 'message': 'Status updated successfully.'})
+    except InvoiceProjects.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Invoice not found.'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+import time
+@login_required
+def get_customers_primary_info(request):
+    try:
+        page = request.GET.get('page', 1)
+        view = request.GET.get('view', 'view_customer')
+        allCustomers = request.GET.get('all', 'false')
+        sort = request.GET.get('sort', '-id')
+
+        if sort == 'false':
+            sort = '-id'
+
+        customers = Customer.objects.only('id', 'customer_type', 'first_name', 'last_name', 'company_name', 'email', 'phone', 'status', 'sales_advisor_id',  'sales_advisor__first_name', 'sales_advisor__last_name')
+
+        if view == 'view_customer':
+            numberCustomers = 15
+            customers = customers.order_by(sort)
+        else:
+            customers = customers.filter(sales_advisor=request.user)
+            numberCustomers = 10
+        
+        timeInitial = time.time()
+        if request.GET.get('searchInputCustomerId') or request.GET.get('searchInputCustomerName') or request.GET.get('searchInputCustomerType') or request.GET.get('searchInputCustomerEmail') or request.GET.get('searchInputSeller') or request.GET.get('searchInputCustomerCompanyOrContractor') or request.GET.get('searchInputCustomerStatus'):
+            customer_name = request.GET.get('searchInputCustomerName', '')
+            customer_company = request.GET.get('searchInputCustomerCompanyOrContractor', '')
+            customer_type = request.GET.get('searchInputCustomerType', '')
+            customer_email = request.GET.get('searchInputCustomerEmail', '')
+            status = request.GET.get('searchInputStatus', '')
+            seller = request.GET.get('searchInputSeller', '')
+            print(seller, type(seller)) 
+            filters = Q()
+            if customer_name:
+                filters &= Q(first_name__icontains=customer_name) | Q(last_name__icontains=customer_name) | Q(company_name__icontains=customer_name)
+            if customer_type:
+                filters &= Q(customer_type=customer_type)
+            if customer_email:
+                filters &= Q(email__icontains=customer_email)
+            if status:
+                filters &= Q(status=status)
+            if seller:
+                filters &= Q(sales_advisor_id=seller)
+            if customer_company:
+                filters &= Q(company_name__icontains=customer_company) | Q(first_name__icontains=customer_company) | Q(last_name__icontains=customer_company) | Q(contractor_name__icontains=customer_company)
+            customers = customers.filter(filters)
+        if allCustomers == 'true':
+            numberCustomers = 1000
+
+        paginator = Paginator(customers, numberCustomers)
+        page_obj = paginator.get_page(page)     
+        customers_list = []
+
+        customers_list = list(page_obj.object_list.values(
+            'id', 'customer_type', 'first_name', 'last_name', 'company_name', 'phone',
+            'email', 'status', 'sales_advisor_id', 'sales_advisor__first_name', 'sales_advisor__last_name'
+        ))
+        return JsonResponse({
+        'customers': customers_list,
+            'has_more': page_obj.has_next(),
+            'total_pages': paginator.num_pages,
+            'total_customers': paginator.count
+        })
+    except Exception as e:
+        print(e)
+        return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+def get_activity_project_and_comments(request, project_id):
+    try:
+        # Get activities and comments (always return all data)
+        activities = ProjectHistory.objects.filter(project_id=project_id).only('id', 'timestamp', 'user', 'action', 'description', 'changes', 'user__first_name', 'user__last_name', 'user__username').order_by('-timestamp')
+        comments = commentsProject.objects.filter(project_id=project_id).only('id', 'comment', 'user', 'date_created', 'date_updated', 'user__first_name', 'user__last_name', 'user__username', 'parent_comment', 'mentioned_users').order_by('-date_created')
+        
+        # Filter activities to exclude comment activities
+        activities = activities.exclude(action='COMMENT')
+        
+        # Combine activities and comments into a single list
+        combined_items = []
+        
+        # Add activities
+        for activity in activities:
+            combined_items.append({
+                'type': 'activity',
+                'id': activity.id,
+                'action': activity.action,
+                'action_display': activity.get_action_display(),
+                'description': activity.description,
+                'changes': activity.changes,
+                'user_name': f"{activity.user.first_name} {activity.user.last_name}".strip() if activity.user else "System",
+                'user_initials': f"{activity.user.first_name[0] if activity.user and activity.user.first_name else 'S'}{activity.user.last_name[0] if activity.user and activity.user.last_name else 'Y'}".upper() if activity.user else "SY",
+                'date_created': activity.timestamp.isoformat(),
+            })
+        
+        # Add comments
+        for comment in comments:
+            # Get replies for this comment
+            replies_data = []
+            if not comment.is_reply:  # Only get replies for parent comments
+                replies = comment.replies.all().order_by('date_created')
+                for reply in replies:
+                    replies_data.append({
+                        'id': reply.id,
+                        'comment': reply.comment,
+                        'user_name': f"{reply.user.first_name} {reply.user.last_name}".strip() if reply.user else "Unknown",
+                        'user_initials': f"{reply.user.first_name[0] if reply.user and reply.user.first_name else 'U'}{reply.user.last_name[0] if reply.user and reply.user.last_name else 'K'}".upper() if reply.user else "UK",
+                        'date_created': reply.date_created.isoformat(),
+                    })
+            
+            combined_items.append({
+                'type': 'comment',
+                'id': comment.id,
+                'comment': comment.comment,
+                'user_name': f"{comment.user.first_name} {comment.user.last_name}".strip() if comment.user else "Unknown",
+                'user_initials': f"{comment.user.first_name[0] if comment.user and comment.user.first_name else 'U'}{comment.user.last_name[0] if comment.user and comment.user.last_name else 'K'}".upper() if comment.user else "UK",
+                'date_created': comment.date_created.isoformat(),
+                'replies': replies_data,
+                'has_replies': comment.has_replies,
+            })
+        
+        # Sort combined items by date (newest first)
+        combined_items.sort(key=lambda x: x['date_created'], reverse=True)
+        
+        return JsonResponse({
+            'status': 'success',
+            'items': combined_items
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e)
+        }, status=500)
+
+@login_required
+def get_users_for_mentions(request):
+    """
+    Obtiene la lista de usuarios para autocompletado en menciones
+    """
+    try:
+        search_term = request.GET.get('q', '').lower()
+        
+        # Obtener usuarios activos que coincidan con el término de búsqueda
+        users = User.objects.filter(
+            is_active=True
+        ).filter(
+            Q(username__icontains=search_term) |
+            Q(first_name__icontains=search_term) |
+            Q(last_name__icontains=search_term)
+        )[:10]  # Limitar a 10 resultados
+        
+        users_data = []
+        for user in users:
+            users_data.append({
+                'id': user.id,
+                'username': user.username,
+                'full_name': user.get_full_name(),
+                'initials': (user.first_name[0] if user.first_name else '') + (user.last_name[0] if user.last_name else ''),
+                'email': user.email
+            })
+        
+        return JsonResponse({
+            'status': 'success',
+            'users': users_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e)
+        }, status=500)
+
+@login_required
+def mark_notification_as_read(request, notification_id):
+    """
+    Marca una notificación como leída
+    """
+    try:
+        notification = Notification.objects.get(id=notification_id, recipient=request.user)
+        notification.is_read = True
+        notification.save()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Notification marked as read'
+        })
+        
+    except Notification.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Notification not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e)
+        }, status=500)
+
+@login_required
+def mark_all_notifications_as_read(request):
+    """
+    Marca todas las notificaciones del usuario como leídas
+    """
+    try:
+        Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'All notifications marked as read'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e)
+        }, status=500)
+
+@login_required
+def delete_notification(request, notification_id):
+    """
+    Elimina una notificación cuando el usuario la ve
+    """
+    try:
+        notification = Notification.objects.get(id=notification_id, recipient=request.user)
+        notification.delete()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Notification deleted'
+        })
+        
+    except Notification.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Notification not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e)
+        }, status=500)
+
+@login_required
+def delete_all_notifications(request):
+    """
+    Elimina todas las notificaciones del usuario
+    """
+    try:
+        Notification.objects.filter(recipient=request.user).delete()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'All notifications deleted'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e)
+        }, status=500)
+    
+
+@login_required
+def get_documents_checklist(request, project_id):
+    try:
+        documents = ProjectDocumentRequirement.objects.filter(project_id=project_id).only('id', 'type_document', 'name', 'description', 'file_url', 'is_completed', 'added_by', 'project__accounting_manager')
+        request_user = request.user
+        request_user_is_accounting_manager_or_admin = request_user.is_superuser or request_user.is_staff or request_user == documents.first().project.accounting_manager
+        return JsonResponse({
+            'documents': list(documents.values('id', 'type_document', 'name', 'description', 'file_url', 'is_completed', 'added_by__first_name', 'added_by__last_name', 'project__accounting_manager')),
+            'status': 'success',
+            'request_user_is_accounting_manager_or_admin': request_user_is_accounting_manager_or_admin
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'error': str(e)
+        }, status=500)
+
+        

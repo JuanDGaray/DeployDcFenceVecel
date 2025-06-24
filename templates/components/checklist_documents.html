@@ -1,0 +1,233 @@
+<style>
+.document-item {
+    transition: background 0.2s;
+}
+.document-item:hover {
+    background: #f8f9fa;
+}
+.document-item-type.bg-success {
+    background: #28a745 !important;
+}
+.document-item-type.bg-warning {
+    background: #ffc107 !important;
+    color: #212529 !important;
+}
+.document-item-user {
+    font-size: 1.1rem;
+}
+</style>
+<div class="col-md-12 mt-4">
+<div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
+    <div class="card-header d-flex justify-content-between p-3 border-bottom bg-gray w-100">
+    <h1 class="card-header fs-4 rounded-4">Documents Checklist
+    </h1>
+    <input type="file" class="file-input-checklist" style="display: none;">
+    <button class="btn btn-primary" onclick="addDocumentType()"><i class="bi bi-plus-circle me-1"></i>Add Document</button>
+
+    </div>
+    <div class="card-body d-flex flex-row gap-3 flex-wrap m-3 justify-content-around" id="documentsChecklistContainer">
+        
+    </div>
+    
+</div>
+</div>
+<script>
+
+    function addDocumentType() {
+        $('#addDocumentModal').modal('show');
+        addListenerToConfirmDocumentBtn();
+        
+    }
+
+    function addListenerToConfirmDocumentBtn() {
+        document.getElementById('confirmDocumentBtn').addEventListener('click', function() { 
+            event.preventDefault();
+            saveDocumentChecklist();
+        });
+    }
+    function saveDocumentChecklist() {
+        const projectId = document.getElementById('projectId').value;
+        const documentName = document.getElementById('documentName').value;
+        const documentType = document.getElementById('documentType').value;
+        const documentDescription = document.getElementById('documentDescription').value;
+        const data = {
+            project_id: projectId,
+            name: documentName,
+            type_document: documentType,
+            description: documentDescription
+        };
+        ajaxPostRequest('/save_document_checklist/', data, '{{ csrf_token }}', function(data) { 
+            if (data.status === 'success') {
+                loadDocumentsChecklist();
+                $('#addDocumentModal').modal('hide');
+                showAlert(data.message, 'success');
+            } else {
+                showAlert(data.message, 'danger');
+
+        }
+    });
+    }
+
+    function loadDocumentsChecklist() {
+        let projectId = document.getElementById('projectId').value;
+       ajaxGetRequest(`/get_documents_checklist/${projectId}/`, function(data) {
+        console.log(data); 
+        if (data.status === 'success') {
+            if (data.documents.length > 0) {
+            const documents = data.documents;
+            const request_user_is_accounting_manager_or_admin = data.request_user_is_accounting_manager_or_admin;
+            renderDocumentsChecklist(documents, request_user_is_accounting_manager_or_admin);
+            } else {
+                const documentsContainer = document.getElementById('documentsChecklistContainer');
+                documentsContainer.innerHTML = '<div class="text-center p-4">No documents found, add a new document requirement</div>';
+            }
+        } else {
+            const documentsContainer = document.getElementById('documentsChecklistContainer');
+            documentsContainer.innerHTML = '<div class="alert alert-danger">Error loading documents</div>';
+        }
+       }, function(error) {
+        console.log(error);
+       });
+    }
+
+    function renderDocumentsChecklist(documents, request_user_is_accounting_manager_or_admin) {
+        const documentsContainer = document.getElementById('documentsChecklistContainer');
+        documentsContainer.innerHTML = '';
+        let html = '';
+        documents.forEach(document => {
+            html += `
+            <div class="d-flex flex-row">
+                <div class="document-item d-flex align-items-center gap-3  p-2 z-2 rounded-1" tabindex="0" style="${document.is_completed ? 'background-color: #c4f5cf;' : 'background-color: #f5efc4;'}">
+                    <div class="document-item-name flex-grow-1">
+                        <span class="fw-semibold d-flex align-items-center gap-2 flex-row text-truncate">
+                            ID${document.id} - ${document.name}
+                            <span class="badge border border-primary border-2 rounded-pill text-primary"> ${document.type_document}</span>
+                        </span>
+                        <div class="text-muted small bg-light rounded-2 px-2 py-1 border border-2 border-gray mt-2 text-truncate" style="width: 200px; font-size: 0.8rem;" title="${document.description || ''}">${document.description.length > 100 ? document.description.substring(0, 100) + '...' : document.description || ''}</div>
+                    </div>
+                    <div class="d-flex flex-row gap-2">
+
+                        <div class="document-item-user fs-6">
+                            <strong class="text-muted">Requested by:</strong>
+                            <br>
+                            <div class="d-flex align-items-center gap-1" style="font-size: 0.8rem;">
+                                <div class="document-item-user badge bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width:25px;height:25px;">
+                                    ${document.added_by__first_name[0] + document.added_by__last_name[0]}
+                                </div>
+                                <span class="text-muted" >${document.added_by__first_name.split(' ')[0] + ' ' + document.added_by__last_name.split(' ')[0]}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ${request_user_is_accounting_manager_or_admin ? `
+                <div class="d-flex flex-column justify-content-start">
+                    <div class="z-1" style="width: 40px; height: 100%; margin-left: -10px;">
+                        ${document.is_completed ? '<div class="badge bg-success"><button class="btn btn-sm btn-success " style="transform: translateX(5px);"><i class="bi bi-check-circle text-white"></i></button></div>' 
+                        : `<div class="badge bg-warning"><button class="bg-warning btn btn-sm btn-warning " style="transform: translateX(5px);" onclick="loadDocument(${document.id})"><i class="bi bi-upload text-white"></i></button></div>`}
+                    </div>
+                    <div class="z-1" style="width: 40px; height: 100%; margin-left: -10px;">
+                        <button class="btn btn-sm btn-danger" style="transform: translateX(5px);" onclick="deleteDocument(${document.id})"><i class="bi bi-trash text-white"></i></button>
+                    </div>
+                    <div class="z-1" style="width: 40px; height: 100%; margin-left: -10px;">
+                        <button  style="transform: translateX(5px);" ${! document.is_completed ? `disabled class="btn btn-sm btn-secondary" ` : 'class="btn btn-sm btn-primary"'} onclick="viewDocument('${document.file_url}')"><i class="bi bi-eye text-white"></i></button>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+            `;
+        });style="font-size: 0.8rem;"
+        documentsContainer.innerHTML = html;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadDocumentsChecklist();
+    });
+
+    function loadDocument(documentId) {
+        let folder_equal = document.querySelector('[data-folder-name="Permit"]');
+        if (!folder_equal) {
+            folder_equal = document.querySelector('[data-folder-name="Documents"]');
+            if (!folder_equal) {
+                showAlert('No folder found, review the in documents that folder exists', 'danger');
+                return;
+            }
+        }
+        const folder_id = folder_equal.getAttribute('data-folder');
+        const file_input = document.querySelector('.file-input-checklist');
+        file_input.click();
+        file_input.addEventListener('change', function(event) {
+            file_input.removeEventListener('change', function(event) {
+                event.preventDefault();
+            });
+            event.preventDefault();
+            const formData = new FormData();
+            if (file_input.files.length > 0 || file_input.files[0].name !== '') {
+                formData.append('file_name', file_input.files[0].name);
+                formData.append('mimeType', file_input.files[0].type);
+            } else {
+                showAlert("No se han seleccionado archivos.", 'warning');
+                return;} 
+            formData.append('folder_id', folder_id);
+            console.log('formData', formData.get('folder_id'));
+            const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+            fetch("/projects/upload-file/", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                uploadFile(file_input.files[0], data.uploadUrl, folder_id)
+                .then(result => {
+                    updateDocumentChecklist(documentId, result.id);
+                });
+            })
+            .catch(error => {
+                showAlert(error, 'danger');
+            });
+        });
+    }
+
+
+
+    function updateDocumentChecklist(documentId, dataInfo) {
+        const dataset = {
+            document_id: documentId,
+            file_url: dataInfo,
+            is_completed: true
+        };
+        console.log(dataset);
+        ajaxPostRequest('/update_document_checklist/', dataset, '{{ csrf_token }}', function(data) {
+            if (data.status === 'success') {
+                loadDocumentsChecklist();
+                showAlert(data.message, 'success');
+            } else {
+                showAlert(data.message, 'danger');
+            }
+        });
+    }
+
+    function deleteDocument(documentId) {
+
+            const dataset = {
+                document_id: documentId
+            };
+            deleteObjet(documentId);
+            ajaxPostRequest('/delete_document_checklist/', dataset, '{{ csrf_token }}', function(data) {
+                if (data.status === 'success') {
+                    loadDocumentsChecklist();
+                    showAlert(data.message, 'success');
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            });
+        }
+
+    function viewDocument(documentFileId) {
+        const url = `https://drive.google.com/file/d/${documentFileId}/preview`;
+        viewFile(url);
+        maximize();
+        }
+</script>

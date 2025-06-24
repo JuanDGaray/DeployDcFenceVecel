@@ -1,23 +1,20 @@
 {% load static%}
-<body>
-<button class="chat-bubble" id="chatBubble"></button>
-        <div class="chat-box" id="chatBox">
+<div class="chat-box relative" id="chatBox">
+    <div class="chat-box-container z-10">
         <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}" />
-        <div class="chat-box-header">Fenci</div>
-        <div class="chat-box-body" id="chatBody">
-            <div class="bubble-ia message-bubble">
-                Hola, ¿en qué puedo ayudarte hoy?
-            </div>
-        </div>
-        <div class="chat-box-footer d-flex flex-column">
-            <div class="d-flex align-items-center mb-2">
-                <select id="promptType" class="form-select me-2 bg-primary text-light fw-bold" style="font-size:.6rem; width: auto;">
+        <div class="chat-box-header d-flex flex-row justify-content-between">
+            <span class="chat-box-header-text d-flex flex-row align-items-center">
+                <span alt="Fenci Bot" class="chat-bubble-icon me-2"></span>
+                <span class="chat-box-header-text-icon"> <strong class="border-bottom border-white">Fenci AI Chat <span class="active-chat" style="background-color: #46fca7; box-shadow: 0 0 10px 0 rgba(70, 204, 166, 0.829); width: 10px;height: 10px;border-radius: 50%;display: inline-block;"></span> </strong> <br> <span style="font-size:.7rem;">Data Assistant</span></span>
+            </span>
+            <div class="d-flex align-items-center">
+                <select id="promptType" class="form-select me-2 bg-primary text-primary fw-bold border-0 bg-white bg-opacity-75 bg-blur" style="font-size:.6rem; width: auto;">
                     <option value="asistencia">Asistencia</option>
                     <option value="consulta">Consulta</option>
                 </select>
                 
                 <!-- Selector de opciones de consulta (se oculta inicialmente) -->
-                <select id="consultaOptions" class="form-select me-2 bg-success text-light fw-bold" style="font-size:.6rem; width: auto; display:none;">
+                <select id="consultaOptions" class="form-select me-2 text-success fw-bold border-0 bg-white bg-opacity-75 bg-blur" style="font-size:.6rem; width: auto; display:none;">
                     <option value="budgetestimate">Presupuestos</option>
                     <option value="projects">Clientes</option>
                     <option value="proposal">Proposal</option>
@@ -25,12 +22,24 @@
                     <option value="projects">Proyectos</option>
                 </select>
             </div>
-            <div class='d-flex flex-row'>
-            <!-- Área de texto para el mensaje -->
-            <textarea class="form-control me-2" style="font-size:.8rem; resize: none;" id="chatInput" rows="3" placeholder="Escribe tu mensaje..."></textarea>
-            <button id="sendMessage" class="btn btn-primary m-0">Enviar</button>
+        </div>
+        <div class="chat-box-body" id="chatBody">
+            <div class="bubble-ia message-bubble">
+                Hola, ¿en qué puedo ayudarte hoy?
             </div>
         </div>
+        <div class="chat-box-footer d-flex flex-column">
+            <textarea class="form-control position-relative" style="font-size:.8rem; resize: none;" id="chatInput" rows="3" placeholder="Escribe tu mensaje..."></textarea>
+            <button id="sendMessage" class="btn btn-primary m-3 position-absolute bottom-0 end-0">
+                <i class="bi bi-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+    <button class="chat-bubble z-3" id="chatBubble" style="overflow: hidden;">
+        <span alt="Fenci Bot" class="chat-bubble-icon" id="chatBubbleIcon">
+        </span>
+        <span class="py-2" id="chatBubbleText" class="chat-bubble-text"> Hablar a Fenci</span>
+    </button>
 </div>
 
 
@@ -52,45 +61,15 @@
 
     let messageHistory = [];
 
-
-    chatBubble.style.cursor = "move";
-
-    // Variables para el arrastre
-    let offsetX = 0;
-    let offsetY = 0;
-    let isDragging = false;
-
-    // Eventos de arrastre
-    chatBubble.addEventListener("mousedown", (e) => {
-        isDragging = true;
-        offsetX = e.clientX - chatBubble.offsetLeft;
-        offsetY = e.clientY - chatBubble.offsetTop;
-    });
-
-    document.addEventListener("mousemove", (e) => {
-        if (isDragging) {
-            const x = e.clientX - offsetX;
-            const y = e.clientY - offsetY;
-            chatBubble.style.left = `${x}px`;
-            chatBubble.style.top = `${y}px`;
-        }
-    });
-
-    document.addEventListener("mouseup", () => {
-        isDragging = false;
-    });
-
     chatBubble.addEventListener('click', () => {
-        if (chatBox.classList.contains('show')) {
-            chatBox.classList.remove('show');
-            setTimeout(() => {
-                chatBox.style.display = 'none'; // Esconde después de la transición
-            }, 400); // Duración de la transición
+        if (chatBox.style.transform === 'translateX(0%)') {
+            chatBox.style.transform = 'translateX(100%)';
+            document.getElementById("chatBubbleText").innerHTML = "Hablar a Fenci";
+            document.getElementById("chatBubbleIcon").style.filter = "brightness(1)";
         } else {
-            chatBox.style.display = 'flex'; // Mostrar antes de la transición
-            setTimeout(() => {
-                chatBox.classList.add('show');
-            }, 10); // Pequeño retraso para activar la transición
+            chatBox.style.transform = 'translateX(0%)';
+            document.getElementById("chatBubbleText").innerHTML = "Cerrar Chat";
+            document.getElementById("chatBubbleIcon").style.filter = "brightness(0.5)";
         }
     });
     let lastSender = null;
@@ -240,4 +219,4 @@
     }
     });
 </script>
-</body>
+

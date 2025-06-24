@@ -67,6 +67,7 @@ class Customer(models.Model):
     is_active = models.BooleanField("Active", default=True)
     sales_advisor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Sales Advisor")
     number_of_projects = models.PositiveIntegerField("Number of Projects", default=0)
+    profile_picture = models.ImageField(upload_to='profiles/', blank=True, null=True)
 
     class Meta:
         ordering = ['-date_created']
@@ -90,7 +91,6 @@ class Customer(models.Model):
             address_parts.append(self.zip_code)
         address_parts.append(self.country)
         return ", ".join(filter(None, address_parts))
-
 
 class BudgetEstimate(models.Model):
     FORMAT_CHOICES = [
@@ -177,7 +177,6 @@ class BudgetEstimate(models.Model):
             return (self.id_related_budget.profit_value or 0) + (self.id_related_budget.projected_cost or 0)
         except:
             return 0 
-
 
 class BudgetEstimateLaborData(models.Model):
     id = models.AutoField(primary_key=True, verbose_name="Labor ID")
@@ -300,6 +299,8 @@ class Project(models.Model):
     STATUS_PENDING_PAYMENT = 'pending_payment'
     STATUS_INACTIVE = 'inactive'
     STATUS_CANCELLED = 'cancelled'
+    STATUS_IN_PLANNING = 'planning_and_documentation'   
+    STATUS_IN_ACCOUNTING = 'in_accounting'
 
     STATUS_CHOICES = [
         (STATUS_NEW, 'New'),
@@ -308,6 +309,8 @@ class Project(models.Model):
         (STATUS_IN_NEGOTIATION, 'In Negotiation'),
         (STATUS_APPROVED, 'Approved'),
         (STATUS_NOT_APPROVED, 'Not Approved'),
+        (STATUS_IN_PLANNING, 'Planning and Documentation'),
+        (STATUS_IN_ACCOUNTING, 'In Accounting'),
         (STATUS_IN_PRODUCTION, 'In Production'),
         (STATUS_PENDING_PAYMENT, 'Pending Payment'),
         (STATUS_INACTIVE, 'Inactive'),
@@ -319,12 +322,13 @@ class Project(models.Model):
     project_name = models.CharField("Project Name", max_length=255)
     start_date = models.DateField(null=True, blank=True, verbose_name="Start Date")
     end_date = models.DateField(null=True, blank=True, verbose_name="End Date")
-    status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default=STATUS_NEW)
+    status = models.CharField("Status", max_length=30, choices=STATUS_CHOICES, default=STATUS_NEW)
     description = models.TextField("Project Description", null=True, blank=True)
     estimated_cost = models.DecimalField("Estimated Cost", max_digits=10, decimal_places=2, null=True, blank=True, default=0)
     actual_cost = models.DecimalField("Actual Cost", max_digits=10, decimal_places=2, null=True, blank=True, default=0)
     sales_advisor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Sales Advisor",  related_name='sales_advisor_projects')
     project_manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Project Manager", related_name='project_manager_projects')
+    accounting_manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Accounting Manager", related_name='accounting_manager_projects')
     created_at = models.DateTimeField("Created At", auto_now_add=True)
     updated_at = models.DateTimeField("Updated At", auto_now=True)
     city = models.CharField("City", max_length=100, default="Hialeah")
@@ -343,6 +347,56 @@ class Project(models.Model):
         return self.proposals.filter(status=ProposalProjects.STATUS_APPROVED).first()
 
 
+class ProjectDocumentRequirement(models.Model):
+    TYPE_DOCUMENT_CHOICES = [
+        ('Permit', 'Permit'),
+        ('SOV', 'SOV'),
+        ('Materials', 'Materials'),
+        ('Plans/Drawings', 'Plans/Drawings'),
+        ('Documents', 'Documents'),
+        ('COI Insurance', 'COI Insurance'),
+        ('NTC/PO', 'NTC/PO'),
+        ('Contract', 'Contract'),
+    ]
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='document_requirements')
+    type_document = models.CharField(max_length=100)
+    name = models.CharField(max_length=100)
+    description = models.TextField(null=True, blank=True)
+    file_url = models.CharField(max_length=255, null=True, blank=True)
+    is_completed = models.BooleanField(default=False)
+    added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.project.project_name} - {self.name}"
+
+
+class commentsProject(models.Model):
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='comments')
+    comment = models.TextField()
+    parent_comment = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
+    mentioned_users = models.ManyToManyField(User, related_name='mentions', blank=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="User", blank=True)
+    date_created = models.DateTimeField("Date Created", default=timezone.now)
+    date_updated = models.DateTimeField("Date Updated", auto_now=True)
+    
+    class Meta:
+        verbose_name = "Comment"
+        verbose_name_plural = "Comments"
+        ordering = ['-date_created']
+    
+    def __str__(self):
+        return f'Comment {self.id}'
+    
+    @property
+    def has_replies(self):
+        """Returns True if this comment has replies"""
+        return self.replies.exists()
+    
+    @property
+    def is_reply(self):
+        """Returns True if this comment is a reply to another comment"""
+        return self.parent_comment is not None
 
 class InvoiceProjects(models.Model):
     STATUS_SENT = 'sent'
@@ -389,8 +443,20 @@ class InvoiceProjects(models.Model):
         if self.total_invoice > 0:
             return round((self.total_paid / self.total_invoice) * 100, 2)
         return 0
-    
 
+class PaymentsReceived(models.Model):
+    invoice = models.ForeignKey(InvoiceProjects, on_delete=models.CASCADE, related_name='payments')
+    amount = models.DecimalField(max_digits=15, decimal_places=2)
+    date = models.DateTimeField(default=timezone.now)
+    description = models.TextField(blank=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Sales Advisor", blank=True)
+    account = models.ForeignKey('accounting.Account', on_delete=models.SET_NULL, null=True, verbose_name="Account", blank=True)
+    payment_method = models.CharField(max_length=255, null=True, blank=True)
+    id_transaction = models.CharField(max_length=255, null=True, blank=True)
+    additional_info = models.TextField(blank=True)
+    is_receipt = models.BooleanField(default=False)
+    data_receipt = models.CharField(max_length=255, null=True, blank=True)
+    
 class ProposalProjects(models.Model):
     # Estados del invoice
     STATUS_NEW = 'new'
@@ -504,8 +570,6 @@ class ProjectBudgetXLSX(models.Model):
     total_budget = models.DecimalField("Total Budget", max_digits=10, decimal_places=2, default=0)
     xlsx_id = models.CharField("Folder ID", max_length=255, null=True, blank=True)
 
-
-
 class TaskProject(models.Model):
     project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='tasks')
     gantt_data = models.JSONField(default=list)
@@ -513,8 +577,6 @@ class TaskProject(models.Model):
     def __str__(self):
         return f"TaskProject for {self.project.project_name}"
     
-
-
 class RealCostProject(models.Model):
     project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='cost_items')
     items = models.JSONField(default=list)
@@ -525,51 +587,6 @@ class RealCostProject(models.Model):
 
 
 
-from django.contrib.auth.models import AbstractUser
-from django.db import models
-
-class Role(models.Model):
-    ROLE_TYPES = [
-        ('admin', 'Administrador'),
-        ('sales', 'Vendedor'),
-        ('production', 'Producción'),
-        ('other', 'Otro'),
-    ]
-
-    name = models.CharField(max_length=50)
-    description = models.TextField(blank=True, null=True)
-    hierarchy_level = models.PositiveIntegerField(default=1)
-    role_type = models.CharField(max_length=20, choices=ROLE_TYPES, default='other')
-
-    def __str__(self):
-        return f"{self.name} (Nivel {self.hierarchy_level})"
-
-    class Meta:
-        ordering = ['hierarchy_level']
-
-
-class User(AbstractUser):
-    role = models.ForeignKey(Role, on_delete=models.SET_NULL, null=True, related_name="users")
-    phone_number = models.CharField(max_length=15, blank=True, null=True)
-    address = models.TextField(blank=True, null=True)
-    profile_picture = models.ImageField(upload_to="profile_pictures/", blank=True, null=True)
-
-    # Resolviendo conflictos con `related_name`
-    groups = models.ManyToManyField(
-        "auth.Group",
-        related_name="custom_user_set",  # Cambiar el related_name por uno único
-        blank=True,
-    )
-    user_permissions = models.ManyToManyField(
-        "auth.Permission",
-        related_name="custom_user_permissions_set",  # Cambiar el related_name por uno único
-        blank=True,
-    )
-
-    def __str__(self):
-        return f"{self.username} ({self.role.name if self.role else 'Sin Rol'})"
-
-
 class ProjectHistory(models.Model):
     """
     Modelo para registrar el historial de cambios en los proyectos.
@@ -577,15 +594,15 @@ class ProjectHistory(models.Model):
     """
     # Tipos de acciones que se pueden registrar
     ACTION_TYPES = [
-        ('CREATE', 'Creación'),
-        ('UPDATE', 'Actualización'),
-        ('DELETE', 'Eliminación'),
-        ('STATUS_CHANGE', 'Cambio de Estado'),
-        ('BUDGET_CHANGE', 'Cambio de Presupuesto'),
-        ('PROPOSAL_CHANGE', 'Cambio de Propuesta'),
-        ('INVOICE_CHANGE', 'Cambio de Factura'),
-        ('COMMENT', 'Comentario'),
-        ('OTHER', 'Otro'),
+        ('CREATE', 'Creation'),
+        ('UPDATE', 'Update'),
+        ('DELETE', 'Deletion'),
+        ('STATUS_CHANGE', 'Status Change'),
+        ('BUDGET_CHANGE', 'Budget Change'),
+        ('PROPOSAL_CHANGE', 'Proposal Change'),
+        ('INVOICE_CHANGE', 'Invoice Change'),
+        ('COMMENT', 'Comment'),
+        ('OTHER', 'Other'),
     ]
     
     # Campos del modelo
@@ -639,121 +656,26 @@ class ProjectHistory(models.Model):
         history.save()
         return history
 
-# Señales para registrar automáticamente los cambios en el historial
-@receiver(post_save, sender='customer.Project')
-def log_project_changes(sender, instance, created, **kwargs):
-    """
-    Registra automáticamente los cambios en los proyectos.
-    """
-    from django.contrib.contenttypes.models import ContentType
+class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('mention', 'Mention'),
+        ('reply', 'Reply'),
+        ('project_update', 'Project Update'),
+        ('status_change', 'Status Change'),
+    ]
     
-    # Determinar el tipo de acción
-    action = 'CREATE' if created else 'UPDATE'
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='sent_notifications')
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='notifications')
+    comment = models.ForeignKey(commentsProject, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    date_created = models.DateTimeField(auto_now_add=True)
     
-    # Obtener el usuario actual (si está disponible)
-    from django.contrib.auth import get_user
-    user = get_user(kwargs.get('request', None)) if 'request' in kwargs else None
     
-    # Si no hay usuario, intentar obtener el usuario del sistema
-    if not user:
-        try:
-            user = User.objects.get(username='system')
-        except User.DoesNotExist:
-            # Si no existe un usuario 'system', usar el primer superusuario o None
-            user = User.objects.filter(is_superuser=True).first()
+    class Meta:
+        ordering = ['-date_created']
     
-    # Registrar el cambio en el historial
-    ProjectHistory.log_change(
-        project=instance,
-        user=user,
-        action=action,
-        description=f"{'Creación' if created else 'Actualización'} del proyecto {instance.project_name}",
-        content_object=instance
-    )
-
-@receiver(post_save, sender='customer.BudgetEstimate')
-def log_budget_changes(sender, instance, created, **kwargs):
-    """
-    Registra automáticamente los cambios en los presupuestos.
-    """
-    # Obtener el usuario actual (si está disponible)
-    from django.contrib.auth import get_user
-    user = get_user(kwargs.get('request', None)) if 'request' in kwargs else None
-    
-    # Si no hay usuario, intentar obtener el usuario del sistema
-    if not user:
-        try:
-            user = User.objects.get(username='system')
-        except User.DoesNotExist:
-            # Si no existe un usuario 'system', usar el primer superusuario o None
-            user = User.objects.filter(is_superuser=True).first()
-    
-    # Determinar el tipo de acción
-    action = 'CREATE' if created else 'UPDATE'
-    
-    # Registrar el cambio en el historial
-    ProjectHistory.log_change(
-        project=instance.project,
-        user=user,
-        action='BUDGET_CHANGE',
-        description=f"{'Creación' if created else 'Actualización'} del presupuesto para el proyecto {instance.project.project_name}",
-        content_object=instance
-    )
-
-@receiver(post_save, sender='customer.ProposalProjects')
-def log_proposal_changes(sender, instance, created, **kwargs):
-    """
-    Registra automáticamente los cambios en las propuestas.
-    """
-    # Obtener el usuario actual (si está disponible)
-    from django.contrib.auth import get_user
-    user = get_user(kwargs.get('request', None)) if 'request' in kwargs else None
-    
-    # Si no hay usuario, intentar obtener el usuario del sistema
-    if not user:
-        try:
-            user = User.objects.get(username='system')
-        except User.DoesNotExist:
-            # Si no existe un usuario 'system', usar el primer superusuario o None
-            user = User.objects.filter(is_superuser=True).first()
-    
-    # Determinar el tipo de acción
-    action = 'CREATE' if created else 'UPDATE'
-    
-    # Registrar el cambio en el historial
-    ProjectHistory.log_change(
-        project=instance.project,
-        user=user,
-        action='PROPOSAL_CHANGE',
-        description=f"{'Creación' if created else 'Actualización'} de la propuesta para el proyecto {instance.project.project_name}",
-        content_object=instance
-    )
-
-@receiver(post_save, sender='customer.InvoiceProjects')
-def log_invoice_changes(sender, instance, created, **kwargs):
-    """
-    Registra automáticamente los cambios en las facturas.
-    """
-    # Obtener el usuario actual (si está disponible)
-    from django.contrib.auth import get_user
-    user = get_user(kwargs.get('request', None)) if 'request' in kwargs else None
-    
-    # Si no hay usuario, intentar obtener el usuario del sistema
-    if not user:
-        try:
-            user = User.objects.get(username='system')
-        except User.DoesNotExist:
-            # Si no existe un usuario 'system', usar el primer superusuario o None
-            user = User.objects.filter(is_superuser=True).first()
-    
-    # Determinar el tipo de acción
-    action = 'CREATE' if created else 'UPDATE'
-    
-    # Registrar el cambio en el historial
-    ProjectHistory.log_change(
-        project=instance.project,
-        user=user,
-        action='INVOICE_CHANGE',
-        description=f"{'Creación' if created else 'Actualización'} de la factura para el proyecto {instance.project.project_name}",
-        content_object=instance
-    )
+    def __str__(self):
+        return f'Notification for {self.recipient.username} - {self.notification_type}'

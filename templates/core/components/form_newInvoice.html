@@ -1,41 +1,60 @@
-<div class="row d-flex justify-content-between flex-row">
-    <div class="col-md-4">      
-        <label for="project">Project</label>
+<div class="row d-flex flex-row">
+    <div class="col-md-5">      
         <select name="project" class="form-select" id="projectSelect" onchange="handleProjectChange(this)"> 
             <option value="">Select Project</option>
         </select>
     </div>
-    <div class="col-md-4">
-        <label for="customer">Customer</label>
-        <select name="customer" class="form-select" id="customer">
+    <div class="col-md-5">
+        <select name="customer" class="form-select" id="customer" readonly disabled>
             <option value="">Select Customer</option>
         </select>
     </div>
-    <div class="col-md-3">
-        <label for="typeInvoice">Type Invoice</label>
-        <select name="typeInvoice" class="form-select" id="typeInvoice">
-            <option value="">Select Type Invoice</option>
-            <option value="MDCP">MDCP</option>
-            <option value="BROD">BROD</option>
-            <option value="AIA5">AIA5</option>
-            <option value="AIA6">AIA10</option>
-        </select>
-    </div>
-    <button class="btn btn-primary col-md-1" id="loadInvoiceButton">Load Invoice</button>
+    <button class="btn btn-primary col-md-2" id="loadInvoiceButton" onclick="showInfoProject()">Load Proposals</button>
 </div>
 
+<div id="table-proposal" class="d-none w-100 d-flex flex-column justify-content-center align-items-center">
+    <span id="info-project" class="text-center w-100 m-2"></span>
+    <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
+        <div class="card-header d-flex justify-content-between p-3 border-bottom bg-gray">
+        <h1 class="card-header fs-4 rounded-4">Proposals</h1>
+        <button class="btn btn-primary" id="reloadProposals" onclick="reloadProposal()"><i class="bi bi-arrow-clockwise"></i></button>
+    </div>
+        <div class="card-body">
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <th>Proposal ID</th>
+                <th>Budget ID</th>
+                <th>Date</th>
+                <th>Due Date</th>
+                <th>Create by</th>
+                <th>Status</th>
+                <th>Amount</th>
+                <th colspan="2">Billed</th>
+            </tr>
+            </thead>
+            <tbody id="table-proposal-body">
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
 <script>
     function showSelectProject() {
         ajaxGetRequest(`/get_array_projects/`, function (data) {
             const projectSelect = document.getElementById('projectSelect');
             if (typeof data === 'object' && data !== null) {
                 let projectOptions = '';
+                // Estados que consideramos "en edición"
+                const editingStatus = ['in_production'];
                 for (const [status, projects] of Object.entries(data)) {
-                    const groupOptions = projects.map(project => {
-                        const sanitizedProjectName = project.project_name.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                        return `<option value="${project.id}" data-customer-id="${project.customer_id}">${sanitizedProjectName}</option>`;
-                    }).join('');
-                    projectOptions += `<optgroup label="${status}">${groupOptions}</optgroup>`;
+                    if (editingStatus.includes(status)) {
+                        const groupOptions = projects.map(project => {
+                            const sanitizedProjectName = project.project_name.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                            return `<option value="${project.id}" data-customer-id="${project.customer_id}">${sanitizedProjectName}</option>`;
+                        }).join('');
+                        projectOptions += `<optgroup label="${status}">${groupOptions}</optgroup>`;
+                    }
                 }
                 projectSelect.innerHTML = `<option value="" disabled selected>Select a project</option>${projectOptions}`;
             } else {
@@ -46,23 +65,135 @@
     showSelectProject();
 
     function handleProjectChange(selectElement) {
-        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const target = selectElement.target;
+        try {
+            const selectedOption = target.options[target.selectedIndex];
+            console.log(target);
+            console.log(selectedOption);
         if (selectedOption && selectedOption.dataset.customerId) {
-            const customerId = selectedOption.dataset.customerId;
-            const customerSelect = document.getElementById('customer');
-            customerSelect.value = customerId;
+                const customerId = selectedOption.dataset.customerId;
+                const customerSelect = document.getElementById('customer-project');
+                customerSelect.value = customerId;
+            }
+        } catch (error) {
+            console.log(error);
         }
     }
 
+    function reloadProposal() {
+        const tableProposal = document.getElementById('table-proposal');
+        tableProposal.classList.add('d-none');
+        showInfoProject();
+    }
+
+    function showInfoProject() {
+        const infoProject = document.getElementById('info-project');
+        const projectId = document.getElementById('projectSelect').value;
+        const tableProposalBody = document.getElementById('table-proposal-body');
+        const tableProposal = document.getElementById('table-proposal');
+        ajaxGetRequest(`/create_new_invoice_by_project_id/${projectId}/ `, function (data) {
+            infoProject.innerHTML = data.message;
+            if (data.status === 'success') {
+                if (tableProposal.classList.contains('d-none')) {
+                    tableProposal.classList.remove('d-none');
+                }
+                infoProject.classList.add('text-success');
+                tableProposalBody.innerHTML = data.proposal.map(proposal => {
+                    // Formatear fecha en formato corto (MM/dd/yy)
+                    const formatDate = (dateStr) => {
+                        const date = new Date(dateStr);
+                        return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
+                    };
+                    
+                    // Formatear moneda en USD
+                    const formatCurrency = (amount) => {
+                        return new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: 'USD'
+                        }).format(amount);
+                    };  
+
+                    return `<tr>
+                        <td> <a href="/projects/${proposal.project_id}" target="_blank">${proposal.id}</a></td>
+                        <td><a href="/projects/${proposal.project_id}/view_budget/${proposal.budget_id}" target="_blank">${proposal.budget_id}</a></td>
+                        <td>${formatDate(proposal.date)}</td>
+                        <td>${formatDate(proposal.due_date)}</td>
+                        <td>${proposal.created_by}</td>
+                        <td>${proposal.status}</td>
+                        <td>${formatCurrency(proposal.total_proposal)}</td>
+                        <td>${formatCurrency(proposal.billed)}</td>
+                        <td>
+                           <button 
+                            class="btn bg-light border border-2 btn-sm rounded-2 px-1 py-0 dropdown-toggle  ${proposal.billed >= proposal.total_proposal ? 'd-none' : ''}" 
+                            type="button" 
+                           
+                            id="dropdownMenuButton" 
+                            data-bs-toggle="dropdown" 
+                            aria-expanded="false" 
+                            title="Make Budget" 
+                            data-bs-toggle="tooltip" 
+                            data-bs-placement="bottom" 
+                            data-bs-custom-class="custom-tooltip" 
+                            data-bs-title="Make invoice">
+                            <i class="bi bi-cash-stack" style="font-size: 15px;"></i>
+                                    <ul class="dropdown-menu p-0" aria-labelledby="dropdownMenuButton">
+                                        <li><a class="dropdown-item" onclick="openInvoiceMDCP(${proposal.id}, ${proposal.project_id})">Invoice MDCP</a></li>
+                                        <li><a class="dropdown-item" onclick="openInvoiceBROD(${proposal.id}, ${proposal.project_id})">Invoice BROD</a></li>
+                                        <li><a class="dropdown-item" onclick="openInvoiceAIA5(${proposal.id}, ${proposal.project_id})">Invoice AIA 5%</a></li>
+                                        <li><a class="dropdown-item" onclick="openInvoiceAIA10(${proposal.id}, ${proposal.project_id})">Invoice AIA 10%</a></li>
+                                    </ul>
+                            </button>
+                             ${proposal.billed > 0 ? '<a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="You cannot add more invoices because the total of the proposal has already been invoiced." aria-label="Info" data-bs-original-title="Rejected Proposal"><i class="bi bi-info-circle text-danger" style="font-size: 15px;"></i></a>' : ''}
+                        </td>
+                    </tr>`;
+                }).join('');
+            }
+        });
+    }
+
     function showSelectCustomer() {
-        const selectCustomer = document.getElementById('customer');
+        const selectsustomers= document.getElementById('customer');
         ajaxGetRequest(`/get_customer/`, function (data) {
             console.log(data)
             const customerOptions = data.customers.map(customer => 
                 `<option value="${customer.id}">${customer.first_name} ${customer.last_name} 🏢 ${customer.company_name} 📧 ${customer.email}</option>`
             ).join('');
-            selectCustomer.innerHTML = `<option value="" disabled selected>Select a customer</option>${customerOptions}`;
+            selectsustomers.innerHTML = `<option value="" disabled selected>Select a customer</option>${customerOptions}`;
         });
     }
     showSelectCustomer();
+
+    function sendPaymentReceived() {
+        const paymentReceived = document.getElementById('paymentReceived');
+        paymentReceived.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(paymentReceived);
+            const data = Object.fromEntries(formData);
+            console.log(data);
+            ajaxPostRequest(`/add_payment_received/`, data, function (data) {
+                console.log(data);
+                if (data.status === 'success') {
+                    paymentReceived.reset();
+                } else {
+                    paymentReceived.classList.add('was-validated');
+                } 
+            });
+        });
+    }
+
+    function openInvoiceMDCP(proposalId, projectId) {
+        window.open(`/projects/${projectId}/mdcpInvoice/${proposalId}`, '_blank');
+    }
+
+    function openInvoiceBROD(proposalId, projectId) {
+        window.open(`/projects/${projectId}/broadInvoice10/${proposalId}`, '_blank');
+    }
+    
+    function openInvoiceAIA5(proposalId, projectId) {
+        window.open(`/projects/${projectId}/aiaInvoice5/${proposalId}`, '_blank');
+    }
+
+    function openInvoiceAIA10(proposalId, projectId) {
+        window.open(`/projects/${projectId}/aiaInvoice10/${proposalId}`, '_blank');
+    }
 </script>

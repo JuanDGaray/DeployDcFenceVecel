@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
-
+{% load static %}
 {% block title %}DC FENCE | Accounting{% endblock %}
+
 
 {% block extra_css %}
 <style>
@@ -34,8 +35,8 @@
     .bi {
         color: #333;
     }
-</style>
-{% endblock %}
+    </style>
+    {% endblock %}
 
 {% block content %}
 <div class="container mt-4">
@@ -70,7 +71,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link bg-white bg-opacity-75 px-3 py-2 rounded-3 mx-1" href="{% url 'invoice-list' %}">
+                        <a class="nav-link bg-white bg-opacity-75 px-3 py-2 rounded-3 mx-1" href="">
                             <i class="bi bi-receipt"></i> Invoices
                         </a>
                     </li>
@@ -95,7 +96,7 @@
                                 </a>
                             </li>
                             <li>
-                                <a class="dropdown-item" data-bs-toggle="offcanvas" data-bs-target="#paymentsReceivedCanvas" aria-controls="paymentsReceivedCanvas">
+                                <a class="dropdown-item" id="paymentsReceivedButton" data-bs-toggle="offcanvas" data-bs-target="#paymentsReceivedCanvas" aria-controls="paymentsReceivedCanvas" onClick="loadPaymentsReceived()"                `>
                                     <i class="bi bi-wallet2"></i> + Add payments received
                                 </a>
                             </li>
@@ -121,8 +122,10 @@
     {% block accounting_content %}
     {% endblock %}
 
+
+
     <!-- Sales Invoice Offcanvas -->
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="salesInvoiceCanvas" aria-labelledby="salesInvoiceCanvasLabel" style="background-color: #f8f9fa; width: 50%;">
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="salesInvoiceCanvas" aria-labelledby="salesInvoiceCanvasLabel" style="background-color: #f8f9fa; width: 70%;">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="salesInvoiceCanvasLabel">Add Sales Invoice</h5>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
@@ -133,12 +136,14 @@
     </div>
 
     <!-- Payments Received Offcanvas -->
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="paymentsReceivedCanvas" aria-labelledby="paymentsReceivedCanvasLabel">
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="paymentsReceivedCanvas" aria-labelledby="paymentsReceivedCanvasLabel"  style="background-color: #f8f9fa; width: 80%;">
         <div class="offcanvas-header">
             <h5 class="offcanvas-title" id="paymentsReceivedCanvasLabel">Add Payments Received</h5>
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
-        
+        <div class="offcanvas-body">
+            {% include 'core/components/payments_received.html' %}
+        </div>
     </div>
 
     <!-- Quotes Offcanvas -->
@@ -162,5 +167,13 @@
             <!-- Add your purchase invoice form here -->
         </div>
     </div>
+
+    {% include 'components/form_payment_invoice.html' %}
 </div>
+
+<script src="{% static 'js/components/invoice_table.js' %}"></script>
+<script src="{% static 'js/components/form_payment_invoice.js' %}"></script>
 {% endblock %}
+
+
+

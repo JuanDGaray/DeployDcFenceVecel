@@ -17,7 +17,7 @@ def home(request):
     """
     if request.user.is_authenticated:
         # Si el usuario está autenticado, redirigir a la página de 'customers'
-        return redirect('customers')  # Reemplaza 'customers' con el nombre de la URL que apunta a la vista de clientes.
+        return redirect('home')  # Reemplaza 'customers' con el nombre de la URL que apunta a la vista de clientes.
     else:
         # Si el usuario no está autenticado, mostrar la página de inicio de sesión
         return render(request, "signin.html", {'form': AuthenticationForm()})
@@ -42,7 +42,7 @@ def signup(request):
             try:
                 user = form.save()  # Saves the new user to the database
                 login(request, user)  # Authenticates and logs in the user after registration
-                return redirect('customers')
+                return redirect('home')
             except IntegrityError:  # Handles error if the username already exists
                 return render(request, "signup.html", {
                     'form': form,
@@ -73,7 +73,7 @@ def signin(request):
         user = authenticate(request, username=request.POST['username'], password=request.POST['password'])
         if user is not None:
             login(request, user)  # Logs in the user if credentials are correct
-            return redirect('customers')
+            return redirect('home')
         else:
             return render(request, "signin.html", {
                 'form': AuthenticationForm,

@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 from django.db.models import Sum
+from django.utils import timezone
 
 class Account(models.Model):
     ACCOUNT_CATEGORY = [
@@ -83,9 +84,6 @@ class Account(models.Model):
         verbose_name = 'Account'
         verbose_name_plural = 'Accounts'
 
-
-
-
 class Transaction(models.Model):
     TRANSACTION_TYPES = [
         ('CREDIT', 'Crédito'),
@@ -126,47 +124,10 @@ class Transaction(models.Model):
         verbose_name = 'Transacción'
         verbose_name_plural = 'Transacciones'
         ordering = ['-date', '-created_at']
-class Invoice(models.Model):
-    STATUS_CHOICES = [
-        ('PENDING', 'Pending'),
-        ('PAID', 'Paid'),
-        ('CANCELLED', 'Cancelled'),
-    ]
 
-    client = models.CharField(max_length=200, verbose_name='Client')
-    date = models.DateField(verbose_name='Date')
-    due_date = models.DateField(verbose_name='Due Date')
-    total_amount = models.DecimalField(
-        max_digits=15, 
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.01'))],
-        verbose_name='Total Amount'
-    )
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default='PENDING',
-        verbose_name='Status'
-    )
-    description = models.TextField(blank=True, verbose_name='Description')
-    created_by = models.ForeignKey(
-        User,
-        on_delete=models.PROTECT,
-        verbose_name='Created By'
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f"Invoice {self.id} - {self.client} - {self.total_amount}"
-
-    class Meta:
-        verbose_name = 'Invoice'
-        verbose_name_plural = 'Invoices'
-        ordering = ['-date']
 class InvoiceItem(models.Model):
     invoice = models.ForeignKey(
-        Invoice,
+        'customer.InvoiceProjects',
         on_delete=models.CASCADE,
         related_name='items',
         verbose_name='Invoice'
@@ -192,6 +153,7 @@ class InvoiceItem(models.Model):
     class Meta:
         verbose_name = 'Invoice Item'
         verbose_name_plural = 'Invoice Items'
+
 class Subaccount(models.Model):
     ACCOUNT_TYPES = [
         ('ASSET', 'Asset'),
@@ -257,6 +219,7 @@ class Subaccount(models.Model):
     class Meta:
         verbose_name = 'Subcuenta'
         verbose_name_plural = 'Subcuentas'
+
 class Expense(models.Model):
     CATEGORY_CHOICES = [
         ('UTILITIES', 'Utilities'),
@@ -294,6 +257,7 @@ class Expense(models.Model):
         verbose_name = 'Expense'
         verbose_name_plural = 'Expenses'
         ordering = ['-date']
+
 class AuditLog(models.Model):
     ACTION_TYPES = [
         ('CREATE', 'Create'),
@@ -323,6 +287,7 @@ class AuditLog(models.Model):
         verbose_name = 'Audit Log'
         verbose_name_plural = 'Audit Logs'
         ordering = ['-created_at']
+
 class Report(models.Model):
     REPORT_TYPES = [
         ('INCOME', 'Income'),

@@ -47,32 +47,76 @@
         <div class="d-flex flex-column justify-content-center m-0">
             <!-- Nivel Admin -->
             <div class="org-group w-100 m-0">
-                <h4 class="text-primary text-center fw-bold">Administrators
-                    <button class="btn btn-primary btn-sm">+</button>
-                </h4>
-                <hr>
-                <div class="org-member d-flex flex-row w-100 justify-content-center align-items-center my-2">
+                <div class="d-flex flex-column justify-content-center align-items-center">
+                    <h4 class="text-primary text-center fw-bold">Administrators
+                        {% if user.groups.first.name == 'ADMIN' %}
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">+</button>
+                        {% endif %}
+                    </h4>
+                    <span class="text-muted text-center fs-6 w-100">
+                        <i class="bi bi-info-circle-fill"></i>
+                        <span>
+                            Administrators are responsible for managing the system and users.
+                        </span>
+                    </span>
+                </div>
+                <hr class="border-primary border-4">
+                <div class="org-member d-flex flex-row w-100 justify-content-center align-items-center my-2 position-relative gap-2 flex-wrap">
                     {% for user in admin_users %}
-                        <div class="card p-1 mx-2">
-                            <h5 class="fs-6 fw-bold w-100 m-0">{{ user.name }}</h5>
-                            <p class="card-text fs-6 p-0 m-0">{{ user.email }}</p>
+                        <div class="card p-1 px-3 d-flex flex-row justify-content-between align-items-center gap-2">
+                            <span
+                                class="customer-avatar text-light rounded-circle m-0 bg-primary"
+                                style="font-size: 1.5rem; font-weight: bold; width: 40px; height: 40px;">
+                                {{ user.user.first_name|first }}{{ user.user.last_name|first }}
+                            </span>
+                            <div class="d-flex flex-column justify-content-between align-items-center">
+                                <h5 class="fs-6 fw-bold w-100 m-0 text-primary">{{ user.user.first_name }} {{ user.user.last_name }}<br> <span class="text-muted" style="font-size: 0.6rem;">{{ user.user.date_joined|timesince }}</span></h5>
+                                <p class="card-text fs-6 p-0 m-0">{{ user.user.email }}</p>
+                            </div>
+                            {% if user.user.id != request.user.id and request.user.is_superuser %}
+                                <button class="btn btn-danger btn-sm opacity-50 position-absolute p-0 m-0" style="right: -5px; top: -5px; width: 20px; height: 20px;" onclick="deleteUser({{ user.user.id }})">
+                                    <i class="bi bi-trash p-0 m-0"></i> 
+                                </button>
+                            {% endif %}
                         </div>
                     {% endfor %}
                 </div>
             </div>
-            <hr>
+            <hr class="border-success border-4">
             <div class="org-level d-flex flex-row justify-content-around align-items-start w-100">
                 <div class="org-group text-center ">
-                    <h4 class="text-success fw-bold mb-3">Production
-                        <button class="btn btn-success btn-sm">+</button>
-                    </h4>
-                    <div class="d-flex flex-wrap justify-content-center">
+                    <div class="d-flex flex-column justify-content-center align-items-center">
+                        <h4 class="text-success fw-bold mb-3">Production
+                            {% if user.groups.first.name == 'ADMIN' %}
+                                <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">+</button>
+                            {% endif %}
+                        </h4>
+                        <span class="text-muted text-center fs-6 w-100">
+                            <i class="bi bi-info-circle-fill"></i>
+                            <span>
+                                Production are responsible for managing the system and users.
+                            </span>
+                        </span>
+                    </div>
+                    <div class="d-flex flex-wrap justify-content-center gap-2">
                         {% if production_users %}
                             {% for user in production_users %}
-                            <div class="card p-2 m-2">
-                                <h5 class="fs-6 fw-bold m-0">{{ user.name }}</h5>
-                                <p class="card-text fs-6 m-0">{{ user.email }}</p>
-                            </div>
+                                <div class="card p-1 px-3 d-flex flex-row justify-content-between align-items-center gap-2">
+                                <span
+                                    class="customer-avatar text-light rounded-circle m-0 bg-success"
+                                    style="font-size: 1.5rem; font-weight: bold; width: 40px; height: 40px;">
+                                    {{ user.user.first_name|first }}{{ user.user.last_name|first }}
+                                </span>
+                                <div class="d-flex flex-column justify-content-between align-items-center">
+                                    <h5 class="fs-6 fw-bold m-0 text-success">{{ user.user.first_name }} {{ user.user.last_name }} <span class="fs-6 text-muted">{{ user.user.date_joined|timesince }}</span></h5>
+                                    <p class="card-text fs-6 m-0">{{ user.user.email }}</p>
+                                </div>
+                                {% if user.user.id != request.user.id and request.user.is_superuser %}
+                                    <button class="btn btn-danger btn-sm opacity-50 position-absolute p-0 m-0" style="right: -5px; top: -5px; width: 20px; height: 20px;" onclick="deleteUser({{ user.user.id }})">
+                                        <i class="bi bi-trash p-0 m-0"></i> 
+                                    </button>
+                                {% endif %} 
+                                </div>
                             {% endfor %}
                         {% else %}
                             <p class="text-muted card p-2">No Production no found...</p>
@@ -80,24 +124,154 @@
                     </div>
                 </div>
                 <div class="org-group text-center">
-                    <h4 class="text-warning fw-bold mb-3">Sales
-                        <button class="btn btn-warning btn-sm">+</button>
-                    </h4>
-                    <div class="d-flex flex-wrap justify-content-center">
-                        {% if Sales_users %}
-                            {% for user in Sales_users %}
-                            <div class="card p-2 m-2">
-                                <h5 class="fs-6 fw-bold m-0">{{ user.name }}</h5>
-                                <p class="card-text fs-6 m-0">{{ user.email }}</p>
+                    <div class="d-flex flex-column justify-content-center align-items-center">
+                        <h4 class="text-warning fw-bold mb-3">Sales
+                            {% if user.groups.first.name == 'ADMIN' %}
+                                <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">+</button>
+                            {% endif %}
+                        </h4>
+                        <span class="text-muted text-center fs-6 w-100">
+                            <i class="bi bi-info-circle-fill"></i>
+                            <span>
+                                Sales are responsible for managing the system and users.
+                            </span>
+                        </span>
+                    </div>
+                    <div class="d-flex flex-wrap justify-content-center gap-2">
+                        {% if sales_users %}
+                            {% for user in sales_users %}
+                            <div class="card p-1 px-3 d-flex flex-row justify-content-between align-items-center gap-2">
+                                <span
+                                    class="customer-avatar text-light rounded-circle m-0 bg-warning"
+                                    style="font-size: 1.5rem; font-weight: bold; width: 40px; height: 40px;">
+                                    {{ user.user.first_name|first }}{{ user.user.last_name|first }}
+                                </span>
+                                <div class="d-flex flex-column justify-content-between align-items-center">
+                                    <h5 class="fs-6 fw-bold m-0 text-warning">{{ user.user.first_name }} {{ user.user.last_name }} <span class="fs-6 text-muted">{{ user.user.date_joined|timesince }}</span></h5>
+                                    <p class="card-text fs-6 m-0">{{ user.user.email }}</p>
+                                </div>
+                                {% if user.user.id != request.user.id and request.user.is_superuser %}
+                                    <button class="btn btn-danger btn-sm opacity-50 position-absolute p-0 m-0" style="right: -5px; top: -5px; width: 20px; height: 20px;" onclick="deleteUser({{ user.user.id }})">
+                                        <i class="bi bi-trash p-0 m-0"></i> 
+                                    </button>
+                                {% endif %} 
                             </div>
                             {% endfor %}
                         {% else %}
-                            <p class="text-muted card p-2">No sales found...</p>
+                            <p class="text-muted card p-2">No sales users found...</p>
                         {% endif %}
+                    </div>
                 </div>
             </div>
-            
         </div>
     </div>
+
+    <div class="modal fade " id="addUserModal" tabindex="0" aria-labelledby="addUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog p-0" style="width: 50vw; height: 70vh;">
+            <div class="modal-content m-0 p-0" style="height: 100%; width: 100%;">
+                <div class="modal-header" style="background-image: url('{% static 'img/logoPatron.png' %}'); color: white; background-size: 75%; background-position: center;">
+                    <h5 class="modal-title text-center text-black bg-white px-2 py-1 rounded-3 fw-bold" id="addUserModalLabel">Add new user</h5>
+                </div>
+                <div class="modal-body" style="background-color: #dfdfdf;">
+                    <form id="addUserForm">
+                        <div class="d-flex flex-row justify-content-between align-items-center gap-1 w-100">
+                            <div class="mb-2">
+                                <label for="firstName" class="form-label fw-bold">First Name</label>
+                                <input type="text" class="form-control w-100 p-0 px-2" id="firstName" name="firstName" required>
+                            </div>
+                            <div class="mb-2">
+                                <label for="lastName" class="form-label fw-bold">Last Name</label>
+                                <input type="text" class="form-control w-100 p-0 px-2" id="lastName" name="lastName" required>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <label for="email" class="form-label fw-bold">Email</label>
+                            <input type="email" class="form-control w-100 p-0 px-2" id="email" name="email" required>
+                        </div>
+                        <div class="d-flex flex-row justify-content-between align-items-center gap-1 w-100">
+                            <div class="mb-2">
+                                <label for="password" class="form-label fw-bold">Password</label>
+                                <input type="text" class="form-control w-100 p-0 px-2" id="password" name="password" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="confirmPassword" class="form-label fw-bold">Confirm Password</label>
+                                <input type="text" class="form-control w-100 p-0 px-2" id="confirmPassword" name="confirmPassword" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="group" class="form-label fw-bold">Group</label>
+                            <select class="form-control p-0 px-2 w-100 text-center" id="group" name="group" required>
+                                <option value="ADMIN">ADMIN</option>
+                                <option value="SALES">SALES</option>
+                                <option value="PRODUCTION">PRODUCTION</option>
+                            </select>
+                        </div>
+                    </form>
+                    <span class="text-danger fs-6">
+                        <i class="bi bi-info-circle-fill"></i>
+                        <span>
+                            The username is the email of the user.
+                            Save the password in a secure place, you will not be able to recover it, only superusers can reset it.
+                        </span>
+                    </span>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="addUserButton">Add User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+    document.getElementById("addUserButton").addEventListener("click", function() {
+    const formData = new FormData(document.getElementById("addUserForm"));
+
+    formData.required = ["firstName", "lastName", "email", "password", "confirmPassword", "group"];
+    formData.forEach(function(value, key) {
+        if (!value) {
+            showAlert(`Please fill required field: ${key}`, "danger");
+            return;
+        }
+    });
+    if (String(formData.get("password")) !== String(formData.get("confirmPassword"))) {
+        showAlert("Passwords do not match", "danger");
+        return;
+    }
+    ajaxPostRequest("/add_user/", formData, "{{ csrf_token }}", function(response) {
+        console.log('response', response);
+        if (response.success) {
+            showAlert("User added successfully", "success");
+            document.getElementById('addUserModal').modal('hide');
+            location.reload();
+        } else {
+            showAlert(response.error, "danger");
+        }
+        }, function(error) {
+            console.log('error', error);
+            showAlert(error.error, "danger");
+        });
+    });
+    });
+    function deleteUser(user_id) {
+        const formData = new FormData();
+        formData.append("user_id", user_id);    
+        ajaxPostRequest("/delete_user/", formData, "{{ csrf_token }}", function(response) {
+            console.log('response', response);
+            if (response.success) {
+                showAlert("User deleted successfully", "success");
+                setTimeout(function() {
+                    location.reload();
+                }, 1000);
+            } else {
+                showAlert(response.error, "danger");
+            }
+        });
+    }
+</script>
 {% endblock %}

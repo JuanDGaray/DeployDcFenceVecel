@@ -51,7 +51,7 @@
                                                 </button>
                                             {{ account.type_id }}.{{ account.account_code }}
                                         </td>
-                                        <td class="p-1">{{ account.name }}</td>
+                                        <td class="p-1">{{ account.name }} {{ account.id }}</td>
                                         <td class="p-1 w-50 text-justify">{{ account.description }}</td>
                                         <td class="p-1">${{ account.initial_balance|floatformat:2 }}</td>
                                         <td class="p-1">
@@ -84,7 +84,7 @@
                                                     {{ sub.type_id }}.{{ sub.account_code }}.{{ sub.subaccount_code }}  
                                                 </td>
                                                 <td style="background-color: #dfdfdf;">
-                                                    {{ sub.name }}
+                                                    {{ sub.name }} {{ sub.id }}
                                                              <button class="p-0 btn btn-sm bg-light border-2" id="add_item_group" data-account-type-id="{{ sub.type_id }}"
                                                                                                                                     data-account-code="{{ sub.account_code }}"
                                                                                                                                     data-account-parent="{{ sub.id }}"
@@ -135,7 +135,7 @@
                                                             {{ sub_sub.type_id }}.{{ sub.account_code }}.{{ sub.subaccount_code }}.{{ sub_sub.sub_subaccount_code }}
                                                         </td>
                                                         <td>
-                                                             {{ sub_sub.name }}
+                                                             {{ sub_sub.name }} {{ sub_sub.id }}    
                                                              <button class="p-0 btn btn-sm bg-light border-2" id="add_item_group" data-account-type-id="{{ sub_sub.type_id }}"
                                                                                                                                     data-account-code="{{ sub_sub.account_code }}"
                                                                                                                                     data-account-parent="{{ sub_sub.id }}"
@@ -186,7 +186,7 @@
                                                                     {{ sub_sub.type_id }}.{{ sub.account_code }}.{{ sub.subaccount_code }}.{{ sub_sub.sub_subaccount_code }}.{{ sub_sub_sub.group_code }}
                                                                 </td>
                                                                 <td>
-                                                                    {{ sub_sub_sub.name }}
+                                                                    {{ sub_sub_sub.name }} {{ sub_sub_sub.id }}
                                                                     <button class="p-0 btn btn-sm bg-light border-2" id="add_item_group" data-account-type-id="{{ sub_sub_sub.type_id }}"
                                                                                                                                     data-account-code="{{ sub_sub_sub.account_code }}"
                                                                                                                                     data-account-parent="{{ sub_sub_sub.id }}"

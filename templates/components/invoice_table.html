@@ -1,0 +1,83 @@
+<div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
+    <div class="card-header d-flex justify-content-between p-3 border-bottom bg-gray align-items-center">
+      <h1 class="card-header fs-4"> Invoices
+        <span class="fs-6 status-empty"><strong></strong> • <span id="invoices-count">0</span></span>
+      </h1>
+      <div>
+        <label for="all" style="padding: 0.2rem 0.5rem;">
+          <input type="checkbox" id="view-all-invoices" name="all" value="all" id=""> View all invoices
+        </label>
+      </div>
+    </div>
+    <div class="d-flex justify-content-center my-2 px-2 gap-2">
+      <div class="input-group px-2"> 
+        <input type="text" name="invoice_id" id="searchInputInvoiceId" class="form-control form-control-search form-filter me-2" placeholder="Invoice ID">
+        <select name="status" id="searchInputStatus" class="form-select form-control-search form-filter me-2">
+          <option value="">Status...</option>
+          <option value="sent">Sent</option>
+          <option value="pending">Pending</option>
+          <option value="paid">Paid</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
+      <input type="date" name="due_date" id="searchInputDueDate" class="form-control form-control-search form-filter me-2 w-25">
+      <div class="d-flex gap-2 flex-row">
+        <button id="applyFiltersInvoice" class="btn btn-primary py-0">Apply</button>
+        <button id="clearFiltersInvoice" class="btn btn-secondary py-0">Clear</button>
+      </div>
+    </div>
+    <div class="card table-responsive rounded-0 border-0">
+      <table class="table">
+        <thead class="border-top">
+          <tr>
+            <th scope="col" class="bg-light text-center text-truncate">ID <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="id"></i></th>
+            <th scope="col" class="bg-light text-center text-truncate">Budget ID<i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="budget__id"></i></th>
+            <th scope="col" class="bg-light text-center  text-truncate fs-6">Project Name <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="project_name"></i></th>
+            <th scope="col" class="bg-light text-center  text-truncate fs-6">Created Ago <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="created_at"></i></th>
+            <th scope="col" class="bg-light text-center  text-truncate">Costumer <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="customer_name"></i> </th>
+            <th scope="col" class="bg-light text-center  text-truncate fs-6">Created By <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="sales_advisor"></i> </th>
+            <th scope="col" class="bg-light text-center  text-truncate fs-6">Status <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="status"></i></th>
+            <th scope="col" class="bg-light text-center  text-truncate fs-6">Billed <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="billed_cost"></i> </th>
+            <th scope="col" class="bg-light text-center  text-truncate fs-6" colspan="2">Paid <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="paid_cost"></i> </th>
+          </tr>
+        </thead>
+        <tbody id="invoicesTableBody">
+
+        </tbody>
+      </table>
+      <div class="pagination text-center justify-content-center mb-2" id="paginationInvoices">
+        <input type="hidden" name="csrfmiddlewaretoken" id="csrf-token" data-csrf="{{ csrf_token }}">
+        <ul class="paginationInvoices">
+          {% if invoices.has_previous %}
+          <li class="page-item">
+            <a class="page-link" href="?page=1">
+              <i class="bi bi-chevron-double-left"></i>
+            </a>
+          </li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ invoices.previous_page_number }}">
+              <i class="bi bi-chevron-left"></i>
+            </a>
+          </li>
+          {% endif %}
+          <li class="page-item mx-2">
+            <span class="px-4">Page {{ invoices.number }} of {{ invoices.paginator.num_pages }}</span>
+          </li>
+          {% if invoices.has_next %}
+          <li class="page-item mx-2"">
+            <a class="page-link" href="?page={{ invoices.next_page_number }}">
+              <i class="bi bi-chevron-right"></i>
+              {{ invoices.next_page_number }}
+            </a>
+          </li>
+          <li class="page-item">            
+            <a class="page-link" href="?page={{ invoices.paginator.num_pages }}">
+              <i class="bi bi-chevron-double-right"></i>
+            </a>
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+</div>
+

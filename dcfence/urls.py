@@ -70,6 +70,9 @@ urlpatterns = [
     path('search_projects/', views.search_projects, name='search_projects'),
     path('check-email/', views.check_email_exists, name='check_email'),
     path('projects/<int:project_id>/selectManager/', views.select_Manager, name='select_manager'),
+    path('projects/<int:project_id>/assign_accounting_manager/<int:manager_id>/', views.assign_accounting_manager, name='assign_accounting_manager'),
+    path('projects/<int:project_id>/assign_project_manager/<int:manager_id>/', views.assign_project_manager, name='assign_project_manager'),
+    path('projects/<int:project_id>/add_comment/', views.add_comment, name='add_comment'),
     path('projects/create-folder/', utils.create_folder_in_drive, name='create_folder_in_drive'),
     path('projects/rename-folder/', utils.rename_folder_in_drive, name='rename_folder_in_drive'),
     path('projects/upload-file/', utils.upload_file_to_drive, name='upload_file_to_drive'),
@@ -83,6 +86,8 @@ urlpatterns = [
     path('production/<int:project_id>/save_real_cost_by_items/', views.save_real_cost_by_items, name='save_real_cost_by_items'),
     path('api/chat/', views.chat_with_groq, name='chat_with_groq'),
     path('settings/', views.settings, name='settings'),
+    path('add_user/', views.add_user_post, name='add_user'),
+    path('delete_user/', views.delete_user, name='delete_user'),
     path('metrics/', views.metrics, name='metrics'),
     path('metrics/cost-trend/',views.cost_trend, name='cost_trend'),
     path('metrics/project-status-distribution/',views.project_status_distribution, name='project_status_distribution'),
@@ -91,7 +96,10 @@ urlpatterns = [
     path('metrics/proposals_donut_chart/', views.proposals_donut_chart, name='proposals_donut_chart'),
     path('project/<int:project_id>/history/', project_history, name='project_history'), 
     path('active_users/', views.active_users_view, name='active_users'),
-    
+    path('projects/<int:project_id>/get_activity_and_comments/', views.get_activity_project_and_comments, name='get_activity_project_and_comments'),
+    path('get_users_for_mentions/', views.get_users_for_mentions, name='get_users_for_mentions'),
+    path('notifications/<int:notification_id>/delete/', views.delete_notification, name='delete_notification'),
+    path('notifications/delete_all/', views.delete_all_notifications, name='delete_all_notifications'),
 ]
 
 

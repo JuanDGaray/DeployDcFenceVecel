@@ -22,93 +22,103 @@
 <body class="bg-white">
     <div id="alert-container"></div>
     <script src="{% static 'js/baseScripts.js' %}"></script>
+    {% csrf_token %}
     <div class="container-fluid ">
-    <div class="row">
-    <div class='position-fixed start-0 top-0 w-25 vh-100 z-2' id="notifications" style="height: 100vh; background-color:rgba(155, 155, 155, 0.89); backdrop-filter: blur(5px); margin-left: 70px; transform: translateX(-100%);">
-        <h6 class="text-center fs-5 fw-bold mt-2">Notifications <span class="spinner-border spinner-border-sm m-auto text-light" id="spinner-notifications""></span></h6>
-    </div>
-    <div class="d-flex flex-column justify-content-between col-sm-auto bg-light sticky-top border-end p-0 z-3"   style="height: 100vh;">
-              <ul class="nav nav-pills nav-flush flex-sm-column flex-row flex-nowrap text-center align-items-center p-0">
-                <li>
-                    <a href="/" class="nav-link ">
-                        <img src="{% static 'img/LogoSmLarge.png' %}?v=1" alt="Logo" class="img-fluid rounded-1" style="width: 32px; height: auto;">
-                    </a>
-                </li>
-                <li>
-                    <button class="nav-link " aria-current="page" onclick="notificationsToggle()">
-                    <div class="position-relative">
-                        <i class=" btn btn-pri bi bi-bell-fill fs-6 text-light bg-secondary"></i>
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.8rem; transform: translate(-50%, -50%);" id="notification-count">0</span>
-                    </div>
+        <div class="row">
+            <div class='position-fixed start-0 top-0 w-25 vh-100 z-3' id="notifications" style="height: 100vh; background-color:rgba(155, 155, 155, 0.89); backdrop-filter: blur(5px); margin-left: 70px; transform: translateX(-100%);">
+                <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                    <h6 class="text-center fs-5 fw-bold m-0">Notifications <span class="spinner-border spinner-border-sm m-auto text-light" id="spinner-notifications""></span></h6>
+                    <button class="btn btn-sm btn-outline-light" onclick="deleteAllNotifications()" id="clearAllBtn" style="display: none;">
+                        <i class="bi bi-trash"></i> Clear All
                     </button>
-                </li>
-            </ul>
-            <ul class="nav nav-pills nav-flush flex-sm-column flex-row flex-nowrap text-center align-items-center mt-auto mb-auto p-0">
-                <li class="nav-item">
-                    <a href="/home" class="nav-link central {% if view == 'home'%} active-nav text-primary{% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Home">
-                        <i class="bi bi-house-door-fill fs-4 text-secondary"></i>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/projects" class="nav-link central {% if view == 'projects'%} active-nav text-primary{% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Projects">
-                        <i class="bi bi-bounding-box fs-4 text-secondary"></i>
-                    </a>
-                </li>
-                <li>
-                    <a href="/metrics" class="nav-link central {% if view == 'metrics'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Metrics">
-                        <i class="bi-speedometer2 fs-4 text-secondary"></i>
-                    </a>
-                </li>
-                <li>
-                    <a href="/customers" class="nav-link central {% if view == 'costumer'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Customers">
-                        <i class="bi bi-person-lines-fill fs-4 text-secondary"></i>
-                    </a>
-                </li>
-                {% comment %} <li>
-                    <a href="/" class="nav-link central {% if view == 'documents'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Documents">
-                        <i class="bi bi-newspaper fs-4 text-secondary"></i>
-                    </a>
-                </li> 
-                <li>
-                  <a href="/" class="nav-link central {% if view == 'billings'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Billings">
-                      <i class="bi bi-clipboard2-data-fill fs-4 text-secondary"></i>
-                  </a>
-              </li>
-              {% endcomment %}
-              <li>
-                <a href="/accounting" class="nav-link central {% if view == 'accounting'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Accounting">
-                    <div class="position-relative">
-                        <i class="bi bi-calculator-fill fs-4 text-secondary"></i>
-                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem; transform: translate(-50%, -50%);">NEW</span>
-                    </div>
-                </a>
-            </li>
-              <li>
-                <a href="/production" class="nav-link central {% if view == 'production'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Production">
-                    <i class="bi bi-wrench-adjustable-circle-fill fs-4 text-secondary"></i>
-                </a>
-            </li>
-            </ul>
-            <ul class="nav nav-pills nav-flush flex-sm-column flex-row flex-nowrap text-center align-items-center p-0">
-                <li>
-                    <a href="/settings" class="nav-link settings" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Settings">
-                        <i class="fs-4 bi bi-gear-fill text-secondary px-2 py-1 rounded-5"></i>
-                    </a>
-                </li>
-                <li>
-                    <a href="/logout" class="nav-link">
-                        <i class="fs-4 bi bi-box-arrow-right bg-danger text-white px-2 py-1 rounded-5"></i>
-                    </a>
-                </li>
-            </ul>
-    </div>
-    <div class="col-sm p-0 min-vh-100">
-        
-    {% block content %}
+                </div>
+            </div>
+            <div class="d-flex flex-column justify-content-between col-sm-auto bg-light sticky-top border-end p-0 z-3"   style="height: 100vh;">
+                    <ul class="nav nav-pills nav-flush flex-sm-column flex-row flex-nowrap text-center align-items-center p-0">
+                        <li>
+                            <a href="/" class="nav-link p-2 m-2" style="border-radius: 100%; background-color:#0056b8;"   >
+                                <img src="{% static 'img/LogoSmLarge.png' %}?v=1" alt="Logo" class="img-fluid rounded-1" style="width: 28px; height: 28px;">
+                            </a>
+                        </li>
+                        <li>
+                            <button class="nav-link " aria-current="page" onclick="notificationsToggle()">
+                            <div class="position-relative">
+                                <i class=" btn btn-pri bi bi-bell-fill fs-6 text-light bg-secondary"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary" style="font-size: 0.8rem; transform: translate(-50%, -50%);" id="notification-count">0</span>
+                            </div>
+                            </button>
+                        </li>
+                    </ul>
+                    <ul class="nav nav-pills nav-flush flex-sm-column flex-row flex-nowrap text-center align-items-center mt-auto mb-auto p-0">
+                        <li class="nav-item">
+                            <a href="/projects" class="nav-link central {% if view == 'projects'%} active-nav text-primary{% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Projects">
+                                <i class="bi bi-bounding-box fs-4 text-secondary"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/metrics" class="nav-link central {% if view == 'metrics'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Metrics">
+                                <i class="bi-speedometer2 fs-4 text-secondary"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/customers" class="nav-link central {% if view == 'costumer'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Customers">
+                                <i class="bi bi-person-lines-fill fs-4 text-secondary"></i>
+                            </a>
+                        </li>
+                        {% comment %} <li>
+                            <a href="/" class="nav-link central {% if view == 'documents'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Documents">
+                                <i class="bi bi-newspaper fs-4 text-secondary"></i>
+                            </a>
+                        </li> 
+                        <li>
+                        <a href="/" class="nav-link central {% if view == 'billings'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Billings">
+                            <i class="bi bi-clipboard2-data-fill fs-4 text-secondary"></i>
+                        </a>
+                    </li>
+                    {% endcomment %}
+                    <li>
+                        <a href="/accounting" class="nav-link central {% if view == 'accounting'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Accounting">
+                            <div class="position-relative">
+                                <i class="bi bi-calculator-fill fs-4 text-secondary"></i>
+                                {% comment %} <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem; transform: translate(-50%, -50%);">NEW</span> {% endcomment %}
+                            </div>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/production" class="nav-link central {% if view == 'production'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Production">
+                            <i class="bi bi-wrench-adjustable-circle-fill fs-4 text-secondary"></i>
+                        </a>
+                    </li>
+                    </ul>
+                    <ul class="nav nav-pills nav-flush flex-sm-column flex-row flex-nowrap text-center align-items-center p-0">
+                        <li>
+                            <a href="/settings" class="nav-link settings" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Settings">
+                                <i class="fs-4 bi bi-gear-fill text-secondary px-2 py-1 rounded-5"></i>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/home" class="nav-link central mb-2 mx-0 p-0 {% if view == 'my-profile'%} active-nav text-primary{% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="{{ user.first_name }} {{ user.last_name }} - {{ user.groups.first.name }}">
+                                <span
+                                    class="customer-avatar text-light rounded-circle m-0"
+                                    style="font-size: 1.5rem; font-weight: bold; width: 36px; height: 36px;">
+                                    {{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}
+                                </span>
+                            </a>    
+                        </li>
+                        {% comment %}
+                       
+                        {% endcomment %}
+                    </ul>
+                    
+            </div>
+                <div class="col-sm p-0 min-vh-100">
+                    
+                {% block content %}
 
-    {% endblock %}
-    </div>
-    </div>
+                {% endblock %}
+                </div>
+            </div>
+        </div>
     </div>
 </body>
 {% include "bubbleIAChat.html" %} 
@@ -124,8 +134,6 @@
         notifications.style.transition = 'transform 0.3s ease-in-out';
     }
 
-    
-    
     document.addEventListener('DOMContentLoaded', function () {
         ajaxGetRequest(
             '/get_notifications/',
@@ -137,6 +145,14 @@
                 }
                 const count = data.notifications.length;
                 document.getElementById('notification-count').textContent = count;
+
+                // Mostrar/ocultar el botón "Clear All" según si hay notificaciones
+                const clearAllBtn = document.getElementById('clearAllBtn');
+                if (count > 0) {
+                    clearAllBtn.style.display = 'block';
+                } else {
+                    clearAllBtn.style.display = 'none';
+                }
 
                 for (const notification of data.notifications) {
                     // Crear el contenedor de notificación
@@ -156,11 +172,16 @@
                         'flex-row',
                         'justify-content-between',
                         'gap-2'
-
                     );
+                    
+                    // Agregar el ID de la notificación si existe
+                    if (notification.id) {
+                        notificationElement.setAttribute('data-notification-id', notification.id);
+                    }
+                    
                     notificationElement.innerHTML = `<span><i class="bi bi-exclamation-circle-fill fs-4 text-${notification.type}"></i></span>
                         <p class="m-0">${notification.message}</p>
-                        <a href="${notification.link}">
+                        <a href="${notification.link}" onclick="deleteNotification(${notification.id || 'null'}, this)">
                             <button class="bg-${notification.type} text-light rounded-1 border-0 w-auto mt-2 position-absolute bottom-0 end-0">
                                 View
                             </button>
@@ -182,6 +203,84 @@
                 }
             }
         );
-    });    
+    });
+    
+    function deleteNotification(notificationId, linkElement) {
+        if (notificationId && notificationId !== 'null') {
+            // Eliminar la notificación
+            fetch(`/notifications/${notificationId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Eliminar el elemento de la notificación del DOM
+                    const notificationElement = linkElement.closest('.w-full');
+                    if (notificationElement) {
+                        notificationElement.remove();
+                    }
+                    
+                    // Actualizar el contador de notificaciones
+                    const currentCount = parseInt(document.getElementById('notification-count').textContent);
+                    if (currentCount > 0) {
+                        document.getElementById('notification-count').textContent = currentCount - 1;
+                    }
+                    
+                    // Ocultar el botón "Clear All" si no hay más notificaciones
+                    const remainingNotifications = document.querySelectorAll('#notifications .w-full').length;
+                    if (remainingNotifications === 0) {
+                        document.getElementById('clearAllBtn').style.display = 'none';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting notification:', error);
+            });
+        }
+        
+        // Continuar con la navegación normal
+        return true;
+    }
+    
+    function deleteAllNotifications() {
+        if (confirm('Are you sure you want to delete all notifications?')) {
+            fetch('/notifications/delete_all/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Limpiar el panel de notificaciones
+                    const notificationContainer = document.getElementById('notifications');
+                    const clearAllBtn = document.getElementById('clearAllBtn');
+                    
+                    // Mantener solo el header
+                    notificationContainer.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                            <h6 class="text-center fs-5 fw-bold m-0">Notifications <span class="spinner-border spinner-border-sm m-auto text-light" id="spinner-notifications""></span></h6>
+                            <button class="btn btn-sm btn-outline-light" onclick="deleteAllNotifications()" id="clearAllBtn" style="display: none;">
+                                <i class="bi bi-trash"></i> Clear All
+                            </button>
+                        </div>
+                    `;
+                    
+                    // Actualizar el contador
+                    document.getElementById('notification-count').textContent = '0';
+                    clearAllBtn.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting all notifications:', error);
+            });
+        }
+    }
 </script>
+{% block extra_js %}
+{% endblock %}
 </html>

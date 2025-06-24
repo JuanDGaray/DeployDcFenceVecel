@@ -1,7 +1,10 @@
-  document.addEventListener('DOMContentLoaded', function () {
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    const tooltipList = tooltipTriggerList.map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-  });
+document.addEventListener('DOMContentLoaded', function () {
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  const tooltipList = tooltipTriggerList.map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl, {
+    html: true,
+    sanitize: false
+  }));
+});
 
 
   
@@ -54,23 +57,19 @@ function ajaxPostRequest(url, data, csrfToken, successCallback, errorCallback) {
   if (!isFormData) {
     headers['Content-Type'] = 'application/json';
   }
-
+  console.log('data', data);
   fetch(url, {
     method: 'POST',
     body: isFormData ? data : JSON.stringify(data),
     headers: headers,
   })
     .then(response => {
+      console.log('response', response);
       if (!response.ok) {
-        // Intentar leer la respuesta como JSON. Si falla, lanzar un error genérico.
-        return response
-          .json()
-          .then(errData => {
-            throw { status: response.status, ...errData };
-          })
-          .catch(() => {
-            throw { status: response.status, message: 'An unknown error occurred.' };
-          });
+        return response.json().then(errData => {
+          console.log('errData', errData);
+          throw { status: response.status, ...errData };
+        });
       }
       return response.json();
     })
@@ -78,9 +77,9 @@ function ajaxPostRequest(url, data, csrfToken, successCallback, errorCallback) {
       successCallback(data);
     })
     .catch(error => {
-      console.error('Error:', error);
-      if (errorCallback) {
-        errorCallback(error);
-      }
+      console.error("Ajax Error:", error);
+      if (errorCallback) errorCallback(error);
     });
 }
+
+

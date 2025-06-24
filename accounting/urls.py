@@ -1,5 +1,5 @@
 from django.urls import path
-from . import views
+from . import views 
 
 urlpatterns = [
     # Dashboard
@@ -14,17 +14,11 @@ urlpatterns = [
     path('accounts/delete_account/', views.delete_account, name='delete-account'),
 
     # Transactions
+    path('add_payment_received/', views.add_payment_received, name='add-payment-received'),
     path('transactions/', views.TransactionListView.as_view(), name='transaction-list'),
     path('transactions/create/', views.TransactionCreateView.as_view(), name='transaction-create'),
     path('transactions/<int:pk>/update/', views.TransactionUpdateView.as_view(), name='transaction-update'),
     path('transactions/<int:pk>/delete/', views.TransactionDeleteView.as_view(), name='transaction-delete'),
-
-    # Invoices
-    path('invoices/', views.InvoiceListView.as_view(), name='invoice-list'),
-    path('invoices/create/', views.InvoiceCreateView.as_view(), name='invoice-create'),
-    path('invoices/<int:pk>/update/', views.InvoiceUpdateView.as_view(), name='invoice-update'),
-    path('invoices/<int:pk>/delete/', views.InvoiceDeleteView.as_view(), name='invoice-delete'),
-    path('invoices/<int:pk>/', views.InvoiceDetailView.as_view(), name='invoice-detail'),
 
     # Expenses
     path('expenses/', views.ExpenseListView.as_view(), name='expense-list'),
@@ -37,4 +31,7 @@ urlpatterns = [
     path('reports/create/', views.ReportCreateView.as_view(), name='report-create'),
     path('reports/<int:pk>/', views.ReportDetailView.as_view(), name='report-detail'),
     path('reports/<int:pk>/delete/', views.ReportDeleteView.as_view(), name='report-delete'),
+
+    #gets
+    path('get_accounts_payment/', views.get_accounts_payment, name='get_accounts_payment'),
 ] 

@@ -1,0 +1,190 @@
+{% load static %}
+<div class="col-md-12 ">
+    <div class="container border m-0 px-0 rounded-4 overflow-hidden mb-4 shadow-sm ">
+      <div class="card-header d-flex justify-content-between  p-3 border-bottom bg-gray">
+        <h1 class="card-header fs-4 rounded-4 d-flex flex-row gap-2" id="project-info" data-project-name="{{ project.project_name }}">{{project.project_name}}
+          <div class="d-flex flex-row gap-2">
+            <a class="btn bg-primary border border-2 btn-sm rounded-2 p-1 text-light" onclick="showSelectCustomerProject()" id="duplicateProjectButton"
+              role="button" title="Duplicate Project" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Duplicate Project">
+              <i class="bi bi-copy me-1" style="font-size: 15px;"></i >Duplicate
+            </a>
+            <div id="selectCustomerProject" class="d-none w-50 form-selec p-0 d-flex flex-row gap-2">
+              <select name="customer" id="id_customer" class="form-select form-select-sm m-0 overflow-auto" >
+                <option value="" selected>Select a customer</option>
+                  {% for customer in customers %}
+                      <option value="{{ customer.id }}">
+                        {% if customer.customer_type == "individual" %}
+                          {{customer.first_name }} {{customer.last_name }} - {{customer.email}} 
+                          {% else %}
+                          {{customer.company_name }} - {{customer.email}} 
+                          {% endif %}
+                      </option>
+                  {% endfor %}
+              </select>
+              <button class="btn bg-success border border-2 btn-sm rounded-2 p-1 text-light d-flex flex-row align-items-center" onclick="sendProjectDuplicate()">
+                <i class="bi bi-check-all" style="font-size: 15px;"></i> Send
+              </button>
+            </div>
+          </div>
+        </h1>
+        <div>
+          <a href="{% url 'project_history' project.id %}" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-clock-history"></i>
+          </a>
+          <a href="">
+            <button class="btn btn-primary d-none">
+              <i class="bi bi-pencil-square"></i> 
+            </button>
+          </a>
+          <button id="button-delete-project" class="btn btn-danger ms-2" {% if not user.is_superuser and not user.is_staff %}disabled{% endif %} data-id="{{ project.id }}">
+            <i class="bi bi-trash"></i> 
+          </button>
+        </div>
+      </div>
+      <div class="card-body mx-4 my-2">
+        <div class=" d-flex flex-row gap-2 mx-auto justify-content-between ">
+          <div class="col-md-4 card my-2 p-0">
+            <div class="card-header m-0  ">Description</div>
+            <div class="p-4 d-flex flex-column gap-2"> 
+              <p class="truncate bg-light rounded-2 p-2 m-0 text-dark fs-6 border border-primary border-opacity-25">
+                {{ project.description }}</p>
+              <p>
+                <strong class="text-capitalize font-weight-bold text-primary">Customer: </strong
+                  {% if project.customer.customer_type == "individual" %}
+                  <a href="{% url 'detail_customer' project.customer.id %}" target="_blank">
+                  <span class="status title_{{ project.customer.customer_type }} fs-6">
+                  {{ project.customer.first_name }} {{ project.customer.last_name }} <i class="bi bi-person-arms-up"></i>
+                  </span>
+                  </a> {% else %}
+                  <a href="{% url 'detail_customer' project.customer.id %}" target="_blank">
+                  <span class="status title_{{ project.customer.customer_type }} fs-6">{{ project.customer.company_name }} 
+                    <i class="bi bi-buildings-fill"></i> 
+                  </span> 
+                </a>
+                  {{ project.customer.first_name }} {{ project.customer.last_name }}
+                  {% endif %}
+                  <p class="p-0 m-0 d-flex flex-row flex-wrap gap-2 text-nowrap">
+                    <span class="d-flex flex-row gap-2"><i class="bi bi-geo-alt-fill text-primary"></i> {{ project.customer.address }} {{ project.customer.city }} {{ project.customer.state }} {{ project.customer.country }} - {{ project.customer.zip_code }} </span>
+                    <span class="d-flex flex-row gap-2"><i class="bi bi-telephone-fill text-primary"></i> {{ project.customer.phone }}  </span>
+                    <span class="d-flex flex-row gap-2"><i class="bi bi-envelope-fill text-primary "></i> {{ project.customer.email }} </span>
+                  </p>
+                </p>
+            </div>
+          </div>
+          <div class="card  col-md-3 mt-2 mx-2 my-2 p-0 overflow-hidden"> 
+            <div class="p-2">
+              <p class="text-capitalize"><strong>Project Address:</strong> {{ project.address }} {{ project.city }} {{ project.state }} {{ project.country }} - {{ project.zip_code }}</p>
+            </div>
+            <div class="d-flex flex-column mt-auto p-0 user-select-none">
+              <p class="bg-warning bg-opacity-25 text-dark p-2 m-0 d-flex flex-row gap-2"><strong style="width: 50%;">Sales Manager:</strong> 
+                <span style="width: 50%;" class="d-flex flex-row gap-2 flex-nowrap bg-light rounded-2 p-1"> 
+                  <span class="customer-avatar text-light rounded-circle m-0 bg-primary"
+                  style="font-size: 0.8rem; font-weight: bold; width: 25px; height: 25px;">
+                  {{ project.sales_advisor.first_name|first }} {{ project.sales_advisor.last_name|first }}
+                  </span>
+                  {{ project.sales_advisor }}
+                </span></p>
+              <p class="bg-success bg-opacity-25 text-dark p-2 m-0 d-flex flex-row gap-2 position-relative"><strong style="width: 50%;">Accounting Manager:</strong>
+                <span style="width: 50%;" class="d-flex flex-row gap-2 flex-nowrap bg-light rounded-2 p-1">
+                  {% if project.accounting_manager == None and not accounting_manager_not_available %}
+                    <select id="selectManager" class="form-select form-select-sm m-0 p-0 px-2 overflow-auto border-0 w-fit">
+                      <option value="" selected>Select a manager</option>
+                      {% for group, users in productionUsers.items %}
+                        <optgroup label="{% if group == 'Admins' %}Admins{% elif group == 'Managers' %}Managers{% endif %}">
+                          {% for person in users %}
+                            <option value="{{ person.id }}">{{ person.name }}</option>
+                          {% endfor %}
+                        </optgroup>
+                      {% endfor %}
+                    </select>
+                  {% else %}
+                  
+                    <span class="customer-avatar text-light rounded-circle m-0 bg-primary"
+                      style="font-size: 0.8rem; font-weight: bold; width: 25px; height: 25px;">
+                      {{ project.accounting_manager.first_name|first }} {{ project.accounting_manager.last_name|first }}
+                    </span>
+                    {{ project.accounting_manager }}
+                  {% endif %}
+                </span>
+                {% if accounting_manager_not_available and project.accounting_manager == None %}
+                  <span class="position-absolute w-100 h-100 z-2 m-0 p-0"
+                   style="right: 0; top: 0; background-image: url('{% static 'img/logoPatron.png' %}'); background-size: cover; background-position: center; filter: grayscale(100%); cursor: not-allowed;"></span>
+                {% endif %}
+              </p>
+              <p class="bg-primary bg-opacity-25 text-dark p-2 m-0 d-flex flex-row gap-2 position-relative"><strong style="width: 50%;">Project Manager:</strong> 
+                <span style="width: 50%;" class="d-flex flex-row gap-2 flex-nowrap bg-light rounded-2 p-1">
+                  {% if project.project_manager == None and not project_manager_not_available %}
+                    <select id="selectProjectManager" class="form-select form-select-sm m-0 p-0 px-2 overflow-auto border-0 w-fit">
+                      <option value="" selected>Select a manager</option>
+                      {% for group, users in productionUsers.items %}
+                        <optgroup label="{% if group == 'Admins' %}Admins{% elif group == 'Managers' %}Managers{% endif %}">
+                          {% for person in users %}
+                            <option value="{{ person.id }}">{{ person.name }}</option>
+                          {% endfor %}
+                        </optgroup>
+                      {% endfor %}
+                    </select>
+                  {% else %}
+                    <span class="customer-avatar text-light rounded-circle m-0 bg-primary"
+                    style="font-size: 0.8rem; font-weight: bold; width: 25px; height: 25px;">
+                    {{ project.project_manager.first_name|first }} {{ project.project_manager.last_name|first }}
+                    </span>
+                    {{ project.project_manager }}
+                  {% endif %}
+                </span>
+                {% if project_manager_not_available and project.project_manager == None %}
+                  <span class="position-absolute w-100 h-100 z-2 m-0 p-0"
+                   style="right: 0; top: 0; background-image: url('{% static 'img/logoPatron.png' %}'); background-size: cover; background-position: center; filter: grayscale(100%); cursor: not-allowed;"></span>
+                {% endif %}
+              </p>
+            </div>
+          </div>
+          <div class="card col-md-4 my-2 p-0">
+            <div class="card-header m-0 d-flex flex-row gap-2 justify-content-between">
+              <span class="m-0 fw-bold">Comments and activity</span>
+              <div class="d-flex gap-1 align-items-center">
+                <div class="form-check form-check-inline m-0 bg-gray align-items-center justify-content-center">
+                  <input class="form-check-input" type="checkbox" id="filter-all" checked onchange="filterActivity('all')">
+                  <label class="form-check-label" for="filter-all">
+                    <i class="bi bi-list-ul"></i>
+                  </label>
+                </div>
+                <div class="form-check form-check-inline m-0">
+                  <input class="form-check-input" type="checkbox" id="filter-activity" onchange="filterActivity('activity')">
+                  <label class="form-check-label" for="filter-activity">
+                    <i class="bi bi-activity"></i>
+                  </label>
+                </div>
+                <div class="form-check form-check-inline m-0">
+                  <input class="form-check-input" type="checkbox" id="filter-comments" onchange="filterActivity('comments')">
+                  <label class="form-check-label" for="filter-comments">
+                    <i class="bi bi-chat-dots"></i>
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div id="activityContainer" class="p-4 d-flex flex-column gap-2 overflow-auto" style="max-height: 300px;"> 
+              <div id="loadingOverlay-activity"  class="position-absolute w-100 top-0 h-100 end-0" style="background-color: rgba(74, 64, 129, 0.26);" >
+                  <img src="{% static 'img/loading.gif' %}" alt="Cargando" class="img-fluid rounded-1 my-5" style="width: 60px; height: auto;">
+              </div>
+            </div>
+            <button class="btn btn-primary btn-sm rounded-2 p-1 text-light position-absolute bottom-0 end-0 my-2 mx-3 bg-opacity-25" onclick="openAddCommentModal()">
+              <i class="bi bi-plus-circle" style="font-size: 15px;"></i> Add
+            </button>
+          </div>
+        </div>
+
+      <!-- progresss project -->
+      <div class="timeline-container">
+        <div class="timeline">
+            {% for step in steps %}
+                <div class="step">
+                    <div class="step-circle step-{{ step.is_active }} step-current-{{ step.is_current }}"></div>
+                    <div class="step-title step-text-{{ step.is_active }} step-text-current-{{ step.is_current }}">{{ step.title }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    </div>
+  </div>
+  

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Account, Transaction, Invoice, InvoiceItem, Expense, AuditLog
+from .models import Account, Transaction, InvoiceItem, Expense, AuditLog
 
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
@@ -16,20 +16,6 @@ class TransactionAdmin(admin.ModelAdmin):
     date_hierarchy = 'date'
     ordering = ('-date',)
 
-@admin.register(Invoice)
-class InvoiceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'client', 'date', 'due_date', 'total_amount', 'status')
-    list_filter = ('status', 'date')
-    search_fields = ('client', 'description')
-    date_hierarchy = 'date'
-    ordering = ('-date',)
-
-@admin.register(InvoiceItem)
-class InvoiceItemAdmin(admin.ModelAdmin):
-    list_display = ('invoice', 'description', 'quantity', 'unit_price', 'total')
-    list_filter = ('invoice__date',)
-    search_fields = ('description', 'invoice__client')
-    ordering = ('-invoice__date',)
 
 @admin.register(Expense)
 class ExpenseAdmin(admin.ModelAdmin):

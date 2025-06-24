@@ -7,10 +7,12 @@ from io import BytesIO
 from django.views.decorators.csrf import csrf_exempt
 from googleapiclient.http import MediaIoBaseUpload
 import json
-from .models import (Project)
+from .models import (Project, Notification)
 from django.shortcuts import get_object_or_404
 import os
 import requests
+import re
+from django.contrib.auth.models import User
 
 
 drive_id = '0AF4IswhouZv_Uk9PVA'
@@ -115,7 +117,6 @@ def fetch_children(request, folder_id):
                 "mimeType": extension,
                 "formatName": formatName
             })
-        print(structure)
         return JsonResponse({"message": "Estructura obtenida con éxito", "structure": structure})
     except HttpError as error:
         return JsonResponse({"message": "Error al obtener la estructura", "error": str(error)}, status=500)
@@ -442,14 +443,12 @@ def list_all_folders(service, drive_id):
 @csrf_exempt
 def upload_file_to_drive(request):
     if request.method == 'POST':
-        # try:
-
+        try:
             service = GoogleService.get_service()['drive']
             file_name = request.POST.get('file_name')
             mimeType = request.POST.get('mimeType')
             folder_id = str(request.POST.get('folder_id'))
             origin = request.META.get('HTTP_ORIGIN')
-            print(request.POST.get('folder_id'))
             
             file_metadata = {
                 'mimeType': mimeType,
@@ -485,8 +484,8 @@ def upload_file_to_drive(request):
 
             except HttpError as error:
                 print(f"Failed to upload {file_name}: {error}")
-        # except Exception as e:
-        #     return JsonResponse({'message': f'Error occurred: {str(e)}'}, status=500)
+        except Exception as e:
+             return JsonResponse({'message': f'Error occurred: {str(e)}'}, status=500)
 
     return JsonResponse({'message': 'Method not allowed'}, status=405)
 
@@ -699,3 +698,69 @@ def send_email(subject, html_body, recipient_email):
 
     except Exception as e:
         return {'status': 'error', 'message': f"Unexpected error: {e}"}
+
+def extract_mentions(text):
+    """
+    Extrae las menciones (@username) del texto y retorna una lista de usernames
+    """
+    mention_pattern = r'@(\w+)'
+    mentions = re.findall(mention_pattern, text)
+    return mentions
+
+def get_users_from_mentions(mentions):
+    """
+    Obtiene los usuarios basado en las menciones
+    """
+    users = []
+    for username in mentions:
+        try:
+            user = User.objects.get(username=username)
+            users.append(user)
+        except User.DoesNotExist:
+            continue
+    return users
+
+def create_mention_notifications(comment, mentioned_users, sender):
+    """
+    Crea notificaciones para usuarios mencionados
+    """
+    for user in mentioned_users:
+        if user != sender:  # No notificar al propio usuario
+            Notification.objects.create(
+                recipient=user,
+                sender=sender,
+                notification_type='mention',
+                project=comment.project,
+                comment=comment,
+                message=f'{sender.get_full_name()} mentioned you in a comment on project "{comment.project.project_name}"'
+            )
+
+def create_reply_notification(comment, sender):
+    """
+    Crea notificación para el autor del comentario padre cuando alguien responde
+    """
+    if comment.parent_comment and comment.parent_comment.user != sender:
+        Notification.objects.create(
+            recipient=comment.parent_comment.user,
+            sender=sender,
+            notification_type='reply',
+            project=comment.project,
+            comment=comment,
+            message=f'{sender.get_full_name()} replied to your comment on project "{comment.project.project_name}"'
+        )
+
+def format_comment_with_mentions(text):
+    """
+    Formatea el texto del comentario para mostrar las menciones como enlaces
+    """
+    mention_pattern = r'@(\w+)'
+    
+    def replace_mention(match):
+        username = match.group(1)
+        try:
+            user = User.objects.get(username=username)
+            return f'<span class="mention" data-username="{username}">@{username}</span>'
+        except User.DoesNotExist:
+            return match.group(0)
+    
+    return re.sub(mention_pattern, replace_mention, text)

@@ -136,7 +136,6 @@ browserFile = () => {
 };
 
 maximize = () => {
-  console.log('maximize')
   const modal = document.getElementById('file-viewer');
   modal.classList.toggle('fullscreen');
   const fileButtonsActions = document.getElementById('file-buttons-actions');
@@ -237,16 +236,15 @@ async function uploadFile(file, uploadUrl, folderIdInput) {
       },
       body: file
   }); 
-
+  let result = null;
   if (response.ok) {
       const data = await response.json();
       showAlert("Archivos subidos exitosamente.", 'success');
       getChildStructure(folderIdInput);
       return data;
   } else {
-      const errorText = await response.text();
-      showAlert("Error uploading file: " + errorText, 'warning');
-      throw new Error("Error uploading file: " + errorText);
+    showAlert("Error uploading file: " + response.statusText, 'warning');
+    return null;
   }
 }
 

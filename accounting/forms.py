@@ -1,8 +1,8 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from .models import Account, Transaction, Invoice, InvoiceItem, Expense, Report, Subaccount
-
+from .models import Account, Transaction, InvoiceItem, Expense, Report, Subaccount
+from customer.models import InvoiceProjects
 from django import forms
 from .models import Account
 
@@ -90,16 +90,7 @@ class TransactionForm(forms.ModelForm):
         # Agregar ayuda al campo
         self.fields['transaction_type'].help_text = 'Seleccione el tipo de transacción. Pase el mouse sobre este campo para más información.'
 
-class InvoiceForm(forms.ModelForm):
-    class Meta:
-        model = Invoice
-        fields = ['client', 'date', 'due_date', 'total_amount', 'status', 'description']
-        widgets = {
-            'date': forms.DateInput(attrs={'type': 'date'}),
-            'due_date': forms.DateInput(attrs={'type': 'date'}),
-            'description': forms.Textarea(attrs={'rows': 3}),
-            'total_amount': forms.NumberInput(attrs={'step': '0.01'}),
-        }
+
 
 class InvoiceItemForm(forms.ModelForm):
     class Meta:
@@ -124,7 +115,7 @@ class InvoiceItemForm(forms.ModelForm):
 
 # Formset for invoice items
 InvoiceItemFormSet = forms.inlineformset_factory(
-    Invoice,
+    InvoiceProjects,
     InvoiceItem,
     form=InvoiceItemForm,
     extra=1,

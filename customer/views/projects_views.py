@@ -26,7 +26,7 @@ from ..utils import create_folders_by_projects, delete_folders_by_projects, new_
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from datetime import datetime
-
+from dotenv import load_dotenv
 
 from groq import Groq
 from ..promts import basePromt, AsisPromt,  QueryReviewPrompt, ModelReviewPrompt, AnalysiData, SystemPromtReviewData, SalesMetricsAnalysis, DailyReportPrompt
@@ -35,10 +35,23 @@ from typing import Optional, List
 from pydantic import BaseModel
 from customer.models import ProjectHistory
 
+
+load_dotenv()
+
 client = Groq(
-    api_key="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",
+    api_key=os.getenv("GROQ_API_KEY"),
 )
 
+
+def log_project_history(request, project, action, description):
+    try:
+        project_history = ProjectHistory.objects.create(
+            project=project,
+            user=request.user,
+            action=action,
+            description=description)    
+    except Exception as e:
+        print(e)
 
 def aiaInvoice10(request,project_id, invoice_id):
     project = get_object_or_404(Project, pk=project_id)
@@ -70,7 +83,7 @@ def aiaInvoice5(request,project_id, invoice_id):
         data = json.loads(request.body)
         saleAdvisor = request.user
         save_invoice(data, project, proposal.budget , proposal, saleAdvisor)
-        print(data)
+        log_project_history(request, project, 'UPDATE', 'Invoice AIA5 updated')
         return HttpResponse(status=200)
     
     
@@ -90,6 +103,7 @@ def MdcpInvoice(request,project_id, invoice_id):
         data = json.loads(request.body)
         saleAdvisor = request.user
         save_invoice(data, project, proposal.budget , proposal, saleAdvisor)
+        log_project_history(request, project, 'UPDATE', 'Invoice MDCP updated')
         return HttpResponse(status=200)
     
 def BroadInvoice10(request,project_id, invoice_id):
@@ -105,6 +119,7 @@ def BroadInvoice10(request,project_id, invoice_id):
             'today': timezone.now().date(),
             'next_invoice_id': next_invoice_id,})
     elif request.method == 'POST':
+        log_project_history(request, project, 'UPDATE', 'Invoice Broad updated')
         return HttpResponse(status=200)
 
 def changePaidInvoice(request,project_id, invoice_id):
@@ -115,6 +130,7 @@ def changePaidInvoice(request,project_id, invoice_id):
         data = json.loads(request.body)
         invoice.total_paid = data['amount']
         invoice.save()
+        log_project_history(request, project, 'UPDATE', 'Invoice paid updated')
         return HttpResponse(status=200)
 
 def get_timeline_steps(project):
@@ -128,7 +144,7 @@ def get_timeline_steps(project):
                 'status': status,
                 'title': capfirst(label),
                 'is_active': index <= current_status_index,
-                'is_current': index == current_status_index
+                'is_current': index == current_status_index,
             }
             steps.append(step)
         elif current_status_index == index:
@@ -173,7 +189,7 @@ def create_project(request):
 
         new_project.folder_id = resp['folder_id']
         new_project.save()
-
+        log_project_history(request, new_project, 'CREATE', 'Project created')
         # todo OK
         return JsonResponse({
             'status': 'success',
@@ -208,6 +224,7 @@ def duplicate_project(request, project_id, customer_id, also_budget=False):
         if create_folder_response['status'] == 'success':
             new_project.folder_id = create_folder_response['folder_id']
             new_project.save()
+            log_project_history(request, new_project, 'CREATE', 'Project duplicated')
             return JsonResponse({'status': 'success', 'message': 'Project duplicated successfully.', 'redirect': f'/projects/{new_project.id}/'})
         else:
             return JsonResponse({'status': 'error', 'message': 'Error creating folder.'})
@@ -248,6 +265,7 @@ def create_copy_budget(request, original_budget_id, project_id):
         new_object_data = copy_info_item_table(['id', 'budget'], orginal_budget_utils_data)
         new_object_data['budget'] = new_budget
         BudgetEstimateUtil.objects.create(**new_object_data)
+        log_project_history(request, new_project, 'CREATE', 'Budget duplicated')
         return JsonResponse({'status': 'success', 'message': 'Budget duplicated successfully.', 'redirect': f'/projects/{new_project.id}/'}, status=200)
     except Exception as e:
         print(e)
@@ -292,8 +310,10 @@ def detail_project(request, project_id):
         else:
             budgets_dict[related_id]['budget'].insert(0, budget)
     productionUsers = None  
+    project_manager_not_available = project.status in ['new', 'contacted', 'quote_sent', 'in_negotiation', 'not_approved', 'cancelled', 'approved','planning_and_documentation', 'in_accounting']
+    accounting_manager_not_available = project.status in ['new', 'contacted', 'quote_sent', 'in_negotiation', 'not_approved', 'cancelled', ]
 
-    if project.status == 'approved':
+    if not project_manager_not_available or not accounting_manager_not_available :
         groups = Group.objects.prefetch_related("user_set").all()
         admin_users = []
         production_users = []
@@ -303,9 +323,7 @@ def detail_project(request, project_id):
             elif group.name == "PRODUCTION":
                 production_users = [{"name": user.first_name + user.last_name, "email": user.email, "id":  user.id} for user in group.user_set.all()]
         productionUsers = {'Admins': admin_users, 'Managers':production_users}
-    if project.project_manager and project.status != 'in_production':
-        project.status = 'in_production'
-        project.save()
+
         
     if request.method == 'GET':
         status_choices = Project.STATUS_CHOICES
@@ -334,6 +352,7 @@ def detail_project(request, project_id):
                     budget.save()
                 proposal.save()
                 updateStatusProject(new_status, project)
+                log_project_history(request, project, 'UPDATE', f'Project status updated to {new_status}')
                 status_choices = Project.STATUS_CHOICES
                 timeline_steps = get_timeline_steps(project)
 
@@ -347,7 +366,9 @@ def detail_project(request, project_id):
                 'proposals':proposals,
                 'status_choices': status_choices,
                 'productionUsers': productionUsers,
-                'customers': customers
+                'customers': customers,
+                'project_manager_not_available': project_manager_not_available,
+                'accounting_manager_not_available': accounting_manager_not_available
             })
 
     # Renderizar la plantilla
@@ -361,8 +382,12 @@ def detail_project(request, project_id):
         'status_choices': status_choices,
         'changes_orders': changes_orders,
         'productionUsers': productionUsers,
-        'customers': customers
+        'customers': customers,
+        'project_manager_not_available': project_manager_not_available,
+        'accounting_manager_not_available': accounting_manager_not_available
     })
+
+
 
 @login_required
 def select_Manager(request, project_id):
@@ -377,9 +402,64 @@ def select_Manager(request, project_id):
     project.save()
     if manager_id:
         print(f"Manager selected: {manager_id}")
-    
+    log_project_history(request, project, 'UPDATE', 'Manager selected')
     return redirect('detail_project', project_id)
 
+@login_required
+def assign_accounting_manager(request, project_id, manager_id):
+    if request.method == 'POST':
+        try:
+            project = get_object_or_404(Project, id=project_id)
+            manager = get_object_or_404(User, id=manager_id)
+            
+            # Assign the accounting manager
+            project.accounting_manager = manager
+            project.save()
+
+            # Update the project status to planning_and_documentation
+            project.status = 'planning_and_documentation'
+            project.save()
+            log_project_history(request, project, 'UPDATE', 'Accounting manager assigned')
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Accounting manager {manager.get_full_name()} assigned successfully'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Error assigning accounting manager: {str(e)}'
+            }, status=400)
+    else:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid request method'
+        }, status=405)
+
+@login_required
+def assign_project_manager(request, project_id, manager_id):
+    if request.method == 'POST':
+        try:
+            project = get_object_or_404(Project, id=project_id)
+            manager = get_object_or_404(User, id=manager_id)
+            
+            # Assign the project manager
+            project.project_manager = manager
+            project.save()
+            log_project_history(request, project, 'UPDATE', 'Project manager assigned')
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Project manager {manager.get_full_name()} assigned successfully'
+            })
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Error assigning project manager: {str(e)}'
+            }, status=400)
+    else:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Invalid request method'
+        }, status=405)
 
 @login_required    
 def new_budget(request, project_id):
@@ -404,6 +484,7 @@ def new_budget(request, project_id):
                 'dateCreated': timezone.now(),  
             }
             save_budget_data_from_dict(dataBudget, data)
+            log_project_history(request, project, 'UPDATE', 'Budget saved')
             return JsonResponse({'status': 'success', 'message': 'Presupuesto y datos guardados correctamente.'})
         except json.JSONDecodeError:
             return JsonResponse({'status': 'error', 'message': 'Error al procesar los datos.'}, status=400)
@@ -470,6 +551,7 @@ def new_change_order(request, project_id, proposal_id):
                 'isChangeOrder': True,
             }
             save_budget_data_from_dict(dataBudget, data)
+            log_project_history(request, project, 'UPDATE', 'Change order saved')
             return JsonResponse({'status': 'success', 'message': 'Orden de cambio guardada correctamente.'})
         except json.JSONDecodeError:
             return JsonResponse({'status': 'error', 'message': 'Error al procesar los datos.'}, status=400)
@@ -510,6 +592,7 @@ def edit_budget(request, project_id, budget_id):
             }
             save_budget_data_from_dict(dataBudget, data)
             modify_old_budget(budget_id)
+            log_project_history(request, project, 'UPDATE', 'Budget updated')
             return JsonResponse({'status': 'success', 'message': 'Presupuesto actualizado correctamente.'})
         except json.JSONDecodeError:
             return JsonResponse({'status': 'error', 'message': 'Error al procesar los datos.'}, status=400)
@@ -566,7 +649,7 @@ def view_budgetSimple(request, project_id, budget_id, proposal_id=None):
             print(dictScope)    
         saleAdvisor = request.user
         save_budget_simple(data, project, budget, dictScope,saleAdvisor)
-
+        log_project_history(request, project, 'UPDATE', 'Proposal updated')
             
         return redirect('detail_project', project_id=project_id)
 
@@ -580,7 +663,8 @@ def view_budgetSimple(request, project_id, budget_id, proposal_id=None):
 def delete_budget(request, project_id, budget_id):
     budget = get_object_or_404(BudgetEstimate, id=budget_id)
     budget.delete()
-    
+    project = get_object_or_404(Project, pk=project_id)
+    log_project_history(request, project, 'DELETE',f'Budget {budget_id} deleted in project {project_id}')
     return redirect('detail_project', project_id=project_id)
 
 @login_required
@@ -612,7 +696,8 @@ def delete_invoice(request, project_id, invoice_id):
     with transaction.atomic():
         invoice = get_object_or_404(InvoiceProjects, id=invoice_id)
         invoice.delete()
-
+        project = get_object_or_404(Project, pk=project_id)
+        log_project_history(request, project, 'DELETE',f'Invoice {invoice_id} deleted in project {project_id}')
     return redirect('detail_project', project_id=project_id)
 
 @receiver(post_save, sender=ProposalProjects)
@@ -627,7 +712,7 @@ def update_estimated_cost(sender, instance, **kwargs):
 
     project.estimated_cost = total_active_cost
     project.save(update_fields=['estimated_cost'])
-
+    log_project_history(request, project, 'UPDATE', 'Estimated cost updated')
 @login_required
 def delete_proposal(request, project_id, proposal_id):
     """
@@ -657,7 +742,7 @@ def delete_proposal(request, project_id, proposal_id):
         # else:
         #     budget.status = 'Billed'
         budget.save(update_fields=['status'])
-
+        log_project_history(request, project, 'DELETE',f'Proposal {proposal_id} deleted in project {project_id}')
     return redirect('detail_project', project_id=project_id)
 
 def pdf_invoice(request, project_id, invoice_id):
@@ -955,7 +1040,6 @@ def update_billed_proposal(sender, instance, **kwargs):
     
 
 def updateStatusProject(proposalStatus, project):
-    print('algo')
     if proposalStatus == 'sent' and project.status != 'contacted':
         project.status = 'contacted'
         project.save()
@@ -1217,6 +1301,69 @@ def project_history(request, project_id):
     }
     
     return render(request, 'project_history.html', context)
+
+@login_required
+def add_comment(request, project_id):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            comment_text = data.get('comment', '').strip()
+            parent_comment_id = data.get('parent_comment_id')  # Para respuestas
+            
+            if not comment_text:
+                return JsonResponse({'status': 'error', 'message': 'Comment text is required'})
+            
+            project = get_object_or_404(Project, id=project_id)
+            
+            # Crear el comentario
+            from ..models import commentsProject
+            comment = commentsProject.objects.create(
+                project=project,
+                comment=comment_text,
+                user=request.user
+            )
+            
+            # Si es una respuesta, establecer el comentario padre
+            if parent_comment_id:
+                try:
+                    parent_comment = commentsProject.objects.get(id=parent_comment_id, project=project)
+                    comment.parent_comment = parent_comment
+                    comment.save()
+                    
+                    # Crear notificación de respuesta
+                    from ..utils import create_reply_notification
+                    create_reply_notification(comment, request.user)
+                except commentsProject.DoesNotExist:
+                    pass
+            
+            # Procesar menciones
+            from ..utils import extract_mentions, get_users_from_mentions, create_mention_notifications
+            
+            mentions = extract_mentions(comment_text)
+            if mentions:
+                mentioned_users = get_users_from_mentions(mentions)
+                comment.mentioned_users.set(mentioned_users)
+                create_mention_notifications(comment, mentioned_users, request.user)
+                
+                print(f"Menciones detectadas: {mentions}")
+            
+            # Registrar en el historial
+            ProjectHistory.log_change(
+                project=project,
+                user=request.user,
+                action='COMMENT',
+                description=f'Added comment: {comment_text[:50]}{"..." if len(comment_text) > 50 else ""}',
+                content_object=comment
+            )
+            
+            return JsonResponse({'status': 'success', 'message': 'Comment added successfully'})
+            
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON data'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
 
 
 

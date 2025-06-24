@@ -1,0 +1,138 @@
+<div class="modal fade" id="attachPaymentModal" tabindex="-1" aria-labelledby="attachPaymentModalLabel" aria-hidden="true" >
+    <div class="modal-dialog modal-lg p-1 d-flex justify-content-center ">
+      <div class="modal-content modal-lg p-1 w-100 shadow-lg">
+        <div class="modal-header">
+          <h5 class="modal-title" id="attachPaymentModalLabel">Attach Payment to Invoice</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="paymentForm" class="form-sm" enctype="multipart/form-data">
+            <!-- Información de la Factura -->
+            <div class="flex-row p-1 d-flex gap-2">
+              <div class="card w-50">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0">Invoice Information *</h6>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="p-1 text-start col-md-6">
+                      <label for="invoiceId" class="form-label m-0 text">Invoice ID</label>
+                      <input type="text" class="form-control" id="invoiceId" readonly>
+                    </div>
+                    <div class="p-1 text-start col-md-6">
+                      <label for="customerName" class="form-label m-0 text">Customer</label>
+                      <input type="text" class="form-control" id="customerName" name="customerName" readonly>
+                    </div>
+                    <div class="p-1 text-start col-12">
+                      <label for="projectName" class="form-label m-0 text">Project</label>
+                      <input type="text" class="form-control" id="projectName" name="projectName" readonly>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="w-50 ">
+                <div class="card w-100">
+                  <div class="card-header bg-light">
+                    <h6 class="mb-0">Payment Details *</h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-md-6 p-1 text-start">
+                        <label for="paymentAmount" class="form-label m-0 text-start">Amount*</label>
+                        <div class="input-group p-0">
+                          <span class="input-group-text">$</span>
+                          <input type="number" class="form-control" id="paymentAmount" placeholder="Enter payment amount" required="" max="undefined">
+                        </div>
+                      </div>
+                      <div class="col-md-6 p-1 text-start">
+                        <label for="paymentDate" class="form-label m-0 text-start">Payment Date*</label>
+                        <input type="date" class="form-control" id="paymentDate" required="">
+                      </div>
+                    </div>
+                    <div class="row">
+                      <div class="col-md-6 p-1 text-start">
+                        <label for="selectAccount" class="form-label m-0 text">Account* <span class="spinner-border spinner-border-primary spinner-border-sm" id="loadingAccount" role="status" aria-hidden="true"></span></label>
+                        <select class="form-select" id="selectAccount" name="selectAccount" required>
+                          <option value="">Select Account</option>
+                        </select>
+                      </div>
+                      <div class="col-md-6 p-1 text-start">
+                        <label for="paymentMethod" class="form-label m-0 text">Payment Account*</label>
+                        <select class="form-select" id="paymentMethod" name="paymentMethod" required>
+                          <option value="">Select Method</option>
+                          <option value="cash">Cash</option>
+                          <option value="bank">Bank Transfer</option>
+                          <option value="card">Credit Card</option>
+                          <option value="other">Debit Card</option>
+                          <option value="check">Check</option>
+                          <option value="wire">Other</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+  
+  
+            <div class="flex-row p-1 d-flex gap-2">
+              <!-- Notas Adicionales -->
+              <div class="card w-50">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0">Additional Notes</h6>
+                </div>
+                <div class="card-body">
+                  <div class="mb-3">
+                    <textarea class="form-control" id="notePayment" name="notePayment" rows="3" placeholder="Enter any additional notes here..."></textarea>
+                  </div>
+                </div>
+              </div>
+  
+              <!-- Comprobante de Pago -->
+              <div class="card w-50">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0">Payment Receipt</h6>
+                </div>
+                <div class="card-body">
+                  <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="attachReceiptCheck">
+                    <label class="form-check-label" for="attachReceiptCheck">
+                      Attach payment receipt
+                    </label>
+                  </div>
+                  
+                  <div id="receiptDropArea" class="file-drop-area d-none">
+                    <div class="text-center">
+                      <i class="bi bi-cloud-upload fs-1 text-primary"></i>
+                      <p class="mt-2 mb-1">Drag & drop your receipt here</p>
+                      <p class="text-muted small mb-2">or</p>
+                      <button type="button" class="btn btn-outline-primary btn-sm" id="browseReceiptBtn">
+                        Browse Files
+                      </button>
+                      <input type="file" class="file-input" id="receiptFile" accept=".pdf,.jpg,.jpeg,.png">
+                    </div>
+                    <div id="receiptPreview" class="mt-3 d-none">
+                      <div class="d-flex align-items-center p-2 border rounded">
+                        <i class="bi bi-file-earmark-text fs-4 me-2"></i>
+                        <div class="flex-grow-1">
+                          <p class="mb-0 file-message" id="receiptFileName"></p>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="removeReceiptBtn">
+                          <i class="bi bi-x"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}">
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-success" id="confirmPaymentBtn">Attach Payment</button>
+        </div>
+      </div>
+    </div>
+  </div>

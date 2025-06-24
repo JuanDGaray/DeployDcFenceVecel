@@ -7,9 +7,9 @@
   <div class="spinner-border text-primary" role="status"></div>
   <span>Loading...</span>
 </div>
-<div class="container d-flex flex-column justify-content-center m-0 p-2">
+<div class="d-flex flex-nowrap flex-column justify-content-center justify-items-center m-0 p-2 w-100">
   <!-- navigation.html -->
-  <nav class="d-flex justify-content-between">
+  <nav class="d-flex justify-content-between w-100">
     <div>
       <a href="{% url 'detail_project' project.id %}">
         <strong
@@ -29,14 +29,18 @@
       / <span>AIA 5%</span>
       <div id="project-container" data-project-id="{{ project.id }}"></div>
     </div>
+    <div class="buttons-container">
+      <button class="btn btn-primary" onclick="downloadTemplate()"> <i class="bi bi-download"></i> Download PDF</button>
+      <button class="btn btn-success" onclick="downloadTemplateXlsx()"> <i class="bi bi-file-earmark-spreadsheet"></i> Download Excel</button>
+    </div>
   </nav>
 
-  <div class="row">
-    <div class="col-md-14" style="height: 80vh">
-      <div id="budget-template-container"></div>
+  <div class="row" style="width: 95vw;">
+    <div class="col-md-14 mx-auto position-relative w-100" style="height: 85vh; width: 100vw;">
+      <div id="budget-template-container" style="height: 100%; width: 100%;"></div>
     </div>
   </div>
-  <div class="mt-4 d-flex d-row" id="action-container">
+  <div class="mt-4 d-flex d-row position-fixed bottom-0 mx-auto my-2" id="action-container">
     <div class="d-flex flex-row cd-flex d-row p-2 bg-secondary mx-2 rounded-2">
       <div class="d-flex flex-row">
         <div class="d-flex flex-row">
@@ -66,11 +70,30 @@
       </button>
     </div>
   
-</div>
+  </div>
 <div id="loadingOverlay"  class="containerLoading d-none" >
   <img src="{% static 'img/loading.gif' %}" alt="Cargando" class="img-fluid rounded-1" style="width: 100px; height: auto;">
 </div>
 <script>
+
+  let urlDownload = null;
+  let urlPrint = null;
+  let urlDownloadXlsx = null;
+
+  function downloadTemplate() {
+    window.open(urlDownload, '_blank');
+  }
+
+  function printTemplate() {
+    window.open(urlPrint, '_blank');
+  }
+
+  function downloadTemplateXlsx() {
+    window.open(urlDownloadXlsx, '_blank');
+  }
+
+
+
   document.addEventListener("DOMContentLoaded", function () {
     const loadingContainer = document.getElementById("loading-container");
     const mainContent = document.getElementById("main-content");
@@ -92,6 +115,8 @@
           iframe.setAttribute("id", "iframe-budget");
           iframe.setAttribute("data-file-id", fileData.id);
           iframe.src = `https://docs.google.com/spreadsheets/d/${fileData.id}/edit?rm=minimal`;
+          urlDownload =  `https://docs.google.com/spreadsheets/d/${fileData.id}/export?format=pdf&portrait=false&gridlines=false&fitw=true&top_margin=0.1&bottom_margin=0.1&left_margin=0.1&right_margin=0.1&scale=4&size=letter`;
+          urlDownloadXlsx = `https://docs.google.com/spreadsheets/d/${fileData.id}/export?format=xlsx`;
           iframe.width = "100%";
           iframe.height = "100%";
           document
