@@ -41,9 +41,9 @@ function renderTable(data) {
                 ${project.project_name}
             </a>
         </td>
-        <td ">
-            <span class="status-empty status_${project.status} px-2 text-truncate">
-                <strong>•</strong> ${project.status}
+        <td class="text-truncate" style="max-width: 120px;">
+            <span class="status-empty status_${project.status} ">
+                <strong>•</strong> ${project.status === 'planning_and_documentation' ? 'Planning & Doc.' : project.status}
             </span>
         </td>
         <td>

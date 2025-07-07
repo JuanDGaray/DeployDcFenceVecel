@@ -734,10 +734,14 @@ def get_documents_checklist(request, project_id):
 @login_required
 def send_to_production(request):
     try:
+        
         project_id = int(request.POST.get('project_id'))
         project = Project.objects.get(id=project_id)
-        project.status = Project.STATUS_IN_PRODUCTION
-        project.save()
+        if request.user.is_superuser or request.user.is_staff or request.user == project.accounting_manager  or request.user == project.sales_advisor or request.user.groups.filter(name='ADMIN').exists():
+            project.status = Project.STATUS_IN_PRODUCTION
+            project.save()
+        else:
+            return JsonResponse({'status': 'error', 'message': 'You are not authorized to send this project to production'}, status=403)
         return JsonResponse({'status': 'success', 'message': 'Project sent to production'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
