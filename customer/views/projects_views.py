@@ -22,7 +22,7 @@ import math
 from django.db import transaction
 from django.conf import settings
 import os
-from ..utils import create_folders_by_projects, delete_folders_by_projects, new_aia5_xlxs_template
+from ..utils import create_folders_by_projects, delete_folders_by_projects, new_aia5_xlxs_template, create_manager_assignment_notification
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from datetime import datetime
@@ -157,7 +157,7 @@ def get_timeline_steps(project):
 @login_required
 def projects(request):
     if request.method == 'GET':
-        customers = Customer.objects.all()
+        customers = Customer.objects.only('id', 'first_name', 'last_name', 'email', 'company_name', 'customer_type')    
         return render(request, 'projects.html', {
             'customers': customers
         })
@@ -285,50 +285,65 @@ def copy_info_item_table(exclusionList, original_object):
 
 @login_required
 def detail_project(request, project_id):
-    project = project = get_object_or_404(
-        Project.objects.only(
-            'id', 'project_name', 'customer', 'status', 'estimated_cost', 
-            'actual_cost', 'sales_advisor', 'project_manager', 'created_at', 
-            'updated_at', 'city', 'state', 'zip_code', 'country', 'folder_id'
-        ), 
-        pk=project_id
-    )
-    budgets = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=True, isChangeOrder=False).only('id', 'projected_cost', 'status', 'sales_advisor', 'date_created', 'id_related_budget', 'isChangeOrder')
-    invoices = InvoiceProjects.objects.filter(project_id=project_id).only('id', 'date_created', 'due_date', 'total_invoice', 'total_paid', 'status', 'proposal', 'sales_advisor')
-    proposals = ProposalProjects.objects.filter(project_id=project_id).only('id', 'date_created', 'due_date', 'status', 'sales_advisor', 'total_proposal', 'sales_advisor', 'billed_proposal')
-    changes_orders = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True).only('id', 'projected_cost', 'status', 'sales_advisor', 'date_created', 'id_related_budget', 'isChangeOrder')
-    customers = Customer.objects.all()
-    if (len(invoices) <= 0 and len(budgets) <= 0) and project.status not in ['new', 'cancelled', 'inactive', 'pending_payment', 'not_approved']:
-        project.status = 'new'
-        project.save()
-    budgets_with_related = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=False, isChangeOrder=False)
-    budgets_dict = {}
-    for budget in budgets_with_related:
-        related_id = budget.id_related_budget.id  # Suponiendo que `id_related_budget` es un atributo accesible
-        if related_id not in budgets_dict:
-            budgets_dict[related_id] = {'budget': [budget]}
-        else:
-            budgets_dict[related_id]['budget'].insert(0, budget)
-    productionUsers = None  
-    project_manager_not_available = project.status in ['new', 'contacted', 'quote_sent', 'in_negotiation', 'not_approved', 'cancelled', 'approved','planning_and_documentation', 'in_accounting']
-    accounting_manager_not_available = project.status in ['new', 'contacted', 'quote_sent', 'in_negotiation', 'not_approved', 'cancelled', ]
-
-    if not project_manager_not_available or not accounting_manager_not_available :
-        groups = Group.objects.prefetch_related("user_set").all()
-        admin_users = []
-        production_users = []
-        for group in groups:
-            if group.name == "ADMIN":
-                admin_users = [{"name": user.first_name + user.last_name, "email": user.email, "id":  user.id} for user in group.user_set.all()]
-            elif group.name == "PRODUCTION":
-                production_users = [{"name": user.first_name + user.last_name, "email": user.email, "id":  user.id} for user in group.user_set.all()]
-        productionUsers = {'Admins': admin_users, 'Managers':production_users}
-
-        
     if request.method == 'GET':
+        project = project = get_object_or_404(
+            Project.objects.only(
+                'id', 'project_name', 'customer', 'status', 'estimated_cost', 
+                'actual_cost', 'sales_advisor', 'project_manager', 'created_at', 
+                'updated_at', 'city', 'state', 'zip_code', 'country', 'folder_id'
+            ), 
+            pk=project_id
+        )
+        budgets = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=True, isChangeOrder=False).only('id', 'projected_cost', 'status', 'sales_advisor', 'date_created', 'id_related_budget', 'isChangeOrder')
+        invoices = InvoiceProjects.objects.filter(project_id=project_id).only('id', 'date_created', 'due_date', 'total_invoice', 'total_paid', 'status', 'proposal', 'sales_advisor')
+        proposals = ProposalProjects.objects.filter(project_id=project_id).only('id', 'date_created', 'due_date', 'status', 'sales_advisor', 'total_proposal', 'sales_advisor', 'billed_proposal')
+        changes_orders = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True).only('id', 'projected_cost', 'status', 'sales_advisor', 'date_created', 'id_related_budget', 'isChangeOrder')
+        customers = Customer.objects.only('id', 'first_name', 'last_name', 'email', 'company_name', 'customer_type')
+        if (len(invoices) <= 0 and len(budgets) <= 0) and project.status not in ['new', 'cancelled', 'inactive', 'pending_payment', 'not_approved']:
+            project.status = 'new'
+            project.save()
+        budgets_with_related = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=False, isChangeOrder=False).only('id', 'projected_cost', 'status', 'sales_advisor', 'date_created', 'id_related_budget', 'isChangeOrder')
+        budgets_dict = {}
+        for budget in budgets_with_related:
+            related_id = budget.id_related_budget.id  # Suponiendo que `id_related_budget` es un atributo accesible
+            if related_id not in budgets_dict:
+                budgets_dict[related_id] = {'budget': [budget]}
+            else:
+                budgets_dict[related_id]['budget'].insert(0, budget)
+        productionUsers = None  
+        project_manager_not_available = project.status in ['new', 'contacted', 'quote_sent', 'in_negotiation', 'not_approved', 'cancelled', 'approved','planning_and_documentation', 'in_accounting']
+        accounting_manager_not_available = project.status in ['new', 'contacted', 'quote_sent', 'in_negotiation', 'not_approved', 'cancelled', ]
+
+        if not project_manager_not_available or not accounting_manager_not_available :
+            groups = Group.objects.prefetch_related("user_set").all()
+            admin_users = []
+            production_users = []
+            for group in groups:
+                if group.name == "ADMIN":
+                    admin_users = [{"name": user.first_name + user.last_name, "email": user.email, "id":  user.id} for user in group.user_set.all()]
+                elif group.name == "PRODUCTION":
+                    production_users = [{"name": user.first_name + user.last_name, "email": user.email, "id":  user.id} for user in group.user_set.all()]
+            productionUsers = {'Admins': admin_users, 'Managers':production_users}
+
         status_choices = Project.STATUS_CHOICES
         timeline_steps = get_timeline_steps(project)
 
+                # Renderizar la plantilla
+        return render(request, 'details_project.html', {
+            'project': project,
+            'budgets': budgets,
+            'steps': timeline_steps,
+            'budgets_dict': budgets_dict,
+            'invoices': invoices,
+            'proposals':proposals,
+            'status_choices': status_choices,
+            'changes_orders': changes_orders,
+            'productionUsers': productionUsers,
+            'customers': customers,
+            'project_manager_not_available': project_manager_not_available,
+            'accounting_manager_not_available': accounting_manager_not_available
+        })
+    
     else:
         if 'status' in request.POST:
             new_status = request.POST.get('status') 
@@ -336,57 +351,26 @@ def detail_project(request, project_id):
             budget_id = request.POST.get('budget_id')
             proposal = get_object_or_404(ProposalProjects, pk=proposal_id)
             budget = get_object_or_404(BudgetEstimate, pk=budget_id)
+            project = proposal.project
             if new_status in dict(ProposalProjects.STATUS_CHOICES).keys():
                 proposal.status = new_status
-                if proposal.status in  ['sent', 'pending'] and budget.status != 'complete':
+                if proposal.status in  ['sent', 'pending'] and budget.status != 'complete' and project.status not in ['planning_and_documentation', 'in_accounting', 'in_production', 'pending_payment']:
                     budget.status = 'complete'
                     budget.save()
-                elif proposal.status  == 'approved' and budget.status != 'approved':
+                elif proposal.status  == 'approved' and budget.status != 'approved' and project.status not in ['planning_and_documentation', 'in_accounting', 'in_production', 'pending_payment', 'not_approved']:
                     budget.status = 'approved'
                     budget.save()
-                elif proposal.status  == 'rejected' and budget.status != 'rejected':
+                elif proposal.status  == 'rejected' and budget.status != 'rejected' and project.status not in ['planning_and_documentation', 'in_accounting', 'in_production', 'pending_payment', 'not_approved']:
                     budget.status = 'rejected'
                     budget.save()
-                elif proposal.status  == 'new' and budget.status != 'saved':
+                elif proposal.status  == 'new' and budget.status != 'saved' and project.status not in ['plannings_and_documentation', 'in_accounting', 'in_production', 'pending_payment', 'not_approved']:
                     budget.status = 'saved'
                     budget.save()
                 proposal.save()
-                updateStatusProject(new_status, project)
+                project_manager_not_available, accounting_manager_not_available = updateStatusProject(new_status, project)
                 log_project_history(request, project, 'UPDATE', f'Project status updated to {new_status}')
-                status_choices = Project.STATUS_CHOICES
-                timeline_steps = get_timeline_steps(project)
 
-                
-            return render(request, 'details_project.html', {
-                'project': project,
-                'budgets': budgets,
-                'steps': timeline_steps,
-                'budgets_dict': budgets_dict,
-                'invoices': invoices,
-                'proposals':proposals,
-                'status_choices': status_choices,
-                'productionUsers': productionUsers,
-                'customers': customers,
-                'project_manager_not_available': project_manager_not_available,
-                'accounting_manager_not_available': accounting_manager_not_available
-            })
-
-    # Renderizar la plantilla
-    return render(request, 'details_project.html', {
-        'project': project,
-        'budgets': budgets,
-        'steps': timeline_steps,
-        'budgets_dict': budgets_dict,
-        'invoices': invoices,
-        'proposals':proposals,
-        'status_choices': status_choices,
-        'changes_orders': changes_orders,
-        'productionUsers': productionUsers,
-        'customers': customers,
-        'project_manager_not_available': project_manager_not_available,
-        'accounting_manager_not_available': accounting_manager_not_available
-    })
-
+            return redirect('detail_project', project_id)
 
 
 @login_required
@@ -403,6 +387,10 @@ def select_Manager(request, project_id):
     if manager_id:
         print(f"Manager selected: {manager_id}")
     log_project_history(request, project, 'UPDATE', 'Manager selected')
+    
+    # Create notification for the assigned manager
+    create_manager_assignment_notification(project, manager, 'production', request.user)
+    
     return redirect('detail_project', project_id)
 
 @login_required
@@ -420,6 +408,11 @@ def assign_accounting_manager(request, project_id, manager_id):
             project.status = 'planning_and_documentation'
             project.save()
             log_project_history(request, project, 'UPDATE', 'Accounting manager assigned')
+            
+            # Create notification for the assigned manager
+            create_manager_assignment_notification(project, manager, 'accounting', request.user)
+            
+            add_comment(request, project_id)
             return JsonResponse({
                 'status': 'success',
                 'message': f'Accounting manager {manager.get_full_name()} assigned successfully'
@@ -446,6 +439,10 @@ def assign_project_manager(request, project_id, manager_id):
             project.project_manager = manager
             project.save()
             log_project_history(request, project, 'UPDATE', 'Project manager assigned')
+            
+            # Create notification for the assigned manager
+            create_manager_assignment_notification(project, manager, 'production', request.user)
+            
             return JsonResponse({
                 'status': 'success',
                 'message': f'Project manager {manager.get_full_name()} assigned successfully'
@@ -1040,15 +1037,25 @@ def update_billed_proposal(sender, instance, **kwargs):
     
 
 def updateStatusProject(proposalStatus, project):
-    if proposalStatus == 'sent' and project.status != 'contacted':
+
+    if proposalStatus == 'new' and project.status not in ['planning_and_documentation', 'in_accounting', 'in_production', 'pending_payment', 'not_approved']:
+        project.status = 'new'
+        project.save()
+        return [True, True]
+    if proposalStatus == 'sent' and project.status != 'contacted' and project.status not in ['planning_and_documentation', 'in_accounting', 'in_production', 'pending_payment', 'not_approved']:
         project.status = 'contacted'
         project.save()
-    elif  proposalStatus == 'pending' and project.status != 'quote_sent':
+        return [True, True]
+    elif  proposalStatus == 'pending' and project.status != 'quote_sent' and project.status not in ['planning_and_documentation', 'in_accounting', 'in_production', 'pending_payment', 'not_approved']:
         project.status = 'quote_sent'
         project.save()
-    elif  proposalStatus == 'approved' and project.status != 'approved':
+        return [True, True]
+    elif  proposalStatus == 'approved' and project.status != 'approved' and project.status not in ['planning_and_documentation', 'in_accounting', 'in_production', 'pending_payment', 'not_approved']:
         project.status = 'approved'
         project.save()
+        return [False, True]
+    else:
+        return [False, False]
 
 @login_required
 def chat_with_groq(request):
@@ -1364,6 +1371,97 @@ def add_comment(request, project_id):
             return JsonResponse({'status': 'error', 'message': str(e)})
     
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+@login_required
+def edit_project(request, project_id):
+    """
+    Vista para editar los datos básicos de un proyecto.
+    Solo permite editar campos no comprometedores como nombre, descripción, ubicación, etc.
+    """
+    if request.method == 'POST':
+        try:
+            project = get_object_or_404(Project, id=project_id)
+            data = json.loads(request.body)
+            
+            # Validar campos requeridos
+            if not data.get('project_name', '').strip():
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Project name is required'
+                }, status=400)
+            
+            if not data.get('customer'):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Customer is required'
+                }, status=400)
+            
+            # Verificar que el customer existe
+            try:
+                customer = Customer.objects.get(id=data['customer'])
+            except Customer.DoesNotExist:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Selected customer does not exist'
+                }, status=400)
+            
+            # Guardar los cambios permitidos
+            project.project_name = data['project_name'].strip()
+            project.customer = customer
+            project.description = data.get('description', '').strip()
+            project.city = data.get('city', '').strip()
+            project.state = data.get('state', '').strip()
+            project.zip_code = data.get('zip_code', '').strip()
+            project.country = data.get('country', '').strip()
+            
+            # Procesar fechas
+            if data.get('start_date'):
+                try:
+                    project.start_date = datetime.strptime(data['start_date'], '%Y-%m-%d').date()
+                except ValueError:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Invalid start date format'
+                    }, status=400)
+            else:
+                project.start_date = None
+                
+            if data.get('end_date'):
+                try:
+                    project.end_date = datetime.strptime(data['end_date'], '%Y-%m-%d').date()
+                except ValueError:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Invalid end date format'
+                    }, status=400)
+            else:
+                project.end_date = None
+            
+            project.save()
+            
+            # Registrar en el historial
+            log_project_history(request, project, 'UPDATE', 'Project basic information updated')
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Project updated successfully'
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid JSON data'
+            }, status=400)
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Error updating project: {str(e)}'
+            }, status=500)
+    
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method'
+    }, status=405)
 
 
 

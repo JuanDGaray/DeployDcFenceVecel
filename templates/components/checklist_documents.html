@@ -16,206 +16,310 @@
     font-size: 1.1rem;
 }
 </style>
-<div class="col-md-12 mt-4">
-<div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
+<div class="col-md-12 mt-4 z-1">
+<div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm position-relative">
     <div class="card-header d-flex justify-content-between p-3 border-bottom bg-gray w-100">
     <h1 class="card-header fs-4 rounded-4">Documents Checklist
     </h1>
     <input type="file" class="file-input-checklist" style="display: none;">
-    <button class="btn btn-primary" onclick="addDocumentType()"><i class="bi bi-plus-circle me-1"></i>Add Document</button>
-
+    <button  {% if project.accounting_manager %} onclick="addDocumentType()" class="btn btn-primary" {% else %} disabled class="btn btn-secondary" style="cursor: not-allowed;" {% endif %}><i class="bi bi-plus-circle me-1"></i>Add Requirement</button>
     </div>
     <div class="card-body d-flex flex-row gap-3 flex-wrap m-3 justify-content-around" id="documentsChecklistContainer">
         
     </div>
-    
+    {% if project.accounting_manager and not project.project_manager and project.status == 'Planning and Documentation' %}
+        <button id="sendToProductionBtn" class="btn btn-success position-absolute bottom-0 end-0 m-2 d-none" onclick="sendToProduction()"><i class="bi bi-hammer me-1"></i>Send to production</button>
+    {% endif %}
 </div>
 </div>
-<script>
 
-    function addDocumentType() {
-        $('#addDocumentModal').modal('show');
-        addListenerToConfirmDocumentBtn();
-        
-    }
+{% if project.accounting_manager %}
+    <script>
+        let confirmBtnListenerAdded = false;
+        let isSaving = false;
+        let isUploading = false;
 
-    function addListenerToConfirmDocumentBtn() {
-        document.getElementById('confirmDocumentBtn').addEventListener('click', function() { 
-            event.preventDefault();
-            saveDocumentChecklist();
-        });
-    }
-    function saveDocumentChecklist() {
-        const projectId = document.getElementById('projectId').value;
-        const documentName = document.getElementById('documentName').value;
-        const documentType = document.getElementById('documentType').value;
-        const documentDescription = document.getElementById('documentDescription').value;
-        const data = {
-            project_id: projectId,
-            name: documentName,
-            type_document: documentType,
-            description: documentDescription
-        };
-        ajaxPostRequest('/save_document_checklist/', data, '{{ csrf_token }}', function(data) { 
-            if (data.status === 'success') {
-                loadDocumentsChecklist();
-                $('#addDocumentModal').modal('hide');
-                showAlert(data.message, 'success');
-            } else {
-                showAlert(data.message, 'danger');
-
+        function addDocumentType() {
+            $('#addDocumentModal').modal('show');
+            if (!confirmBtnListenerAdded) {
+                addListenerToConfirmDocumentBtn();
+                confirmBtnListenerAdded = true;
+            }
         }
-    });
-    }
 
-    function loadDocumentsChecklist() {
-        let projectId = document.getElementById('projectId').value;
-       ajaxGetRequest(`/get_documents_checklist/${projectId}/`, function(data) {
-        console.log(data); 
-        if (data.status === 'success') {
-            if (data.documents.length > 0) {
-            const documents = data.documents;
-            const request_user_is_accounting_manager_or_admin = data.request_user_is_accounting_manager_or_admin;
-            renderDocumentsChecklist(documents, request_user_is_accounting_manager_or_admin);
+        function addListenerToConfirmDocumentBtn() {
+            document.getElementById('confirmDocumentBtn').addEventListener('click', function() { 
+                event.preventDefault();
+                if (!isSaving) {
+                    saveDocumentChecklist();
+                }
+            });
+        }
+        
+        function saveDocumentChecklist() {
+            if (isSaving) return; // Prevent duplicate submissions
+            
+            // Validate required fields
+            const documentName = document.getElementById('documentName').value.trim();
+            const documentDescription = document.getElementById('documentDescription').value.trim();
+            
+            if (!documentName) {
+                showAlert('Document name is required', 'warning');
+                return;
+            }
+            
+            if (!documentDescription) {
+                showAlert('Document description is required', 'warning');
+                return;
+            }
+            
+            isSaving = true;
+            const confirmBtn = document.getElementById('confirmDocumentBtn');
+            const originalText = confirmBtn.innerHTML;
+            confirmBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
+            confirmBtn.disabled = true;
+            
+            const projectId = document.getElementById('projectId').value;
+            const documentType = document.getElementById('documentType').value;
+            const data = {
+                project_id: projectId,
+                name: documentName,
+                type_document: documentType,
+                description: documentDescription
+            };
+            ajaxPostRequest('/save_document_checklist/', data, '{{ csrf_token }}', function(data) { 
+                isSaving = false;
+                confirmBtn.innerHTML = originalText;
+                confirmBtn.disabled = false;
+                
+                if (data.status === 'success') {
+                    loadDocumentsChecklist();
+                    $('#addDocumentModal').modal('hide');
+                    clearModalFields();
+                    showAlert(data.message, 'success');
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            });
+        }
+
+        function clearModalFields() {
+            document.getElementById('documentName').value = '';
+            document.getElementById('documentType').value = 'Permit';
+            document.getElementById('documentDescription').value = '';
+        }
+
+        function clearFileInput() {
+            const fileInput = document.querySelector('.file-input-checklist');
+            if (fileInput) {
+                fileInput.value = '';
+            }
+        }
+
+        function loadDocumentsChecklist() {
+            let projectId = document.getElementById('projectId').value;
+            const sendToProductionBtn = document.getElementById('sendToProductionBtn');
+            const projectStatus = document.getElementById('projectStatus');
+            ajaxGetRequest(`/get_documents_checklist/${projectId}/`, function(data) {
+            console.log(data); 
+            if (data.status === 'success') {
+                if (data.documents.length > 0) {
+                const documents = data.documents;
+                const request_user_is_accounting_manager_or_admin = data.request_user_is_accounting_manager_or_admin;
+                renderDocumentsChecklist(documents, request_user_is_accounting_manager_or_admin);
+                if (projectStatus.dataset.projectStatus == 'planning_and_documentation') {
+                    activateSendToProductionBtn(documents);
+                }
+                } else {
+                    sendToProductionBtn.classList.add('d-none');
+                    const documentsContainer = document.getElementById('documentsChecklistContainer');
+                    documentsContainer.innerHTML = '<div class="text-center p-4">No documents found, add a new document requirement</div>';
+                }
             } else {
                 const documentsContainer = document.getElementById('documentsChecklistContainer');
-                documentsContainer.innerHTML = '<div class="text-center p-4">No documents found, add a new document requirement</div>';
+                documentsContainer.innerHTML = '<div class="alert alert-danger">Error loading documents</div>';
             }
-        } else {
-            const documentsContainer = document.getElementById('documentsChecklistContainer');
-            documentsContainer.innerHTML = '<div class="alert alert-danger">Error loading documents</div>';
+        }, function(error) {
+            console.log(error);
+        });
         }
-       }, function(error) {
-        console.log(error);
-       });
-    }
 
-    function renderDocumentsChecklist(documents, request_user_is_accounting_manager_or_admin) {
-        const documentsContainer = document.getElementById('documentsChecklistContainer');
-        documentsContainer.innerHTML = '';
-        let html = '';
-        documents.forEach(document => {
-            html += `
-            <div class="d-flex flex-row">
-                <div class="document-item d-flex align-items-center gap-3  p-2 z-2 rounded-1" tabindex="0" style="${document.is_completed ? 'background-color: #c4f5cf;' : 'background-color: #f5efc4;'}">
-                    <div class="document-item-name flex-grow-1">
-                        <span class="fw-semibold d-flex align-items-center gap-2 flex-row text-truncate">
-                            ID${document.id} - ${document.name}
-                            <span class="badge border border-primary border-2 rounded-pill text-primary"> ${document.type_document}</span>
-                        </span>
-                        <div class="text-muted small bg-light rounded-2 px-2 py-1 border border-2 border-gray mt-2 text-truncate" style="width: 200px; font-size: 0.8rem;" title="${document.description || ''}">${document.description.length > 100 ? document.description.substring(0, 100) + '...' : document.description || ''}</div>
-                    </div>
-                    <div class="d-flex flex-row gap-2">
+        function activateSendToProductionBtn(documents) {
+            const sendToProductionBtn = document.getElementById('sendToProductionBtn');
+            if (documents.some(document => document.is_completed === false)) {
+                if (!sendToProductionBtn.classList.contains('d-none')) {
+                    sendToProductionBtn.classList.add('d-none');
+                }
+            } else {
+                if (sendToProductionBtn.classList.contains('d-none')) {
+                    sendToProductionBtn.classList.remove('d-none');
+                }
+            }
+        }
 
-                        <div class="document-item-user fs-6">
-                            <strong class="text-muted">Requested by:</strong>
-                            <br>
-                            <div class="d-flex align-items-center gap-1" style="font-size: 0.8rem;">
-                                <div class="document-item-user badge bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width:25px;height:25px;">
-                                    ${document.added_by__first_name[0] + document.added_by__last_name[0]}
+        function renderDocumentsChecklist(documents, request_user_is_accounting_manager_or_admin) {
+            const documentsContainer = document.getElementById('documentsChecklistContainer');
+            documentsContainer.innerHTML = '';
+            let html = '';
+            documents.forEach(document => {
+                html += `
+                <div class="d-flex flex-row">
+                    <div class="document-item d-flex align-items-center gap-3  p-2 z-2 rounded-1" tabindex="0" style="${document.is_completed ? 'background-color: #c4f5cf;' : 'background-color: #f5efc4;'}">
+                        <div class="document-item-name flex-grow-1">
+                            <span class="fw-semibold d-flex align-items-center gap-2 flex-row text-truncate">
+                                ID${document.id} - ${document.name}
+                                <span class="badge border border-primary border-2 rounded-pill text-primary"> ${document.type_document}</span>
+                            </span>
+                            <div class="text-muted small bg-light rounded-2 px-2 py-1 border border-2 border-gray mt-2 text-truncate" style="width: 200px; font-size: 0.8rem;" title="${document.description || ''}">${document.description.length > 100 ? document.description.substring(0, 100) + '...' : document.description || ''}</div>
+                        </div>
+                        <div class="d-flex flex-row gap-2">
+
+                            <div class="document-item-user fs-6">
+                                <strong class="text-muted">Requested by:</strong>
+                                <br>
+                                <div class="d-flex align-items-center gap-1" style="font-size: 0.8rem;">
+                                    <div class="document-item-user badge bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width:25px;height:25px;">
+                                        ${document.added_by__first_name[0] + document.added_by__last_name[0]}
+                                    </div>
+                                    <span class="text-muted" >${document.added_by__first_name.split(' ')[0] + ' ' + document.added_by__last_name.split(' ')[0]}</span>
                                 </div>
-                                <span class="text-muted" >${document.added_by__first_name.split(' ')[0] + ' ' + document.added_by__last_name.split(' ')[0]}</span>
                             </div>
                         </div>
                     </div>
+                    ${request_user_is_accounting_manager_or_admin ? `
+                    <div class="d-flex flex-column justify-content-start">
+                        <div class="z-1" style="width: 40px; height: 100%; margin-left: -10px;">
+                            ${document.is_completed ? '<div class="badge bg-success"><button class="btn btn-sm btn-success " style="transform: translateX(5px);"><i class="bi bi-check-circle text-white"></i></button></div>' 
+                            : `<div class="badge bg-warning"><button class="bg-warning btn btn-sm btn-warning " style="transform: translateX(5px);" onclick="loadDocument(${document.id})"><i class="bi bi-upload text-white"></i></button></div>`}
+                        </div>
+                        <div class="z-1" style="width: 40px; height: 100%; margin-left: -10px;">
+                            <button class="btn btn-sm btn-danger" style="transform: translateX(5px);" onclick="deleteDocument(${document.id})"><i class="bi bi-trash text-white"></i></button>
+                        </div>
+                        <div class="z-1" style="width: 40px; height: 100%; margin-left: -10px;">
+                            <button  style="transform: translateX(5px);" ${! document.is_completed ? `disabled class="btn btn-sm btn-secondary" ` : 'class="btn btn-sm btn-primary"'} onclick="viewDocument('${document.file_url}')"><i class="bi bi-eye text-white"></i></button>
+                        </div>
+                    </div>
+                    ` : ''}
                 </div>
-                ${request_user_is_accounting_manager_or_admin ? `
-                <div class="d-flex flex-column justify-content-start">
-                    <div class="z-1" style="width: 40px; height: 100%; margin-left: -10px;">
-                        ${document.is_completed ? '<div class="badge bg-success"><button class="btn btn-sm btn-success " style="transform: translateX(5px);"><i class="bi bi-check-circle text-white"></i></button></div>' 
-                        : `<div class="badge bg-warning"><button class="bg-warning btn btn-sm btn-warning " style="transform: translateX(5px);" onclick="loadDocument(${document.id})"><i class="bi bi-upload text-white"></i></button></div>`}
-                    </div>
-                    <div class="z-1" style="width: 40px; height: 100%; margin-left: -10px;">
-                        <button class="btn btn-sm btn-danger" style="transform: translateX(5px);" onclick="deleteDocument(${document.id})"><i class="bi bi-trash text-white"></i></button>
-                    </div>
-                    <div class="z-1" style="width: 40px; height: 100%; margin-left: -10px;">
-                        <button  style="transform: translateX(5px);" ${! document.is_completed ? `disabled class="btn btn-sm btn-secondary" ` : 'class="btn btn-sm btn-primary"'} onclick="viewDocument('${document.file_url}')"><i class="bi bi-eye text-white"></i></button>
-                    </div>
-                </div>
-                ` : ''}
-            </div>
-            `;
-        });style="font-size: 0.8rem;"
-        documentsContainer.innerHTML = html;
-    }
+                `;
+            });style="font-size: 0.8rem;"
+            documentsContainer.innerHTML = html;
+            
+        }
 
-    document.addEventListener('DOMContentLoaded', function() {
-        loadDocumentsChecklist();
-    });
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDocumentsChecklist();
+            
+            // Clear modal fields when modal is hidden
+            $('#addDocumentModal').on('hidden.bs.modal', function () {
+                clearModalFields();
+                isSaving = false;
+                const confirmBtn = document.getElementById('confirmDocumentBtn');
+                confirmBtn.innerHTML = 'Add Document';
+                confirmBtn.disabled = false;
+            });
+        });
 
-    function loadDocument(documentId) {
-        let folder_equal = document.querySelector('[data-folder-name="Permit"]');
-        if (!folder_equal) {
-            folder_equal = document.querySelector('[data-folder-name="Documents"]');
-            if (!folder_equal) {
-                showAlert('No folder found, review the in documents that folder exists', 'danger');
+        function loadDocument(documentId) {
+            if (isUploading) {
+                showAlert('Please wait, a file is currently being uploaded', 'warning');
                 return;
             }
-        }
-        const folder_id = folder_equal.getAttribute('data-folder');
-        const file_input = document.querySelector('.file-input-checklist');
-        file_input.click();
-        file_input.addEventListener('change', function(event) {
-            file_input.removeEventListener('change', function(event) {
-                event.preventDefault();
-            });
-            event.preventDefault();
-            const formData = new FormData();
-            if (file_input.files.length > 0 || file_input.files[0].name !== '') {
-                formData.append('file_name', file_input.files[0].name);
-                formData.append('mimeType', file_input.files[0].type);
-            } else {
-                showAlert("No se han seleccionado archivos.", 'warning');
-                return;} 
-            formData.append('folder_id', folder_id);
-            console.log('formData', formData.get('folder_id'));
-            const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
-            fetch("/projects/upload-file/", {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': csrfToken,
+            
+            let folder_equal = document.querySelector('[data-folder-name="Permit"]');
+            if (!folder_equal) {
+                folder_equal = document.querySelector('[data-folder-name="Documents"]');
+                if (!folder_equal) {
+                    showAlert('No folder found, review the in documents that folder exists', 'danger');
+                    return;
                 }
-            })
-            .then(response => response.json())
-            .then(data => {
-                uploadFile(file_input.files[0], data.uploadUrl, folder_id)
-                .then(result => {
-                    updateDocumentChecklist(documentId, result.id);
-                });
-            })
-            .catch(error => {
-                showAlert(error, 'danger');
-            });
-        });
-    }
-
-
-
-    function updateDocumentChecklist(documentId, dataInfo) {
-        const dataset = {
-            document_id: documentId,
-            file_url: dataInfo,
-            is_completed: true
-        };
-        console.log(dataset);
-        ajaxPostRequest('/update_document_checklist/', dataset, '{{ csrf_token }}', function(data) {
-            if (data.status === 'success') {
-                loadDocumentsChecklist();
-                showAlert(data.message, 'success');
-            } else {
-                showAlert(data.message, 'danger');
             }
-        });
-    }
+            const folder_id = folder_equal.getAttribute('data-folder');
+            const file_input = document.querySelector('.file-input-checklist');
+            
+            // Remove any existing event listeners by cloning the element
+            const newFileInput = file_input.cloneNode(true);
+            file_input.parentNode.replaceChild(newFileInput, file_input);
+            
+            // Add new event listener
+            newFileInput.addEventListener('change', function(event) {
+                event.preventDefault();
+                
+                if (isUploading) {
+                    showAlert('Please wait, a file is currently being uploaded', 'warning');
+                    return;
+                }
+                
+                isUploading = true;
+                showAlert('Uploading file...', 'info');
+                
+                const formData = new FormData();
+                if (newFileInput.files.length > 0 && newFileInput.files[0].name !== '') {
+                    formData.append('file_name', newFileInput.files[0].name);
+                    formData.append('mimeType', newFileInput.files[0].type);
+                } else {
+                    isUploading = false;
+                    showAlert("No se han seleccionado archivos.", 'warning');
+                    return;
+                } 
+                formData.append('folder_id', folder_id);
+                console.log('formData', formData.get('folder_id'));
+                const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+                fetch("/projects/upload-file/", {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    uploadFile(newFileInput.files[0], data.uploadUrl, folder_id)
+                    .then(result => {
+                        isUploading = false;
+                        clearFileInput();
+                        updateDocumentChecklist(documentId, result.id);
+                    })
+                    .catch(error => {
+                        isUploading = false;
+                        clearFileInput();
+                        showAlert('Error uploading file: ' + error, 'danger');
+                    });
+                })
+                .catch(error => {
+                    isUploading = false;
+                    clearFileInput();
+                    showAlert(error, 'danger');
+                });
+            });
+            
+            newFileInput.click();
+        }
 
-    function deleteDocument(documentId) {
-
+        function updateDocumentChecklist(documentId, dataInfo) {
+            // Find the document in the current list to check if it's already completed
+            const documents = document.querySelectorAll('.document-item');
+            let documentElement = null;
+            
+            for (let doc of documents) {
+                if (doc.textContent.includes(`ID${documentId}`)) {
+                    documentElement = doc;
+                    break;
+                }
+            }
+            
+            if (documentElement && documentElement.style.backgroundColor === 'rgb(196, 245, 207)') {
+                showAlert('This document is already completed', 'warning');
+                return;
+            }
+            
             const dataset = {
-                document_id: documentId
+                document_id: documentId,
+                file_url: dataInfo,
+                is_completed: true
             };
-            deleteObjet(documentId);
-            ajaxPostRequest('/delete_document_checklist/', dataset, '{{ csrf_token }}', function(data) {
+            console.log(dataset);
+            ajaxPostRequest('/update_document_checklist/', dataset, '{{ csrf_token }}', function(data) {
                 if (data.status === 'success') {
                     loadDocumentsChecklist();
                     showAlert(data.message, 'success');
@@ -225,9 +329,39 @@
             });
         }
 
-    function viewDocument(documentFileId) {
-        const url = `https://drive.google.com/file/d/${documentFileId}/preview`;
-        viewFile(url);
-        maximize();
+        function deleteDocument(documentId) {
+
+                const dataset = {
+                    document_id: documentId
+                };
+                deleteObjet(documentId);
+                ajaxPostRequest('/delete_document_checklist/', dataset, '{{ csrf_token }}', function(data) {
+                    if (data.status === 'success') {
+                        loadDocumentsChecklist();
+                        showAlert(data.message, 'success');
+                    } else {
+                        showAlert(data.message, 'danger');
+                    }
+                });
+            }
+
+        function viewDocument(documentFileId) {
+            const url = `https://drive.google.com/file/d/${documentFileId}/preview`;
+            viewFile(url);
+            maximize();
+            }
+
+        function sendToProduction() {
+            const projectId = document.getElementById('projectId').value;
+            formData = new FormData();
+            formData.append('project_id', projectId);
+            ajaxPostRequest(`/send_to_production/`, formData, '{{ csrf_token }}', function(data) {
+                if (data.status === 'success') {
+                    location.reload()
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            });
         }
-</script>
+    </script>
+{% endif %}

@@ -91,15 +91,14 @@ def get_Subitem(dictionary, key):
         item_value = dictionary.get(key)
         if isinstance(item_value, dict):
             sub_items = item_value.get('subItems')
+            total = item_value.get('total', 0)
             if isinstance(sub_items, dict):
                 result = []
                 for k, v in sub_items.items():
                     if isinstance(v, dict):
-                        total_sum = sum(value for value in v.values() if isinstance(value, (int, float)))
-                        result.append((k, sorted(v.items()), total_sum))
+                        result.append((k, sorted(v.items()), total))
                     else:
-                        result.append((k, v, 0 ))
-                print(result)
+                        result.append((k, v, total))
                 return result
     return []
 
@@ -112,3 +111,83 @@ def get_description(dictionary):
         item_value = dictionary
         print(dictionary)
 
+@register.filter(name='short_name')
+def short_name(first_name, last_name):
+    return f"{first_name.split(' ')[0]} {last_name.split(' ')[0]}"
+
+@register.filter(name='sum_values')
+def sum_values(value):
+    """
+    Suma todos los valores numéricos de una lista, diccionario o valor individual.
+    Especialmente diseñado para sumar costValues de items de costo real.
+    """
+    if value is None:
+        return 0
+    
+    # Si es una lista de tuplas (como subItem.1), sumar los costValues
+    if isinstance(value, list):
+        total = 0
+        for item in value:
+            if isinstance(item, tuple) and len(item) >= 2:
+                # Si es una tupla, buscar el costValue en el segundo elemento
+                second_item = item[1]
+                if isinstance(second_item, dict) and 'costValue' in second_item:
+                    cost_value = second_item['costValue']
+                    if isinstance(cost_value, (int, float)):
+                        total += cost_value
+                    elif isinstance(cost_value, str):
+                        try:
+                            total += float(cost_value)
+                        except (ValueError, TypeError):
+                            pass
+            elif isinstance(item, (int, float)):
+                total += item
+            elif isinstance(item, dict):
+                # Si es un diccionario, buscar costValue o sumar todos los valores numéricos
+                if 'costValue' in item:
+                    cost_value = item['costValue']
+                    if isinstance(cost_value, (int, float)):
+                        total += cost_value
+                    elif isinstance(cost_value, str):
+                        try:
+                            total += float(cost_value)
+                        except (ValueError, TypeError):
+                            pass
+                else:
+                    # Sumar todos los valores numéricos del diccionario
+                    for v in item.values():
+                        if isinstance(v, (int, float)):
+                            total += v
+        return total
+    
+    # Si es un diccionario, buscar costValue o sumar todos los valores numéricos
+    elif isinstance(value, dict):
+        total = 0
+        if 'costValue' in value:
+            cost_value = value['costValue']
+            if isinstance(cost_value, (int, float)):
+                total += cost_value
+            elif isinstance(cost_value, str):
+                try:
+                    total += float(cost_value)
+                except (ValueError, TypeError):
+                    pass
+        else:
+            # Sumar todos los valores numéricos del diccionario
+            for v in value.values():
+                if isinstance(v, (int, float)):
+                    total += v
+        return total
+    
+    # Si es un número, devolverlo directamente
+    elif isinstance(value, (int, float)):
+        return value
+    
+    # Si es una cadena, intentar convertirla a número
+    elif isinstance(value, str):
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return 0
+    
+    return 0

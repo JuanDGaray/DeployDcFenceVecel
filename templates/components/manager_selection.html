@@ -1,0 +1,64 @@
+{% load static %}
+<div class="d-flex flex-column mt-auto p-0 user-select-none">
+    <p class="bg-warning bg-opacity-25 text-dark p-2 m-0 d-flex flex-row gap-2"><strong style="width: 50%;">Sales Manager:</strong> 
+      <span style="width: 50%;" class="d-flex flex-row gap-2 flex-nowrap bg-light rounded-2 p-1"> 
+        <span class="customer-avatar text-light rounded-circle m-0 bg-primary"
+        style="font-size: 0.8rem; font-weight: bold; width: 25px; height: 25px;">
+        {{ project.sales_advisor.first_name|first }} {{ project.sales_advisor.last_name|first }}
+        </span>
+        {{ project.sales_advisor }}
+      </span></p>
+    <p class="bg-success bg-opacity-25 text-dark p-2 m-0 d-flex flex-row gap-2 position-relative"><strong style="width: 50%;">Accounting Manager:</strong>
+      <span style="width: 50%;" class="d-flex flex-row gap-2 flex-nowrap bg-light rounded-2 p-1">
+        {% if project.accounting_manager == None and not accounting_manager_not_available %}
+          <select id="selectManager" class="form-select form-select-sm m-0 p-0 px-2 overflow-auto border-0 w-fit">
+            <option value="" selected>Select a manager</option>
+            {% for group, users in productionUsers.items %}
+                <optgroup label="{% if group == 'Admins' %}Admins{% elif group == 'Managers' %}Managers{% endif %}">
+                  {% for person in users %}
+                    <option value="{{ person.id }}">{{ person.name }}</option>
+                  {% endfor %}
+                </optgroup>
+            {% endfor %}
+          </select>
+        {% else %}
+        
+          <span class="customer-avatar text-light rounded-circle m-0 bg-primary"
+            style="font-size: 0.8rem; font-weight: bold; width: 25px; height: 25px;">
+            {{ project.accounting_manager.first_name|first }} {{ project.accounting_manager.last_name|first }}
+          </span>
+          {{ project.accounting_manager }}
+        {% endif %}
+      </span>
+      {% if accounting_manager_not_available and project.accounting_manager == None %}
+        <span class="position-absolute w-100 h-100 z-2 m-0 p-0"
+         style="right: 0; top: 0; background-image: url('{% static 'img/logoPatron.png' %}'); background-size: cover; background-position: center; filter: grayscale(100%); cursor: not-allowed;"></span>
+      {% endif %}
+    </p>
+    <p class="bg-primary bg-opacity-25 text-dark p-2 m-0 d-flex flex-row gap-2 position-relative"><strong style="width: 50%;">Project Manager:</strong> 
+      <span style="width: 50%;" class="d-flex flex-row gap-2 flex-nowrap bg-light rounded-2 p-1">
+        {% if project.project_manager == None and not project_manager_not_available %}
+          <select id="selectProjectManager" class="form-select form-select-sm m-0 p-0 px-2 overflow-auto border-0 w-fit">
+            <option value="" selected>Select a manager</option>
+            {% for group, users in productionUsers.items %}
+              <optgroup label="{% if group == 'Admins' %}Admins{% elif group == 'Managers' %}Managers{% endif %}">
+                {% for person in users %}
+                  <option value="{{ person.id }}">{{ person.name }}</option>
+                {% endfor %}
+              </optgroup>
+            {% endfor %}
+          </select>
+        {% else %}
+          <span class="customer-avatar text-light rounded-circle m-0 bg-primary"
+          style="font-size: 0.8rem; font-weight: bold; width: 25px; height: 25px;">
+          {{ project.project_manager.first_name|first }} {{ project.project_manager.last_name|first }}
+          </span>
+          {{ project.project_manager }}
+        {% endif %}
+      </span>
+      {% if project_manager_not_available and project.project_manager == None %}
+        <span class="position-absolute w-100 h-100 z-2 m-0 p-0"
+         style="right: 0; top: 0; background-image: url('{% static 'img/logoPatron.png' %}'); background-size: cover; background-position: center; filter: grayscale(100%); cursor: not-allowed;"></span>
+      {% endif %}
+    </p>
+  </div>

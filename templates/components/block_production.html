@@ -1,0 +1,124 @@
+<div class="position-sticky top-0 w-100 vh-100 bg-secondary bg-opacity-25 m-0 p-0 d-flex justify-content-center align-items-center" style="z-index: 1000;">
+    {% include 'components/block_panel.html' %}
+    <div class="card p-3 overflow-hidden w-50">
+        <div class="d-flex align-items-start p-0 justify-content-center">
+            <h2 class="fw-bold bg-light m-0 text-danger text-capitalize text-center">Production Project Blocked</h2>
+            <i class="bi bi-exclamation-triangle text-danger fs-1 ms-3"></i>
+        </div>
+        <p class="text-muted">
+            This project is blocked because accounting manager or sales advisor or project manager, start date, or end date is not set.
+        </p>
+        {% include 'components/manager_selection.html' with project=project projectProduction=projectProduction %}
+        <div class="date-selection d-flex justify-content-center align-items-center mt-3 gap-3 ">
+            <div class="d-flex align-items-center border border-2 border-secondary rounded-2 p-2 bg-secondary-subtle">
+                <label for="start_date" class="form-label text-nowrap me-2">Start Date</label>
+                <input type="date" id="start_date" name="start_date" class="form-control" value="{{ project.start_date|date:'Y-m-d' }}">
+            </div>
+            <div class="d-flex align-items-center border border-2 border-success rounded-2 p-2 bg-success-subtle">
+                <label for="end_date" class="form-label text-nowrap me-2">End Date</label>
+                <input type="date" id="end_date" name="end_date" class="form-control" value="{{ project.end_date|date:'Y-m-d' }}">
+            </div>
+        </div>
+        <div class="d-flex justify-content-center align-items-center mt-3">
+            <button id="updateProjectProductionBtn" class="btn btn-success">Update Project Production <i class="bi bi-arrow-right"></i></button>
+        </div>
+    </div>
+</div>
+
+<!-- CSRF Token for AJAX requests -->
+<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const updateBtn = document.getElementById('updateProjectProductionBtn');
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('end_date');
+    const selectManager = document.getElementById('selectManager');
+    const selectProjectManager = document.getElementById('selectProjectManager');
+    
+    // Get project ID from URL
+    const projectId = window.location.pathname.split('/').filter(segment => segment !== '').pop();
+    
+    updateBtn.addEventListener('click', function() {
+        // Validate all required fields
+        const errors = [];
+        
+        // Check if accounting manager is selected (only if the select exists and is visible)
+        if (selectManager && selectManager.style.display !== 'none' && selectManager.value === '') {
+            errors.push('Accounting Manager is required');
+        }
+        
+        // Check if project manager is selected (only if the select exists and is visible)
+        if (selectProjectManager && selectProjectManager.style.display !== 'none' && selectProjectManager.value === '') {
+            errors.push('Project Manager is required');
+        }
+        
+        // Check if start date is set
+        if (!startDateInput.value) {
+            errors.push('Start Date is required');
+        }
+        
+        // Check if end date is set
+        if (!endDateInput.value) {
+            errors.push('End Date is required');
+        }
+        
+        // Check if end date is after start date
+        if (startDateInput.value && endDateInput.value) {
+            const startDate = new Date(startDateInput.value);
+            const endDate = new Date(endDateInput.value);
+            if (endDate <= startDate) {
+                errors.push('End Date must be after Start Date');
+            }
+        }
+        
+        if (errors.length > 0) {
+            showAlert('Please fix the following errors:<br>  *' + errors.join('<br>  *'), 'warning');
+            return;
+        }
+        
+        // Disable button to prevent multiple clicks
+        updateBtn.disabled = true;
+        updateBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Updating...';
+        
+        // Prepare data for update
+        const formData = new FormData();
+        formData.append('start_date', startDateInput.value);
+        formData.append('end_date', endDateInput.value);
+        
+        // Only add manager IDs if the selects exist and have values
+        if (selectManager && selectManager.value) {
+            formData.append('accounting_manager_id', selectManager.value);
+        }
+        
+        if (selectProjectManager && selectProjectManager.value) {
+            formData.append('project_manager_id', selectProjectManager.value);
+        }
+        
+        // Use ajaxPostRequest function from baseScripts.js
+        ajaxPostRequest(
+            `/production/${projectId}/update_project_production/`,
+            formData,
+            document.querySelector('[name=csrfmiddlewaretoken]').value,
+            function(data) {
+                if (data.status === 'success') {
+                    showAlert('Project updated successfully!', 'success');
+                    window.location.reload();
+                } else {
+                    showAlert('Error: ' + data.message, 'danger');
+                    updateBtn.disabled = false;
+                    updateBtn.innerHTML = 'Update Project Production <i class="bi bi-arrow-right"></i>';
+                }
+            },
+            function(error) {
+                // Error callback
+                console.error('Error:', error);
+                showAlert('An error occurred while updating the project', 'danger');
+                // Re-enable button
+                updateBtn.disabled = false;
+                updateBtn.innerHTML = 'Update Project Production <i class="bi bi-arrow-right"></i>';
+            }
+        );
+    });
+});
+</script>

@@ -1,176 +1,415 @@
 {% extends "base.html" %} {% load static %} {% block content %}
-<div class="d-flex justify-content-center p-4">
+{% load custom_filters %}
+<div class="d-flex justify-content-center p-4 bg-secondary bg-opacity-10 px-auto">
   {% include "modal_delete.html" %}
   <div class="row">
-    <!-- Customer Card -->
-    <div class="col-md-3">
-      <div class="card shadow-sm rounded-4">
-        <div class="card-header d-flex align-items-center rounded-4">
-          <span
-            class="customer-avatar me-3 text-light"
-            style="font-size: 2rem; font-weight: bold"
-          >
-            {{ initial }}
-          </span>
-          <div class="d-flex flex-column justify-content-center">
-            <h1 class="card-header fs-5 mb-0 p-0 border-0">
-              {{ client.first_name }} {{ client.last_name }}
-            </h1>
-            <p class="fs-6 text-muted mb-0">
-              Since {{ client.date_created|date:"Y" }}
-            </p>
-          </div>
-        </div>
-        <div class="card-body">
-          <p class="d-flex align-items-center mb-2">
-            <i class="bi bi-envelope me-2"></i> {{ client.email }}
-          </p>
-          <p class="d-flex align-items-center mb-2">
-            <i class="bi bi-telephone me-2"></i> {{ client.phone }}
-          </p>
-          <p class="text-muted mb-1">Tags:</p>
-          <div class="d-flex align-items-center">
-            <span class="status-empty me-1">new</span>
-            <span class="status-empty">first project</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Tabs for Client Information -->
-    <div class="col-md-9 ">
-      <div class="row">
-        <!-- Información General -->
-        <div class="col-md-12 ">
-          <div class="container border m-0 px-0 rounded-4 overflow-hidden mb-4 shadow-sm ">
-            <div
-              class="card-header d-flex justify-content-between  p-3 border-bottom bg-gray"
-            >
-              <h1 class="card-header fs-4 rounded-4">Information</h1>
-              <div>
-                <a href="{% url 'edit_customer' client.id %}">
-                <button class="btn bg-primary">
-                <i class="bi bi bi-pencil-fill text-light fs-6"></i>
-              </button>
-            </a>
-            <button 
-              class="btn bg-danger" 
-              type="button" 
-              data-bs-toggle="modal" 
-              data-bs-target="#deleteConfirmationModal"
-              data-client-id="{{ client.id }}">
-              <i class="bi bi-trash3-fill text-light fs-6"></i>
-            </button>
-
-            </div>
-            </div>
-            <div class="card-body mx-4 my-2">
-              <div class="row">
-                <div class="col-md-6">
-                  <p>
-                    <strong>Name:</strong> {{ client.first_name }}
-                    {{client.last_name }}
-                  </p>
-                  <p>
-                    <strong>Company: </strong
-                    ><span class="btn-info rounded p-1 bi bi-buildings-fill"
-                      >{{ client.company_name }}
+    <div class="col-md-12 ">
+      <div class="p-4" style="max-width: 100%;">
+        {% include "modal_delete.html" %}
+        
+        <!-- Header con información principal del cliente -->
+        <div class="row mb-4">
+          <div class="col-12">
+            <div class="card shadow-sm rounded-4">
+              <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="d-flex align-items-center">
+                    <span class="customer-avatar me-4 fs-1 text-light rounded-circle d-flex align-items-center justify-content-center bg-primary">
+                      {{ initial }}
                     </span>
-                  </p>
-                  <p>
-                    <strong>Customer admitted: </strong>{{client.date_created}}
-                  </p>
-                  <p><strong>Last update: </strong>{{ client.date_created }}</p>
-                  <p>
-                    <strong>Sales associate: </strong>{{ client.sales_advisor }}
-                  </p>
-                </div>
-                <div class="col-md-6">
-                  <p><strong>Address:</strong> {{ client.address }}</p>
-                  <p><strong>City:</strong> {{ client.city }}</p>
-                  <p><strong>State:</strong> {{ client.state }}</p>
-                  <p><strong>Country:</strong> {{ client.country }}</p>
-                  <p><strong>Zip Code: </strong>{{ client.zip_code }}</p>
+                    <div>
+                      <h1 class="mb-1 border-bottom border-primary mb-2 fw-bold text-primary">{{ client.first_name }} {{ client.last_name }}
+                        {% if client.customer_type == "company" or client.customer_type == "contractor" %}
+                          <span class="text-muted small">({{ client.company_name }})</span>
+                        {% endif %}
+                      </h1>
+                      <div class="d-flex flex-row align-items-center bg-secondary bg-opacity-10 rounded-4 p-2 px-4">
+                        <div class="d-flex status-empty fs-6 text-muted text-muted px-2 py-0 align-items-center">
+                          {% if client.customer_type == "individual" %}
+                            <i class="bi bi-person-fill me-2"></i>Individual Customer
+                          {% elif client.customer_type == "company" %}
+                            <i class="bi bi-building-fill me-2"></i>{{ client.company_name }}
+                          {% else %}
+                            <i class="bi bi-tools me-2"></i>Contractor
+                          {% endif %}
+                        </div>
+                        <div class="d-flex gap-2">
+                          <span class="d-flex status-empty fs-6 text-muted text-muted px-2 py-0 align-items-center">
+                            <strong> • {{ client.status|title }}</strong>
+                          </span>
+                          <span class="d-flex status-empty fs-6 text-muted text-muted px-2 py-0 align-items-center">
+                            <strong>Since {{ client.date_created|date:"M Y" }}</strong>
+                          </span>
+                          {% if client.is_active %}
+                            <span class="d-flex status-empty status-{{ client.status }} me-1 px-2 py-0 align-items-center">
+                              <strong>Active</strong>
+                            </span>
+                          {% else %}
+                            <span class="status-empty status-{{ client.status }} me-1 px-2 py-0">
+                              Inactive
+                            </span>
+                          {% endif %}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {% if user.is_superuser or user.groups.first.name == "ADMIN" %}
+                  <div class="d-flex gap-2">
+                    <a href="{% url 'edit_customer' client.id %}" class="btn btn-primary">
+                      <i class="bi bi-pencil-fill me-2"></i>Edit Customer
+                    </a>
+                    <button class="btn btn-danger text-light" type="button" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" data-client-id="{{ client.id }}">
+                      <i class="bi bi-trash3-fill me-2"></i>Delete
+                    </button>
+                  </div>
+                  {% endif %}
                 </div>
               </div>
             </div>
           </div>
         </div>
-
-        <!-- Proyectos -->
-        <div class="col-md-12">
-          <div class="container border m-0 px-0 rounded-4 overflow-hidden mb-4 shadow-sm">
-            <div
-              class="card-header d-flex justify-content-between  p-3 border-bottom bg-gray"
-            >
-              <h1 class="card-header fs-4 rounded-4">Projects</h1>
+      
+        <!-- Métricas principales -->
+        <div class="row mb-4">
+          <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+            <div class="card bg-light text-primary rounded-4 h-100 shadow-sm">
+              <div class="card-body text-center p-4">
+                <i class="bi bi-bounding-box fs-1 mb-3 opacity-75"></i>
+                <h2 class="mb-1 fw-bold">{{ projects.count }}</h2>
+                <p class="mb-0 opacity-90">Total Projects</p>
+              </div>
             </div>
-            <div class="card-body">
-              <table class="table table-striped">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Status</th>
-                    <th>Start date</th>
-                    <th>End date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for project in projects %}
-                  <tr>
-                    <td><a href='/project/{{project.id}}/'>{{ project.project_name }} </a></td>
-                    <td>{{ project.status }}</td>
-                    <td>{{ project.start_date }}</td>
-                    <td>{{ project.end_date }}</td>
-                  </tr>
-                  {% empty %}
-                  <tr>
-                    <td colspan="4">
-                      No se encontraron proyectos para este cliente.
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+          </div>
+          <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+            <div class="card bg-light text-primary rounded-4 h-100 shadow-sm">
+              <div class="card-body text-center p-4">
+                <i class="bi bi-currency-dollar fs-1 mb-3 opacity-75"></i>
+                <h2 class="mb-1 fw-bold">{{ total_billed|currency_usd }}</h2>
+                <p class="mb-0 opacity-90">Total Billed</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+            <div class="card bg-light text-primary rounded-4 h-100 shadow-sm">
+              <div class="card-body text-center p-4">
+                <i class="bi bi-clock-history fs-1 mb-3 opacity-75"></i>
+                <h2 class="mb-1 fw-bold">{{ total_pending|currency_usd }}</h2>
+                <p class="mb-0 opacity-90">Pending Payment</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-xl-3 col-lg-6 col-md-6 mb-3">
+            <div class="card bg-light text-primary rounded-4 h-100 shadow-sm">
+              <div class="card-body text-center p-4">
+                <i class="bi bi-file-earmark-text fs-1 mb-3 opacity-75"></i>
+                <h2 class="mb-1 fw-bold">{{ total_proposals }}</h2>
+                <p class="mb-0 opacity-90">Proposals</p>
+              </div>
             </div>
           </div>
         </div>
-
-        <!-- Facturación -->
-        <div class="col-md-12">
-          <div class="container border m-0 px-0 rounded-4 overflow-hidden mb-4 shadow-sm">
-            <div
-              class="card-header d-flex justify-content-between  p-3 border-bottom bg-gray"
-            >
-              <h1 class="card-header fs-4 rounded-4">Invoices</h1>
+      
+        <!-- Resumen financiero -->
+        <div class="row mb-4">
+          <div class="col-12">
+            <div class="card shadow-sm rounded-4">
+              <div class="card-header text-center bg-primary text-light fw-bold">
+                <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Financial Summary</h5>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Payment Progress</h6>
+                    <div class="d-flex align-items-center mb-2">
+                      <div class="flex-grow-1 me-3">
+                        <div class="progress" style="height: 8px;">
+                          <div class="progress-bar bg-success" role="progressbar" 
+                               style="width: {{ payment_percentage|floatformat:0 }}%">
+                          </div>
+                        </div>
+                      </div>
+                      <small class="text-muted">
+                        {{ payment_percentage|floatformat:0 }}%
+                      </small>
+                    </div>
+                    <div class="d-flex justify-content-between text-muted small">
+                      <span>Paid: ${{ total_paid|currency_usd }}</span>
+                      <span>Total: ${{ total_billed|currency_usd }}</span>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Project Status Distribution</h6>
+                    <div class="d-flex flex-column gap-2">
+                      {% if project_status_distribution %}
+                        {% for status, count in project_status_distribution.items %}
+                        <div class="d-flex justify-content-between align-items-center">
+                          <span class="badge bg-{% if status == 'new' %}secondary{% elif status == 'approved' %}success{% elif status == 'in_production' %}primary{% elif status == 'pending_payment' %}warning{% else %}info{% endif %}">
+                            {{ status|title }}
+                          </span>
+                          <span class="text-muted">{{ count }} projects</span>
+                        </div>
+                        {% endfor %}
+                      {% else %}
+                        <p class="text-muted small">No projects found</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="card-body">
-              <table class="table table-striped">
-                <thead>
-                  <tr>
-                    <th>Invoice ID</th>
-                    <th>Date</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for invoice in client.billing_history %}
-                  <tr>
-                    <td>{{ invoice.number }}</td>
-                    <td>{{ invoice.date }}</td>
-                    <td>{{ invoice.amount }}</td>
-                    <td>{{ invoice.status }}</td>
-                  </tr>
-                  {% empty %}
-                  <tr>
-                    <td colspan="4">
-                      No se encontraron facturas para este cliente.
-                    </td>
-                  </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
+          </div>
+        </div>
+      
+        <div class="row">
+          <!-- Información de contacto y detalles -->
+          <div class="col-xl-4 col-lg-5 col-md-6 mb-4">
+            <div class="card shadow-sm rounded-4 h-100">
+              <div class="card-header bg-primary text-light fw-bold text-center">
+                <h5 class="mb-0"><i class="bi bi-person-lines-fill me-2"></i>Contact Information</h5>
+              </div>
+              <div class="card-body">
+                <div class="mb-1">
+                  <label class="form-label text-muted small">Email</label>
+                  <p class="mb-1">
+                    <i class="bi bi-envelope me-2 text-primary"></i>
+                    <a href="mailto:{{ client.email }}" class="text-decoration-none">{{ client.email }}</a>
+                  </p>
+                </div>
+                <div class="mb-1">
+                  <label class="form-label text-muted small">Phone</label>
+                  <p class="mb-1">
+                    <i class="bi bi-telephone me-2 text-primary"></i>
+                    <a href="tel:{{ client.phone }}" class="text-decoration-none">{{ client.phone }}</a>
+                  </p>
+                </div>
+                <div class="mb-1">
+                  <label class="form-label text-muted small">Address</label>
+                  <p class="mb-1">
+                    <i class="bi bi-geo-alt me-2 text-primary"></i>
+                    {{ client.get_full_address }}
+                  </p>
+                </div>
+                <div class="mb-1">
+                  <label class="form-label text-muted small">Sales Advisor</label>
+                  <p class="mb-1">
+                    <i class="bi bi-person-badge me-2 text-primary"></i>
+                    {{ client.sales_advisor|default:"Not assigned" }}
+                  </p>
+                </div>
+                <div class="mb-1">
+                  <label class="form-label text-muted small">Customer Type</label>
+                  <p class="mb-1">
+                    <i class="bi bi-tag me-2 text-primary"></i>
+                    {{ client.get_customer_type_display }}
+                  </p>
+                </div>
+                <div class="mb-1">
+                  <label class="form-label text-muted small">Created</label>
+                  <p class="mb-1">
+                    <i class="bi bi-calendar me-2 text-primary"></i>
+                    {{ client.date_created|date:"M d, Y" }}
+                  </p>
+                </div>
+                <div class="mb-1">
+                  <label class="form-label text-muted small">Last Updated</label>
+                  <p class="mb-1">
+                    <i class="bi bi-clock me-2 text-primary"></i>
+                    {{ client.last_updated|date:"M d, Y" }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+      
+          <!-- Proyectos recientes -->
+          <div class="col-xl-8 col-lg-7 col-md-6 mb-4">
+            <div class="card shadow-sm rounded-4 h-100">
+              <div class="card-header bg-primary text-light d-flex justify-content-between align-items-center fw-bold text-center"> 
+                <h5 class="mb-0"><i class="bi bi-bounding-box me-2"></i>Recent Projects</h5>
+                <a href="/projects/" class="btn btn-sm btn-outline-light">View All</a>
+              </div>
+              <div class="card-body">
+                {% if projects %}
+                  <div class="table-responsive">
+                    <table class="table table-hover">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Project Name</th>
+                          <th>Status</th>
+                          <th>Estimated Cost</th>
+                          <th>Created</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for project in projects|slice:":5" %}
+                        <tr>
+                          <td>
+                            <strong>#{{ project.id }}</strong>
+                          </td>
+                          <td>
+                            <strong>{{ project.project_name }}</strong>
+                            {% if project.description %}
+                              <br><small class="text-muted">{{ project.description|truncatechars:50 }}</small>
+                            {% endif %}
+                          </td>
+                          <td>
+                            <span class="badge bg-{% if project.status == 'new' %}secondary{% elif project.status == 'approved' %}success{% elif project.status == 'in_production' %}primary{% elif project.status == 'pending_payment' %}warning{% else %}danger{% endif %}">
+                              {{ project.get_status_display }}
+                            </span>
+                          </td>
+                          <td>{{ project.estimated_cost|currency_usd }}</td>
+                          <td>{{ project.created_at|date:"M d, Y" }}</td>
+                          <td>
+                            <a href="{% url 'detail_project' project.id %}" class="btn btn-sm btn-outline-primary">
+                              <i class="bi bi-eye"></i>
+                            </a>
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                  {% if projects.count > 5 %}
+                    <div class="text-center mt-3">
+                      <small class="text-muted">Showing 5 of {{ projects.count }} projects</small>
+                    </div>
+                  {% endif %}
+                {% else %}
+                  <div class="text-center py-4">
+                    <i class="bi bi-inbox fs-1 text-muted mb-3"></i>
+                    <p class="text-muted">No projects found for this customer</p>
+                    <a href="/projects/" class="btn btn-primary">Create First Project</a>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      
+        <!-- Propuestas y Facturas -->
+        <div class="row">
+          <!-- Propuestas -->
+          <div class="col-lg-6 col-md-6 mb-4">
+            <div class="card shadow-sm rounded-4 h-100">
+              <div class="card-header bg-primary text-light fw-bold text-center">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Recent Proposals</h5>
+              </div>
+              <div class="card-body">
+                {% if proposals %}
+                  <div class="table-responsive">
+                    <table class="table table-sm">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Proposal</th>
+                          <th>Project</th>
+                          <th>Amount</th>
+                          <th>Status</th>
+                          <th>Due Date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for proposal in proposals|slice:":5" %}
+                        <tr>
+                          <td>{{ proposal.id }}</td>
+                          <td>{{ proposal.project.project_name|truncatechars:20 }}</td>
+                          <td>{{ proposal.total_proposal|currency_usd }}</td>
+                          <td>
+                            <span class="badge bg-{% if proposal.status == 'approved' %}success{% elif proposal.status == 'pending' %}warning{% elif proposal.status == 'rejected' %}danger{% else %}secondary{% endif %}">
+                              {{ proposal.get_status_display }}
+                            </span>
+                          </td>
+                          <td>{{ proposal.due_date|date:"M d" }}</td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                {% else %}
+                  <div class="text-center py-4">
+                    <i class="bi bi-file-earmark-text fs-1 text-muted mb-3"></i>
+                    <p class="text-muted">No proposals found</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+      
+          <!-- Facturas -->
+          <div class="col-lg-6 col-md-6 mb-4">
+            <div class="card shadow-sm rounded-4 h-100">
+              <div class="card-header bg-primary text-light fw-bold text-center">
+                <h5 class="mb-0"><i class="bi bi-receipt me-2"></i>Recent Invoices</h5>
+              </div>
+              <div class="card-body">
+                {% if invoices %}
+                  <div class="table-responsive">
+                    <table class="table table-sm">
+                      <thead>
+                        <tr>
+                          <th>Invoice</th>
+                          <th>Amount</th>
+                          <th>Paid</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {% for invoice in invoices|slice:":5" %}
+                        <tr>
+                          <td>#{{ invoice.id }}</td>
+                          <td>{{ invoice.total_invoice|currency_usd }}</td>
+                          <td>{{ invoice.total_paid|currency_usd }}</td>
+                          <td>
+                            <span class="badge bg-{% if invoice.status == 'paid' %}success{% elif invoice.status == 'pending' %}warning{% elif invoice.status == 'overdue' %}danger{% else %}secondary{% endif %}">
+                              {{ invoice.get_status_display }}
+                            </span>
+                          </td>
+                        </tr>
+                        {% endfor %}
+                      </tbody>
+                    </table>
+                  </div>
+                {% else %}
+                  <div class="text-center py-4">
+                    <i class="bi bi-receipt fs-1 text-muted mb-3"></i>
+                    <p class="text-muted">No invoices found</p>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </div>
+      
+        <!-- Actividad reciente -->
+        <div class="row">
+          <div class="col-12 mb-4 overflow-hidden">
+            <div class="card shadow-sm rounded-4">
+              <div class="card-header bg-primary text-light fw-bold text-center">
+                <h5 class="mb-0"><i class="bi bi-activity me-2"></i>Recent Activity</h5>
+              </div>
+              <div class="card-body d-flex flex-row flex-wrap gap-2 justify-content-between">
+                {% if recent_activity %}
+                  <div class="d-flex flex-row flex-wrap gap-2 justify-content-center">
+                    {% for activity in recent_activity %}
+                    <div class="bg-secondary bg-opacity-10 rounded-4 p-2 px-4" style="width: 300px;">
+                          <span class="text-primary" style="width: 100px; word-wrap: break-word; max-width: 100px">{{ activity.description }}</span>
+                          <br>
+                          <small class="text-muted">{{ activity.timestamp|date:"M d, Y H:i" }}</small>
+                          <br>
+                          <small class="text-muted">by {{ activity.user.first_name }} {{ activity.user.last_name }}</small>
+                    </div>
+                    {% endfor %}
+                  </div>
+                {% else %}
+                  <div class="text-center py-4">
+                    <i class="bi bi-activity fs-1 text-muted mb-3"></i>
+                    <p class="text-muted">No recent activity</p>
+                  </div>
+                {% endif %}
+              </div>
             </div>
           </div>
         </div>
@@ -179,19 +418,57 @@
   </div>
 </div>
 <script>
-  console.log("Inicio del script para manejar el modal");
   document.addEventListener("DOMContentLoaded", function () {
-    console.log("Script cargado correctamente");
     const deleteConfirmationModal = document.getElementById("deleteConfirmationModal");
     deleteConfirmationModal.addEventListener("show.bs.modal", function (event) {
       const button = event.relatedTarget;
       const clientId = button.getAttribute("data-client-id");
       const confirmDeleteButton = document.getElementById("confirmDeleteBtn");
       confirmDeleteButton.onclick = function () {
-        console.log('CLick')
         window.location.href = `{% url 'delete_customer' 0 %}`.replace("0", clientId);
       };
     });
   });
-</script>
+  
+  // Función para copiar información de contacto
+  function copyCustomerInfo() {
+    const customerInfo = `{{ client.first_name }} {{ client.last_name }}
+  Email: {{ client.email }}
+  Phone: {{ client.phone }}
+  Address: {{ client.get_full_address }}
+  {% if client.customer_type == "company" %}Company: {{ client.company_name }}{% endif %}`;
+    
+    navigator.clipboard.writeText(customerInfo).then(function() {
+      showAlert('Contact information copied to clipboard!', 'success');
+    }, function(err) {
+      console.error('Could not copy text: ', err);
+      showAlert('Failed to copy contact information', 'error');
+    });
+  }
+  
+  // Función para exportar datos del cliente (simplificada)
+  function exportCustomerData() {
+    showAlert('Export functionality coming soon!', 'info');
+  }
+  
+  // Función para mostrar alertas
+  function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show position-fixed`;
+    alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    alertDiv.innerHTML = `
+      ${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(alertDiv);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+      if (alertDiv.parentNode) {
+        alertDiv.remove();
+      }
+    }, 5000);
+  }
+  </script>
 {% endblock %}

@@ -1,6 +1,7 @@
 from django import utils
 from django.urls import path
 from . import views
+from .views.production_views import request_cost_by_pm, assign_cost_by_accounting
 
 urlpatterns = [
     path('get_proposals/<int:page>/', views.utils_get.get_proposals, name='get_proposals'),
@@ -25,4 +26,7 @@ urlpatterns = [
     path('save_document_checklist/', views.planning_accounting.save_document_checklist, name='save_document_checklist'),
     path('update_document_checklist/', views.planning_accounting.update_document_checklist, name='update_document_checklist'),
     path('delete_document_checklist/', views.planning_accounting.delete_document_checklist, name='delete_document_checklist'),
+    path('send_to_production/', views.utils_get.send_to_production, name='send_to_production'),
+    path('request_cost_by_pm/<int:project_id>/', request_cost_by_pm, name='request_cost_by_pm'),
+    path('assign_cost_by_accounting/<int:project_id>/', assign_cost_by_accounting, name='assign_cost_by_accounting'),
 ]   

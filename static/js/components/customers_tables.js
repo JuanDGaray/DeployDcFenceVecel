@@ -31,13 +31,13 @@ function renderTable(data) {
             <tr>
                 <td class="text-center">${customer.id}</td>
                  <td class="text-truncate" style="max-width: 300px;">
-                    <a href="/customer/${customer.id}">
+                    <a href="/customers/${customer.id}">
                         ${customer.customer_type == "individual" ? `
                     <span class="status title_${customer.customer_type} fs-6">
                     ${customer.first_name} ${customer.last_name} <i class="bi bi-person-arms-up"></i>
                     </span>
                     </a> ` : `
-                    <a href="/customer/${customer.id}" class="d-flex flex-row justify-content-start">
+                    <a href="/customers/${customer.id}" class="d-flex flex-row justify-content-start">
                         <span class="status title_${customer.customer_type} fs-6 text-truncate" style="width: 200px; min-width: 200px;"><i class="bi bi-buildings-fill"></i> ${customer.company_name} 
                     </span> 
                     <span class="text-truncate" style="width: 100px; min-width: 100px;">
@@ -65,12 +65,12 @@ function renderTable(data) {
                 <td>
                     <a  href="https://mail.google.com/mail/?view=cm&fs=1&to=${customer.email}"  target="_blank"   class='btn btn-sm btn-primary p-1'><i class="bi bi-envelope-arrow-down"></i></a> ${customer.email}
                 </td>
-                <td class="text-center d-flex flex-row justify-content-center align-items-center gap-1">
+                <td class="text-center d-flex flex-row justify-content-center align-items-center gap-1 flex-nowrap">
                 <span
                     class="customer-avatar text-light rounded-circle m-0 bg-primary"
                     style="font-size: 0.8rem; font-weight: bold; width: 25px; height: 25px;">
                     ${customer.sales_advisor__first_name[0] + customer.sales_advisor__last_name[0]}
-                </span>
+                </span> 
                 ${customer.sales_advisor__first_name} ${customer.sales_advisor__last_name}
                 </td>
             </tr>

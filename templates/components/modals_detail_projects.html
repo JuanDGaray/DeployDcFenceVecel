@@ -143,3 +143,79 @@
       </div>
     </div>
   </div>
+  
+  <!-- Modal para editar proyecto -->
+  <div class="modal fade" id="editProjectModal" tabindex="-1" aria-labelledby="editProjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog" style="width: 600px;">
+      <div class="modal-content w-100">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editProjectModalLabel">Edit Project</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editProjectForm">
+            <input type="hidden" id="editProjectId" value="{{ project.id }}">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="editProjectName" class="form-label">Project Name *</label>
+                <input type="text" class="form-control" id="editProjectName" required>
+              </div>
+            </div>
+            <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="editProjectCustomer" class="form-label">Customer *</label>
+              <select class="form-control" id="editProjectCustomer" required>
+                <option value="">Select a customer</option>
+                {% for customer in customers %}
+                  <option value="{{ customer.id }}">
+                    {% if customer.customer_type == "individual" %}
+                      {{customer.first_name }} {{customer.last_name }} - {{customer.email}} 
+                    {% else %}
+                      {{customer.company_name }} - {{customer.email}} 
+                    {% endif %}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="editProjectStartDate" class="form-label">Start Date</label>
+                <input type="date" class="form-control" id="editProjectStartDate">
+                </div>
+                <div class="col-md-6 mb-3">
+                <label for="editProjectEndDate" class="form-label">End Date</label>
+                <input type="date" class="form-control" id="editProjectEndDate">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="editProjectDescription" class="form-label">Project Description</label>
+              <textarea class="form-control" id="editProjectDescription" rows="3" placeholder="Enter project description"></textarea>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label for="editProjectCity" class="form-label">City</label>
+                <input type="text" class="form-control" id="editProjectCity" value="Hialeah">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="editProjectState" class="form-label">State/Province</label>
+                <input type="text" class="form-control" id="editProjectState" value="Florida">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label for="editProjectZipCode" class="form-label">ZIP/Postal Code</label>
+                <input type="text" class="form-control" id="editProjectZipCode">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="editProjectCountry" class="form-label">Country</label>
+              <input type="text" class="form-control" id="editProjectCountry" value="United States">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="saveProjectBtn">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

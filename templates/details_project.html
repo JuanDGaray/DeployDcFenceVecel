@@ -703,8 +703,15 @@
   </div>
 
   <div class="col-md-12 border border-success border-opacity-25 border-4 rounded-4 p-3 position-relative mt-5">
+    {% if not project.accounting_manager %}
+      {% include "components/block_panel.html" %}
+    {% endif %}
     <h4 class="text-center bg-white rounded-4 px-3 py-1 mx-3 position-absolute top-0 start-0 translate-y-middle fw-bold border border-success border-opacity-25 border-4" 
-    style="transform: translateY(-50%) "> Planning and Accounting Panel</h4>
+    style="transform: translateY(-50%) "> Planning and Accounting Panel 
+    {% if not project.accounting_manager %} 
+      {% include "components/tooltip_element.html" with title="No available"  description="First, you need to assign an accounting manager to the project." icon="bi-info-circle" size=15 type="warning"  %}
+    {% endif %}
+    </h4>
       <!-- Project Invoices -->
       <div class="col-md-12 mt-4">
         <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
@@ -787,9 +794,11 @@
           </div>
         </div>
       </div>
-
       {% include "components/checklist_documents.html" %}
   </div>    
+    {% if project.status == 'in_production' %}
+      <a class="btn btn-success my-3 d-flex justify-content-end align-items-center fw-bold fs-3 px-4" style="width: fit-content; margin-left: auto;" href="/production/{{project.id }}"> Go to panel of production <i class="bi bi-arrow-right ms-2"></i></a>
+    {% endif %}
     {% include "components/documents_projects.html" %}
     {% include "modal_delete.html" %}
     {% include "components/modals_detail_projects.html" with project=project %}
@@ -799,6 +808,7 @@
 
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
 <script src="{% static 'js/components/documents_projects.js' %}"></script>
 <script type="text/javascript">
   
@@ -942,21 +952,6 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 });
 
-function sendToProduction() {
-  var selectElement = document.getElementById("selectManager");
-  if (selectElement.style.display === "none" || selectElement.offsetHeight === 0) {
-    alert("Please select a manager before sending to production.");
-    return;
-  }
-  
-  var selectedPersonId = selectElement.value;
-
-  if (selectedPersonId) {
-    window.location.href = "{% url 'select_manager' project.id %}?manager_id=" + encodeURIComponent(selectedPersonId);
-  } else {
-    alert("Please select a manager before sending to production.");
-  }
-}; 
 
 function showSelectProject() {
   const selectProject = document.getElementById('selectProject');
@@ -1234,10 +1229,7 @@ async function get_activity_project_and_comments() {
 }
 
 function filterActivity(filterType) {
-  // Update checkbox states
   updateCheckboxStates(filterType);
-  
-  // Apply filter
   applyCurrentFilter();
 }
 
@@ -1633,6 +1625,124 @@ function openAddCommentModal() {
   const modal = new bootstrap.Modal(document.getElementById('addCommentModal'));
   modal.show();
 }
+
+// Funciones para editar proyecto
+function openEditProjectModal() {
+  // Cargar datos actuales del proyecto en el modal
+  loadProjectData();
+  
+  // Mostrar el modal
+  const modal = new bootstrap.Modal(document.getElementById('editProjectModal'));
+  modal.show();
+  
+  // Inicializar Select2 después de que el modal esté visible
+  setTimeout(function() {
+    $('#editProjectCustomer').select2({
+      placeholder: 'Select a customer',
+      allowClear: true,
+      dropdownParent: $('#editProjectModal')
+    });
+    
+    // Establecer el valor seleccionado
+    $('#editProjectCustomer').val('{{ project.customer.id }}').trigger('change');
+  }, 100);
+}
+
+function loadProjectData() {
+  // Cargar datos del proyecto actual en el formulario
+  document.getElementById('editProjectName').value = '{{ project.project_name|escapejs }}';
+  document.getElementById('editProjectDescription').value = '{{ project.description|default:""|escapejs }}';
+  document.getElementById('editProjectCity').value = '{{ project.city|escapejs }}';
+  document.getElementById('editProjectState').value = '{{ project.state|escapejs }}';
+  document.getElementById('editProjectZipCode').value = '{{ project.zip_code|default:""|escapejs }}';
+  document.getElementById('editProjectCountry').value = '{{ project.country|escapejs }}';
+  
+  // Formatear fechas para el input type="date"
+  var startDate = '{{ project.start_date|date:"Y-m-d" }}';
+  var endDate = '{{ project.end_date|date:"Y-m-d" }}';
+  
+  if (startDate && startDate !== 'None') {
+    document.getElementById('editProjectStartDate').value = startDate;
+  }
+  if (endDate && endDate !== 'None') {
+    document.getElementById('editProjectEndDate').value = endDate;
+  }
+}
+
+function saveProjectChanges() {
+  // Validar campos requeridos
+  const projectName = document.getElementById('editProjectName').value.trim();
+  const customerId = document.getElementById('editProjectCustomer').value;
+  
+  if (!projectName) {
+    showAlert('Project name is required', 'warning');
+    return;
+  }
+  
+  if (!customerId) {
+    showAlert('Customer is required', 'warning');
+    return;
+  }
+  
+  // Deshabilitar botón y mostrar loading
+  const saveBtn = document.getElementById('saveProjectBtn');
+  const originalText = saveBtn.innerHTML;
+  saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Saving...';
+  saveBtn.disabled = true;
+  
+  // Preparar datos
+  const projectData = {
+    project_name: projectName,
+    customer: customerId,
+    description: document.getElementById('editProjectDescription').value.trim(),
+    start_date: document.getElementById('editProjectStartDate').value || null,
+    end_date: document.getElementById('editProjectEndDate').value || null,
+    city: document.getElementById('editProjectCity').value.trim(),
+    state: document.getElementById('editProjectState').value.trim(),
+    zip_code: document.getElementById('editProjectZipCode').value.trim(),
+    country: document.getElementById('editProjectCountry').value.trim()
+  };
+  
+  // Enviar datos usando ajaxPostRequest
+  ajaxPostRequest('/projects/{{ project.id }}/edit_project/', projectData, '{{ csrf_token }}', 
+    function(data) {
+      // Restaurar botón
+      saveBtn.innerHTML = originalText;
+      saveBtn.disabled = false;
+      
+      if (data.status === 'success') {
+        // Cerrar modal y recargar página
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editProjectModal'));
+        modal.hide();
+        showAlert('Project updated successfully', 'success');
+        window.location.reload();
+      } else {
+        showAlert(data.message || 'Error updating project', 'danger');
+      }
+    },
+    function(error) {
+      // Restaurar botón en caso de error
+      saveBtn.innerHTML = originalText;
+      saveBtn.disabled = false;
+      showAlert('Error updating project. Please try again.', 'danger');
+    }
+  );
+}
+
+// Event listener para el botón de guardar
+document.addEventListener('DOMContentLoaded', function() {
+  const saveProjectBtn = document.getElementById('saveProjectBtn');
+  if (saveProjectBtn) {
+    saveProjectBtn.addEventListener('click', saveProjectChanges);
+  }
+  
+  // Limpiar Select2 cuando se cierre el modal
+  $('#editProjectModal').on('hidden.bs.modal', function () {
+    if ($('#editProjectCustomer').hasClass('select2-hidden-accessible')) {
+      $('#editProjectCustomer').select2('destroy');
+    }
+  });
+});
 
 </script>
 {% endblock %}

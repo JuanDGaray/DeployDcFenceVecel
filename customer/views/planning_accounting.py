@@ -6,6 +6,20 @@ import json
 def save_document_checklist(request):
     try:
         data = json.loads(request.body)
+        
+        # Check if a similar document already exists for this project
+        existing_document = ProjectDocumentRequirement.objects.filter(
+            project_id=data['project_id'],
+            name=data['name'],
+            type_document=data['type_document']
+        ).first()
+        
+        if existing_document:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'A document with name "{data["name"]}" and type "{data["type_document"]}" already exists for this project.'
+            }, status=400)
+        
         document = ProjectDocumentRequirement.objects.create(
             project_id=data['project_id'],
             name=data['name'],
@@ -38,22 +52,43 @@ def save_document_checklist(request):
 
 def update_document_checklist(request):
     try:
-        print('update_document_checklist');
-        print('update_document_checklist');
-        print(request.body);
-        print('update_document_checklist');
-        print('update_document_checklist');
         data = json.loads(request.body)
-        print(data);
+        
+        # Validate required fields
+        if not data.get('document_id'):
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Document ID is required'
+            }, status=400)
+            
+        if not data.get('file_url'):
+            return JsonResponse({
+                'status': 'error',
+                'message': 'File URL is required'
+            }, status=400)
+        
         document = ProjectDocumentRequirement.objects.get(id=data['document_id'])
+        
+        # Check if document is already completed
+        if document.is_completed:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Document is already completed'
+            }, status=400)
+        
         document.file_url = data.get('file_url')
         document.is_completed = True
-        print('document', document);
         document.save()
+        
         return JsonResponse({
             'status': 'success',
             'message': 'Document updated successfully'
         })
+    except ProjectDocumentRequirement.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Document not found'
+        }, status=404)
     except Exception as e:
         return JsonResponse({
             'status': 'error',

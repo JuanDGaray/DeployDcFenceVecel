@@ -13,7 +13,14 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 import json
 from datetime import datetime
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
+
+ACCOUNTING_COST_REQUEST_CHOICES = [
+    ('GLOBAL COST REQUEST', 'GLOBAL COST REQUEST'),
+    ('ITEM COST REQUEST', 'ITEM COST REQUEST'),
+]
 
 
 class Customer(models.Model):
@@ -336,15 +343,24 @@ class Project(models.Model):
     zip_code = models.CharField("ZIP/Postal Code", max_length=20, blank=True, null=True)
     country = models.CharField("Country", max_length=100, default="United States")
     folder_id = models.CharField("Folder ID", max_length=255, null=True, blank=True)
+    accounting_cost_request = models.CharField("Accounting Cost Request", max_length=50, choices=ACCOUNTING_COST_REQUEST_CHOICES, default=None, null=True, blank=True)
+    production_funding_request = models.OneToOneField('ProductionFundingRequest', null=True, blank=True, on_delete=models.SET_NULL, related_name='project_funding')
+    evidence_required = models.BooleanField(default=False, null=True, blank=True)
     def __str__(self):
         return self.project_name
     
     
     def get_approved_proposal(self):
-        """
+        """     
         Retorna el único proposal aprobado asociado al proyecto.
         """
         return self.proposals.filter(status=ProposalProjects.STATUS_APPROVED).first()
+
+    def actual_cost_usd(self):
+        return self.actual_cost.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) if self.actual_cost else '0.00'
+    
+    def estimated_cost_usd(self):
+        return self.estimated_cost.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) if self.estimated_cost else '0.00'
 
 
 class ProjectDocumentRequirement(models.Model):
@@ -581,6 +597,7 @@ class RealCostProject(models.Model):
     project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='cost_items')
     items = models.JSONField(default=list)
     total = models.CharField(max_length=255, default='none')
+    evidence_url = models.CharField(max_length=255, null=True, blank=True)
     
     def __str__(self):
         return f"RealCostProject for {self.project.project_name}"
@@ -662,6 +679,7 @@ class Notification(models.Model):
         ('reply', 'Reply'),
         ('project_update', 'Project Update'),
         ('status_change', 'Status Change'),
+        ('manager_assignment', 'Manager Assignment'),
     ]
     
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
@@ -679,3 +697,21 @@ class Notification(models.Model):
     
     def __str__(self):
         return f'Notification for {self.recipient.username} - {self.notification_type}'
+
+class ProductionFundingRequest(models.Model):
+    project = models.OneToOneField('Project', on_delete=models.CASCADE, related_name='funding_request')
+    requested_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    date = models.DateTimeField(auto_now_add=True)
+    cost_request_type = models.CharField("Cost Request Type", max_length=50, choices=ACCOUNTING_COST_REQUEST_CHOICES, null=True, blank=True)
+
+class ProductionChangeLog(models.Model):
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='production_logs')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    action = models.CharField(max_length=255)  # Ej: "update_cost", "add_task", "change_status"
+    description = models.TextField(blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    data_before = models.JSONField(null=True, blank=True)
+    data_after = models.JSONField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.project} - {self.action} - {self.timestamp:%Y-%m-%d %H:%M}"

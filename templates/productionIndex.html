@@ -7,7 +7,7 @@
 
     <div class="card-header d-flex justify-content-between  p-3 border-bottom bg-gray">
         <h1 class="card-header fs-4"> Projects in production
-        <span class="fs-6 status-empty"> • {{total_projects}}</span> 
+        <span class="fs-6 status-empty px-2"> • {{total_projects}}</span> 
         </h1>
         <div>
             <button id="toggleCardView" class="btn btn-m bg-primary text-light border-0"><i class="bi bi-grid"></i></button>
@@ -32,58 +32,108 @@
     <div id="cardView" class="">
         <div class="row row-cols-1 row-cols-md-3 g-4 m-2 p-4">
             {% for project in projects %}
-                <div class="col">
-                    <div class="card pb-3">
-                        <div class="card-body p-0 rounded-2 overflow overflow-hidden">
-                        <a href="{% url 'production_project' project.id %}"">
-                            <div class="d-flex justify-content-between bg-primary m-0 align-items-center  py-3 px-3">
-                                <h5 class="card-title border-0 m-0 text-white fw-bold text-truncate">{{ project.project_name }}
-                                </h5>
-                                <span class="bg-white fw-bold text-dark px-2  rounded-4 text-end border border-3  border-dark" style="font-size:0.8rem; marging-left:auto;">{{ project.status }}</span>
-                            </div>
-                        </a>
-                            <p class="card-text mx-3 my-2 text-dark">
-                                <strong>Customer</strong><br>
-                                <a href="{% url 'detail_customer' project.customer.id %}" class="fw-bold text-decoration-none"">
-
-                                {%   if project.customer.customer_type == "individual" %}
-                                    {{ project.customer.first_name }} {{ project.customer.last_name }}
-                                {% else %}
-                                {{ project.customer.company_name|default:" " }} - {{ project.customer.first_name }} {{ project.customer.last_name }}
-                                {% endif %}
-                                </a>
-                                <br>
-                                <div class='d-flex aling-items-center px-3'>
-                                    <div>
-                                        <strong><i class="bi bi-calendar"></i> Start</strong> <br>{{project.start_date}}<br>
-                                    </div class='px-4'>
-                                    <div class='px-5 mx-4'>
-                                        <strong><i class="bi bi-calendar2-check"></i> Finish</strong> <br>{{project.end_date}}<br>
+                <div class="col" >           
+                    <a href="{% url 'production_project' project.id %}" class="text-decoration m-0 p-0 text-dark">
+                        <div class="card pb-3 production-card">
+                            <div class="card-body p-0 rounded-2 overflow overflow-hidden">
+                                <div class="d-flex flex-column justify-content-between bg-primary m-0 py-3 px-3">
+                                    <h5 class="card-title border-0 m-0 text-white fw-bold text-truncate text-capitalize">{{ project.project_name }}</h5>
+                                        <div class="ms-auto text-decoration-none bg-light-subtle rounded-4 p-0 text-truncate" style="width: fit-content;">
+                                            <span class="status title_{{ project.customer.customer_type }} fs-6 text-truncate p-2 m-0">
+                                                {% if project.customer.customer_type == 'individual' %}
+                                                <i class="bi bi-person-arms-up"></i>{{ project.customer.first_name }} {{ project.customer.last_name }}
+                                                {% else %}
+                                                <i class="bi bi-buildings-fill"></i> {{ project.customer.company_name|truncatechars:30 }}
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                </div>
+                                <p class="card-text mx-3 my-2 text-dark">
+                                    <div class='d-flex aling-items-center px-2 rounded-2 mx-2'>
+                                        <h6 class='text-muted'>Dates:</h6>
+                                        <div class='m-2 p-2'> 
+                                            <span class='text-secondary  translate-middle-y bg-secondary-subtle rounded-2 px-2 border border-secondary z-1' style="font-size: 0.7rem;">Start: </span>
+                                            <br>
+                                            <span class='ms-4 z-2 fw-bold mt-1 pt-4'> {{ project.start_date|date:'d/m/y' | default:'N/A' }}</span>
+                                        </div>
+                                        <div class=' m-2 p-2'>
+                                            <span class='text-secondary ptranslate-middle-y bg-secondary-subtle rounded-2 px-2 border border-secondary z-1' style="font-size: 0.7rem;">Finish</span>
+                                            <br>
+                                            <span class='ms-4 z-2 fw-bold mt-1 pt-4'> {{ project.end_date|date:'d/m/y' | default:'N/A' }}</span>
+                                        </div>
                                     </div>
-                                </div>
-                                <div class='px-3'>
-                                    <strong>Budget</strong> <br> 
-                                    Estimated: {{ project.get_approved_proposal.total_proposal | currency_usd }} - Actual {{ project.get_approved_proposal.billed_proposal | currency_usd }} <br>
-                                </div>
-                            </p>
-                            <div class='d-flex justify-content-end'>
-                                <div class='px-3 d-flex flex-row gap-2 justify-content-end'>
-                                    <i class="bi bi-person-circle fs-4 align-self-center text-secondary""></i> 
-                                    <div class='d-flex flex-column h-5' style="line-height: 1; gap: 0.1rem;">
-                                        <span class="m-0 align-self-center border-bottom border-3 border-bottom fw-bold">@{{ project.sales_advisor}}</span>
-                                        <span class="m-0" style="font-size: 0.7rem;">Sales Manager</span> 
+                                    <div class='px-3 d-flex flex-row flex-nowrap justify-content-between align-items-center '>
+                                        <div class='d-flex flex-column gap-2'>
+                                            <div class='d-flex flex-column mx-2 justify-content-center align-items-center'> 
+                                                <span class='text-success bg-success-subtle rounded-2 px-2 border border-success z-1' style="font-size: 0.7rem;">Estimated</span>
+                                                <span class='z-2 fw-bold'> {{ project.get_approved_proposal.total_proposal | currency_usd }}</span>
+                                            </div>
+                                            <div class='d-flex flex-column mx-2 justify-content-center align-items-center'>
+                                                <span class='text-danger bg-danger-subtle rounded-2 px-2 border border-danger z-1' style="font-size: 0.7rem;">Actual</span>
+                                                <span class='z-2 fw-bold'> {{ project.get_approved_proposal.billed_proposal | currency_usd }}</span>
+                                            </div>
                                     </div>
-                                </div>
-                                <div class='px-3 d-flex flex-row gap-2 justify-content-end'>
-                                    <i class="bi bi-person-circle fs-4 align-self-center text-secondary""></i> 
-                                    <div class='d-flex flex-column h-5' style="line-height: 1; gap: 0.1rem;">
-                                        <span class="m-0 align-self-center border-bottom border-3 border-bottom fw-bold">@{{ project.project_manager}}</span>
-                                        <span class="m-0" style="font-size: 0.7rem;">Project Manager</span> 
+                                        <div class='d-flex flex-column justify-content-start bg-secondary p-2 bg-opacity-10 rounded-2 gap-1'>
+                                            <div class='px-3 d-flex flex-row gap-2 justify-content-start align-items-center'>
+                                                <span
+                                                    class="customer-avatar text-light rounded-circle m-0 bg-warning"
+                                                    style="font-size: 0.8rem; font-weight: bold; width: 30px; height: 30px;">
+                                                    {{ project.sales_advisor.first_name|slice:":1" }}{{ project.sales_advisor.last_name|slice:":1" }}
+                                                </span> 
+                                                <div class='d-flex flex-column h-5' style="line-height: 1; gap: 0.1rem;">
+                                                    <span class="m-0 align-self-center border-bottom border-3 border-bottom fw-bold">@{{ project.sales_advisor.first_name|short_name:project.sales_advisor.last_name }}</span>
+                                                    <span class="m-0 text-warning bg-warning-subtle rounded-2 px-2 warp-nowrap" style="font-size: 0.7rem;">Sales Manager</span> 
+                                                </div>
+                                            </div>
+                                            
+                                            <div class='px-3 d-flex flex-row gap-2 justify-content-start'>
+                                                <span
+                                                    class="customer-avatar text-light rounded-circle m-0 {% if project.accounting_manager %} bg-success {% else %} bg-secondary {% endif %}"
+                                                    style="font-size: 0.8rem; font-weight: bold; width: 30px; height: 30px;">
+                                                    {% if project.accounting_manager %}
+                                                        {{ project.accounting_manager.first_name|slice:":1" }}{{ project.accounting_manager.last_name|slice:":1" }}
+                                                    {% else %}
+                                                        N/A
+                                                    {% endif %}
+                                                </span> 
+                                                <div class='d-flex flex-column h-5' style="line-height: 1; gap: 0.1rem;">
+                                                    {% if project.accounting_manager %}
+                                                        <span class="m-0 align-self-center border-bottom border-3 border-bottom fw-bold">@{{ project.accounting_manager.first_name|short_name:project.accounting_manager.last_name }}</span>
+                                                        <span class="m-0 text-success bg-success-subtle rounded-2 px-2" style="font-size: 0.7rem;">Accounting Manager</span> 
+                                                    {% else %}
+                                                        <span class="m-0 border-bottom border-3 border-bottom fw-bold">N/A</span>
+                                                        <span class="m-0 text-secondary bg-secondary-subtle rounded-2 px-2" style="font-size: 0.7rem;">Accounting Manager</span> 
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                            
+                                            
+                                            <div class='px-3 d-flex flex-row gap-2 justify-content-start'>
+                                                <span
+                                                    class="customer-avatar text-light rounded-circle m-0 {% if project.project_manager %} bg-primary {% else %} bg-secondary {% endif %}"
+                                                    style="font-size: 0.8rem; font-weight: bold; width: 30px; height: 30px;">
+                                                    {% if project.project_manager %}
+                                                        {{ project.project_manager.first_name|slice:":1" }}{{ project.project_manager.last_name|slice:":1" }}
+                                                    {% else %}
+                                                        N/A
+                                                    {% endif %}
+                                                </span> 
+                                                <div class='d-flex flex-column h-5' style="line-height: 1; gap: 0.1rem;">
+                                                    {% if project.project_manager %}
+                                                        <span class="m-0  border-bottom border-3 border-bottom fw-bold">@{{ project.project_manager.first_name|short_name:project.project_manager.last_name }}</span>
+                                                        <span class="m-0 text-primary bg-primary-subtle rounded-2 px-2" style="font-size: 0.7rem;">Project Manager</span> 
+                                                    {% else %}
+                                                        <span class="m-0 border-bottom border-3 border-bottom fw-bold">N/A</span>
+                                                        <span class="m-0 text-secondary bg-secondary-subtle rounded-2 px-2" style="font-size: 0.7rem;">Project Manager</span> 
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
+                                </p>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 </div>
             {% endfor %}
         </div>

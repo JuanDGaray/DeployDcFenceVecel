@@ -49,7 +49,7 @@
             <div class="org-group w-100 m-0">
                 <div class="d-flex flex-column justify-content-center align-items-center">
                     <h4 class="text-primary text-center fw-bold">Administrators
-                        {% if user.groups.first.name == 'ADMIN' %}
+                        {% if user.groups.first.name == 'ADMIN' or request.user.is_superuser %}
                             <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">+</button>
                         {% endif %}
                     </h4>
@@ -87,7 +87,7 @@
                 <div class="org-group text-center ">
                     <div class="d-flex flex-column justify-content-center align-items-center">
                         <h4 class="text-success fw-bold mb-3">Production
-                            {% if user.groups.first.name == 'ADMIN' %}
+                            {% if user.groups.first.name == 'ADMIN' or request.user.is_superuser %}
                                 <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">+</button>
                             {% endif %}
                         </h4>
@@ -126,7 +126,7 @@
                 <div class="org-group text-center">
                     <div class="d-flex flex-column justify-content-center align-items-center">
                         <h4 class="text-warning fw-bold mb-3">Sales
-                            {% if user.groups.first.name == 'ADMIN' %}
+                            {% if user.groups.first.name == 'ADMIN' or request.user.is_superuser %}
                                 <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">+</button>
                             {% endif %}
                         </h4>
@@ -247,7 +247,6 @@
         console.log('response', response);
         if (response.success) {
             showAlert("User added successfully", "success");
-            document.getElementById('addUserModal').modal('hide');
             location.reload();
         } else {
             showAlert(response.error, "danger");

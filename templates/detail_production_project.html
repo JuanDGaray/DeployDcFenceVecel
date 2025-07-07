@@ -6,420 +6,766 @@
 {% endblock %}
 
 {% block content %}
-
-    <div class="container mt-4">
-        
-
-        <div class="card mb-3 p-0 overflow-hidden">
-            <div class="d-flex justify-content-between align-items-start p-0">
-                <div class="w-100">
-                    <h2 class="fw-bold bg-secondary m-0 p-2 text-light mb-4">{{ project.project_name }}
-                        <span class="badge bg-light text-dark fs-6" style="height: 30px;">{{ project.status }}</span>
-                    </h2>
-                    <div>
-                        <p class="text-dark px-4 fw-bold">Progress</p>
+    {% if not project.accounting_manager or not project.sales_advisor or not project.project_manager or not project.start_date or not project.end_date %}
+        {% include 'components/block_production.html' with project=project accoting_managers=accoting_managers project_managers=project_managers %}
+    {% else %}
+        <div class="container mt-4">
+            <div class="card mb-3 p-0 overflow-hidden">
+                <div class="d-flex justify-content-between align-items-start p-0">
+                    <div class="w-100">
+                        <h2 class="fw-bold bg-light m-0 p-2 text-success mb-4 text-capitalize d-flex justify-content-between align-items-center">
+                            {{ project.project_name }}
+                            <a href="{% url 'detail_project' project.id %}" target="_blank" class="btn btn-sm rounded-2 py-1 px-4 ms-auto text-secondary bg-white border border-4 border-secondary border-opacity-25">   
+                                View All Details
+                            </a>
+                        </h2>
+                        <div>
+                            <p class="text-dark px-4 fw-bold">Progress</p>
+                        </div>
+                        <div class="progress m-4 border border-2 border-success" style="height: 30px;">
+                            <div class="progress-bar bg-success fw-bold fs-4" role="progressbar" style="width: {{ progress }}%;" aria-valuenow=" {{ progress }}" aria-valuemin="0" aria-valuemax="100">
+                                {{ progress }}% success
+                            </div>
+                        </div>
                     </div>
-                    <div class="progress m-4 border border-2 border-success" style="height: 30px;">
-                        <div class="progress-bar bg-success fw-bold fs-4" role="progressbar" style="width: {{ progress }}%;" aria-valuenow=" {{ progress }}" aria-valuemin="0" aria-valuemax="100">
-                            {{ progress }}% success
+                </div>
+                <div class="row mt-3">
+                    <div class="card col-4 col-md-2 mx-4 mb-4">
+                        <p class="fw-semibold mb-0"> Etimated budget</p>
+                        <p class="text-end">{{ project.get_approved_proposal.total_proposal | currency_usd }}</p>
+                    </div>
+                    <div class="card col-4 col-md-2 mx-4 mb-4">
+                        <p class="fw-semibold mb-0">Budget Spent</p>
+                        <p class="text-end">{{ project.get_approved_proposal.billed_proposal | currency_usd }}</p>
+                    </div>
+                    <div class="card col-4 col-md-2 mx-4 mb-4" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#dateModal">
+                        <p class="fw-semibold mb-0">Dates</p>
+                        {%if project.start_date and project.end_date %}
+                            <a class="text-end">{{project.start_date}} - {{project.end_date}} </a>
+                        {% else %}
+                            <p class="text-end">{{ today|date:'Y-m-d' }}                             
+                                <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                                    data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                                    data-bs-title="You cannot create a schedule without estimated dates, please add project dates." >
+                                    <i class="bi bi-info-circle text-danger" style="font-size: 15px;"></i>
+                                </a>
+                                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#dateModal">
+                                    Set Dates
+                                </button>
+                            </p>
+                        {% endif %}
+                    </div>
+                    <div class="card col-4 col-md-2 mx-4 mb-4">
+                        <p class="fw-semibold mb-0">Manager</p>
+                        <p class="text-end">@{{project.project_manager}}</p>
+                    </div>
+                </div>
+            </div>
+            <!-- Modal para ingresar fechas -->
+            <div class="modal fade" id="dateModal" tabindex="1" aria-labelledby="dateModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="dateModalLabel">Set Project Dates</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="dateForm">
+                                <div class="mb-3">
+                                    <label for="startDate" class="form-label">Start Date</label>
+                                    <input type="date" class="form-control" id="startDate" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="endDate" class="form-label">End Date</label>
+                                    <input type="date" class="form-control" id="endDate" required>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" id="saveDatesBtn">Save Dates</button>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="row mt-3">
-                <div class="card col-4 col-md-2 mx-4 mb-4">
-                    <p class="fw-semibold mb-0"> Etimated budget</p>
-                    <p class="text-end">{{ project.get_approved_proposal.total_proposal | currency_usd }}</p>
+
+        <div class="container d-flex flex-column justify-content-center p-4 bg-light rounded-4 border border-2 border-secondary mb-4 border-opacity-25">
+            <h2 class="text-center bg-white text-dark p-2 rounded-2 mb-3 border border-2 border-secondary border-opacity-25">Project Timeline        
+                <button onclick="hasGanttChanged()" class='btn p-2 rounded-5 bg-white border border-2 border-primary' id='saveGantButton'><i class="bi bi-floppy-fill fs-4 text-primary"id='logoSave'></i>  
+                <span id="spinner" class="spinner-border spinner-white spinner-border-sm d-none" role="status" aria-hidden="true""></span>
+                </button>
+            </h2>
+            
+            <!-- Task Status Overview -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card border border-2 border-secondary border-opacity-25">
+                        <div class="card-header bg-secondary text-dark text-center bg-opacity-25">
+                            <h5 class="mb-0"><i class="bi bi-list-task me-2"></i>Task Status Overview</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 border-end border-secondary">
+                                        <div class="d-flex align-items-center justify-content-center mb-2 gap-2">
+                                            <i class="bi bi-check-circle-fill text-success fs-1"></i>
+                                            <h3 class="text-success mb-1 border border-2 border-success rounded-2 p-1 px-2 bg-success bg-opacity-25" id="completedTasks">0</h3>
+                                        </div>
+                                        <p class="mb-0 fw-bold bg-success bg-opacity-25 rounded-2 p-1 px-2 text-success">Completed</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 border-end border-secondary">
+                                        <div class="d-flex align-items-center justify-content-center mb-2 gap-2">
+                                            <i class="bi bi-clock-fill text-warning fs-1"></i>
+                                            <h3 class="text-warning mb-1 border border-2 border-warning rounded-2 p-1 px-2 bg-warning bg-opacity-25" id="inProgressTasks">0</h3>
+                                        </div>
+                                        <p class="mb-0 fw-bold bg-warning bg-opacity-25 rounded-2 p-1 px-2 text-warning">In Progress</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3 border-end border-secondary">
+                                        <div class="d-flex align-items-center justify-content-center mb-2 gap-2">
+                                            <i class="bi bi-exclamation-triangle-fill text-danger fs-1"></i>
+                                            <h3 class="text-danger mb-1 border border-2 border-danger rounded-2 p-1 px-2 bg-danger bg-opacity-25" id="overdueTasks">0</h3>
+                                        </div>
+                                        <p class="mb-0 fw-bold bg-danger bg-opacity-25 rounded-2 p-1 px-2 text-danger">Overdue</p>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="text-center p-3">
+                                        <div class="d-flex align-items-center justify-content-center mb-2 gap-2">
+                                            <i class="bi bi-calendar-event text-secondary fs-1"></i>
+                                            <h3 class="text-secondary mb-1 border border-2 border-secondary rounded-2 p-1 px-2 bg-secondary bg-opacity-25" id="upcomingTasks">0</h3>
+                                        </div>
+                                        <p class="mb-0 fw-bold bg-secondary bg-opacity-25 rounded-2 p-1 px-2 text-secondary">Upcoming (7 days)</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card col-4 col-md-2 mx-4 mb-4">
-                    <p class="fw-semibold mb-0">Budget Spent</p>
-                    <p class="text-end">{{ project.get_approved_proposal.billed_proposal | currency_usd }}</p>
+            </div>
+            <!-- Task Details Table -->
+
+            {%if project.start_date == None or project.end_date == None %}
+                <div class='text-danger'> ⛔ You can't create a schedule without estimated dates </div>
+            {% else %} 
+                <div class="card mb-3 p-0 overflow-hidden" id="gantt_here" style="width:100%; height:400px;"></div>
+            {% endif %}  
+            
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card border border-2 border-secondary border-opacity-25">
+                        <div class="card-header bg-secondary text-dark text-center bg-opacity-25">
+                            <h5 class="mb-0"><i class="bi bi-table me-2"></i>Task Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="taskDetailsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Task</th>
+                                            <th>Status</th>
+                                            <th>Progress</th>
+                                            <th>Start Date</th>
+                                            <th>End Date</th>
+                                            <th>Duration</th>
+                                            <th>Days Left</th>
+                                        </tr>
+                                    </thead>
+                                                                         <tbody id="taskDetailsBody" style="max-height: 300px; overflow-y: auto;">
+                                        <!-- Tasks will be populated by JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="card col-4 col-md-2 mx-4 mb-4">
-                    <p class="fw-semibold mb-0">Dates</p>
-                    {%if project.start_date and project.end_date %}
-                        <a class="text-end  cursor-pointer"  data-bs-toggle="modal" data-bs-target="#dateModal">{{project.start_date}} - {{project.end_date}} </a>
-                    {% else %}
-                        <p class="text-end">{{ today|date:'Y-m-d' }}                             
-                            <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
-                                data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
-                                data-bs-title="You cannot create a schedule without estimated dates, please add project dates." >
-                                <i class="bi bi-info-circle text-danger" style="font-size: 15px;"></i>
-                            </a>
-                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#dateModal">
-                                Set Dates
-                            </button>
-                        </p>
+            </div>
+
+            
+            <div class="bg-light mb-4 p-4 rounded-4 border border-2 border-secondary mb-4 border-opacity-25">
+                {% if project.accounting_cost_request == 'GLOBAL COST REQUEST' or project.accounting_cost_request == 'ITEM COST REQUEST' %}
+                <h4 class="bg-light text-dark fw-bold p-2 rounded-2 mb-3">
+                    <i class="bi bi-folder me-2"></i> Project Cost Details
+                    {% if project.accounting_cost_request %}
+                        <span class="text-success fw-bold bg-success bg-opacity-25 px-4  py-1 rounded-4" style="font-size: 12px;"> {{ project.accounting_cost_request }}</span>
                     {% endif %}
+                </h4>
+                    <div>
+                        {% include 'viewItemsbyProject.html' with evidence_required=project.evidence_required %}
+                    </div>
+                {% else %}
+                    <div class="d-flex justify-content-center flex-column">
+                        <h4 class="bg-light text-dark fw-bold p-2 rounded-2 mb-3 text-center">
+                            <i class="bi bi-folder me-2"></i> Project details
+                            <br>
+                            <span class="text-danger">
+                                <i class="bi bi-exclamation-triangle"></i>
+                                You must request type of cost request to add the project details and real cost.
+                            </span>
+                        </h4>
+                        <div class="d-flex justify-content-center flex-ROW align-items-center position-relative gap-2 bg-white p-4 rounded-4 border border-2 border-secondary mb-4 border-opacity-25">
+                            {% if request.user == project.project_manager and not project.production_funding_request %}
+                                <div class="d-flex justify-content-center flex-column align-items-center gap-3">
+                                    <h5 class="text-center">Request Cost Approval</h5>
+                                    <div class="d-flex justify-content-center flex-row align-items-center gap-2">
+                                        <label for="pmCostRequestType" class="form-label fw-bold">Type of Cost Request:</label>
+                                        <select class="form-select" id="pmCostRequestType">
+                                            <option value="GLOBAL COST REQUEST">GLOBAL COST REQUEST</option>
+                                            <option value="ITEM COST REQUEST">ITEM COST REQUEST</option>
+                                        </select>
+                                    </div>
+                                    <button class="btn btn-primary" id="requestCostBtn">Request Cost Approval</button>
+                                </div>
+                            {% elif request.user == project.accounting_manager and not project.accounting_cost_request %}
+                                <div class="d-flex justify-content-center flex-column align-items-center gap-3">
+                                    <form id="assignCostForm" class="d-flex justify-content-center flex-column align-items-center gap-3">
+
+                                            <!-- Mensaje del Project Manager -->
+                                            <p class="text-center bg-warning p-2 rounded-2 bg-opacity-25">
+                                                <i class="bi bi-exclamation-triangle"></i>
+                                                The Project Manager ({{ project.project_manager.first_name }} {{ project.project_manager.last_name }}) request a cost request:
+                                                <strong>{{ project.production_funding_request.cost_request_type }}</strong>
+                                            </p>
+                                            <!-- Formulario -->
+                                            <form id="assignCostForm" class="w-100" style="max-width: 400px;">
+                                                <div class="mb-3 d-flex justify-content-center flex-row align-items-center gap-2">
+                                                    <label for="tipo" class="form-label fw-bold">Confirm type of Cost Request:</label>
+                                                    <select id="tipo" name="tipo" class="form-select">
+                                                        <option value="GLOBAL COST REQUEST" {% if project.production_funding_request.cost_request_type == 'GLOBAL COST REQUEST' %}selected{% endif %}>GLOBAL COST REQUEST</option>
+                                                        <option value="ITEM COST REQUEST" {% if project.production_funding_request.cost_request_type == 'ITEM COST REQUEST' %}selected{% endif %}>ITEM COST REQUEST</option>
+                                                    </select>
+                                                </div>
+                                                <div class="form-check mb-3">
+                                                    <input type="checkbox" class="form-check-input" id="evidence" name="evidence">
+                                                    <label for="evidence" class="form-check-label fw-bold">Is evidence required?</label>
+                                                </div>
+                                                <button type="submit" class="btn btn-success px-4"> <i class="bi bi-check-circle"></i> Assign</button>
+                                            </form>
+                                        </div>
+                                    </form>
+                                </div>
+                            {% elif project.production_funding_request and not project.accounting_cost_request %}
+                                <h6 class="text-center bg-warning p-2 rounded-2 bg-opacity-25">The Project Manager ({{ project.project_manager.first_name }} {{ project.project_manager.last_name }}) request a cost request ({{ project.production_funding_request.cost_request_type }}) on {{ project.production_funding_request.date }}, waiting approval from Accounting  ({{ project.accounting_manager.first_name }} {{ project.accounting_manager.last_name }}).</h6>
+                            {% elif project.accounting_cost_request %}
+                                <h6 class="text-center bg-success p-2 rounded-2">Type of cost request assigned: {{ project.accounting_cost_request }}{% if project.evidence_required %} (Evidence required){% endif %}</h6>
+                            {% endif %}
+                        </div>
+                {% endif %}
                 </div>
-                <div class="card col-4 col-md-2 mx-4 mb-4">
-                    <p class="fw-semibold mb-0">Manager</p>
-                    <p class="text-end">@{{project.project_manager}}</p>
+            </div>
+
+            <!-- Historial de Cambios en Producción -->
+            <div class="card my-4 d-none">
+                <div class="card-header bg-info text-dark text-center bg-opacity-25">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>History of changes production</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered mb-0">
+                            <thead>
+                                <tr>
+                                    <th><data value="date">Date</data></th>
+                                    <th><data value="user">User</data></th>
+                                    <th><data value="action">Action</data></th>
+                                    <th><data value="description">Description</data></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for log in project.production_logs.all %}
+                                <tr>
+                                    <td>{{ log.timestamp|date:"Y-m-d H:i" }}</td>
+                                    <td>{{ log.user }}</td>
+                                    <td>{{ log.action }}</td>
+                                    <td>{{ log.description }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center">No history of changes.</td>
+                                </tr>
+                                {% endfor %}    
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-        <!-- Modal para ingresar fechas -->
-        <div class="modal fade" id="dateModal" tabindex="1" aria-labelledby="dateModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="dateModalLabel">Set Project Dates</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="dateForm">
-                            <div class="mb-3">
-                                <label for="startDate" class="form-label">Start Date</label>
-                                <input type="date" class="form-control" id="startDate" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="endDate" class="form-label">End Date</label>
-                                <input type="date" class="form-control" id="endDate" required>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                        <button type="button" class="btn btn-primary" id="saveDatesBtn">Save Dates</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <h2 class="text-center">Project Timeline        
-            <button onclick="hasGanttChanged()" class='btn p-2 rounded-5 bg-white border border-2 border-primary' id='saveGantButton'><i class="bi bi-floppy-fill fs-4 text-primary"id='logoSave'></i>  
-            <span id="spinner" class="spinner-border spinner-white spinner-border-sm d-none" role="status" aria-hidden="true""></span>
-            </button>
-        </h2>
-        {%if project.start_date == None or project.end_date == None %}
-            <div class='text-danger'> ⛔ You can't create a schedule without estimated dates </div>
-        {% else %} 
-            <div class="card mb-3 p-0 overflow-hidden" id="gantt_here" style="width:100%; height:400px;"></div>
-        {% endif %}   
-        </div>
 
-        <div class="accordion accordion-flush" id="accordionFlushExample">
-            <div class="accordion-item">
-            <h2 class="accordion-header" id="headingOne">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
-                <i class="bi bi-folder me-2"></i> Project details
-                </button>
-            </h2>
-            <div id="flush-collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#accordionFlushExample">
-                <div class="accordion-body">
-                    {% include 'viewItemsbyProject.html' %}
-                </div>
-            </div>
-            </div>
-        
-            {% comment %} <div class="accordion-item">
-            <h2 class="accordion-header" id="headingTwo">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseTwo" aria-expanded="false" aria-controls="flush-collapseTwo">
-                <i class="bi bi-check2-circle me-2"></i> Task and phases
-                </button>
-            </h2>
-            <div id="flush-collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionFlushExample">
-                <div class="accordion-body">
-                    
-                </div>
-            </div>
-            </div>
-        
-            <div class="accordion-item">
-            <h2 class="accordion-header" id="headingThree">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseThree" aria-expanded="false" aria-controls="flush-collapseThree">
-                <i class="bi bi-file-earmark-text me-2"></i> Documentation
-                </button>
-            </h2>
-            <div id="flush-collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionFlushExample">
-                <div class="accordion-body">
-                Documentación relacionada con el proyecto, incluyendo manuales, especificaciones y pautas técnicas.
-                </div>
-            </div>
-            </div>
-            <div class="accordion-item"> 
-                <h2 class="accordion-header" id="headingThree">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseFour" aria-expanded="false" aria-controls="flush-collapseFour">
-                    <i class="bi bi-file-earmark-text me-2"></i> Purchases, expenses and payments
-                    </button>
-                </h2>
-                <div id="flush-collapseFour" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionFlushExample">
-                    <div class="accordion-body">
-                    Documentación relacionada con el proyecto, incluyendo manuales, especificaciones y pautas técnicas.
-                    </div>
-                </div>
-                </div>
-            {% endcomment %} 
-        </div>
-
-    </div>
-
-
-    </div>
-
-    <!-- Carga de DHTMLX Gantt -->
-    <link rel="stylesheet" href="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.css">
-    <script src="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.js"></script>
-    <script> 
-        document.addEventListener('DOMContentLoaded', function () {
-        
-            let ganttData = JSON.parse('{{ ganttData|safe }}');
-            let previousGanttData = null;
-        
-            function getGanttData() {
-                return gantt.serialize();  // Obtén los datos del Gantt
-            }
-        
-            function hasGanttChanged() {
-                const currentGanttData = getGanttData();
-                return JSON.stringify(currentGanttData) !== JSON.stringify(previousGanttData);
-            }
-        
-            // Función para guardar los datos del Gantt en el servidor
-            function saveGanttDataToServer() {
-                const currentGanttData = getGanttData();
-                const csrfToken = document.getElementById('csrf-token').dataset.csrf;
-                const saveButton = document.getElementById('saveGantButton');
-                const iconSaveButton = document.getElementById('logoSave');
-                const spinner = document.getElementById('spinner');
-                saveButton.disabled = true;
-                spinner.classList.remove('d-none');
-                iconSaveButton.classList.add('d-none');
-    
-                fetch('/production/{{project.id}}/save_gantt_data/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken,
-                    },
-                    body: JSON.stringify({
-                        gantt_data: currentGanttData,
-                    }),
-                })
-                .then(response => response.json())
-                .then(data => {
-                    console.log('Datos del Gantt guardados exitosamente', data);
-                    saveButton.disabled = false;
-                    spinner.classList.add('d-none');
-                    iconSaveButton.classList.remove('d-none');
-                })
-                .catch(error => {
-                    console.error('Error al guardar los datos del Gantt:', error);
-                    saveButton.disabled = false;
-                    spinner.classList.add('d-none');
-                    iconSaveButton.classList.remove('d-none');
-                });
-
-            }
-        
-            // Función que parsea fechas personalizadas
-            function parseCustomDate(dateStr) {
-                const months = {
-                    "Jan.": 0,
-                    "Feb.": 1,
-                    "Mar.": 2,
-                    "Apr.": 3,
-                    "May.": 4,
-                    "Jun.": 5,
-                    "Jul.": 6,
-                    "Aug.": 7,
-                    "Sep.": 8,
-                    "Oct.": 9,
-                    "Nov.": 10,
-                    "Dec.": 11
-                };
-        
-                const parts = dateStr.split(' ');
-                const month = months[parts[0]];
-                const day = parseInt(parts[1], 10);
-                const year = parseInt(parts[2], 10);
-        
-                return new Date(year, month, day);
-            }
-        
-            // Función que valida las fechas de inicio y fin
-            document.getElementById("saveDatesBtn").addEventListener("click", function(event) {
-                var startDate = document.getElementById("startDate").value;
-                var endDate = document.getElementById("endDate").value;
-                const csrfToken = document.getElementById('csrf-token').dataset.csrf;
-        
-                if (startDate && endDate) {
-                    if (new Date(startDate) > new Date(endDate)) {
-                        alert("The start date must be before the end date.");
-                        event.preventDefault();
-                    } else {
-                        var modal = bootstrap.Modal.getInstance(document.getElementById('dateModal'));
-                        modal.hide();
-        
-                        fetch(`/production/{{project.id}}/set_date_project/${startDate}/${endDate}/`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': csrfToken,
-                            },
-                        })
-                        .then(() => {
-                            window.location.reload();
-                        })
-                        .catch((error) => {
-                            console.error('Error:', error);
-                        });
-                    }
-                } else {
-                    alert("Please fill in both start and end dates.");
+        <!-- Carga de DHTMLX Gantt -->
+        <link rel="stylesheet" href="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.css">
+        <script src="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.js"></script>
+        <script> 
+            // Forzar posicionamiento correcto del modal del Gantt
+                document.addEventListener('DOMContentLoaded', function () {
+            
+                let ganttData = JSON.parse('{{ ganttData|safe }}');
+                let previousGanttData = null;
+            
+                function getGanttData() {
+                    return {
+                        data: gantt.serialize().data,  // Tareas
+                        links: gantt.serialize().links  // Links/conexiones
+                    };
                 }
-            });
-        
-            // Función que guarda el Gantt cada 30 segundos si hay cambios
-            setInterval(function() {
-                if (hasGanttChanged() && !document.getElementById('saveGantButton').disabled) {
-                    console.log("El Gantt ha cambiado, guardando los datos...");
-                    previousGanttData = getGanttData();
-                    saveGanttDataToServer()
-                } else {
-                    console.log('no hay cambios');
+            
+                function hasGanttChanged() {
+                    const currentGanttData = getGanttData();
+                    return JSON.stringify(currentGanttData) !== JSON.stringify(previousGanttData);
                 }
-            }, 3000);
+            
+                // Función para guardar los datos del Gantt en el servidor
+                function saveGanttDataToServer() {
+                    const currentGanttData = getGanttData();
+                    const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+                    const saveButton = document.getElementById('saveGantButton');
+                    const iconSaveButton = document.getElementById('logoSave');
+                    const spinner = document.getElementById('spinner');
+                    saveButton.disabled = true;
+                    spinner.classList.remove('d-none');
+                    iconSaveButton.classList.add('d-none');
         
-            // Inicialización de Gantt
-            gantt.plugins({
-                quick_info: true,
-                auto_scheduling: true,
-                marker: true
-            });
-        
-            gantt.init("gantt_here");
-        
-            // Función para personalizar el texto de las tareas en Gantt
-            gantt.templates.task_text = function (start, end, task) {
-                return "<span>" + task.text + "</span> " + 
-                       "<button onclick='addEvidence(" + task.id + ")' class='evidence-btn'>" +
-                       "<i class='bi bi-paperclip'></i></button>";
-            };
-        
-            // Función para agregar evidencia
-            function addEvidence(taskId) {
-                alert("Añadir evidencia para la tarea con ID: " + taskId);
-            }
-        
-            // Definir fechas de inicio y fin del proyecto
-            const startDateStr = "{{ project.start_date }}";
-            const startDate = startDateStr && startDateStr !== "None" 
-                ? parseCustomDate(startDateStr) 
-                : new Date(); 
-        
-            const endDateStr = "{{ project.end_date }}"; 
-            const endDate = endDateStr && endDateStr !== "None" 
-                ? parseCustomDate(endDateStr) 
-                : null;
-        
-            gantt.config.min_date = startDate;
-            const maxDate = endDate ? endDate : new Date(startDate.getTime() + 120 * 24 * 60 * 60 * 1000);
-            gantt.config.max_date = maxDate;
-        
-            // Configuración de visualización del Gantt
-            gantt.config.scale_unit = "day"; 
-            gantt.config.date_scale = "%d"; 
-            gantt.config.subscales = [
-                { unit: "month", step: 1, date: "%M" } 
-            ];
-        
-            var dateToStr = gantt.date.date_to_str(gantt.config.task_date);
-            var today = new Date(); 
-            gantt.addMarker({
-                start_date: today,
-                css: "today",
-                text: "Today",
-                title: "Today: " + dateToStr(today)
-            });
-        
-            var start = startDate;
-            gantt.addMarker({
-                start_date: start,
-                css: "status_line",
-                text: "Start project",
-                title: "Start project: " + dateToStr(start)
-            });
-        
-            if (ganttData && ganttData.length === 0) {
-                gantt.parse({
-                    data: [
-                        {
-                            id: 1,
-                            text: "Planning, budget and negotiation", 
-                            start_date: startDate, 
-                            end_date: new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000), 
-                            progress: 1,
+                    fetch('/production/{{project.id}}/save_gantt_data/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken,
                         },
-        
-                        {
-                            id: 2,
-                            text: "Project delivery",
-                            start_date: new Date(maxDate.getTime() - 2 * 24 * 60 * 60 * 1000), 
-                            end_date: maxDate, 
-                            progress: 0,
-                        }
-                    ]
-                });
-            } else {
-                gantt.parse({ data: ganttData });
-            }
-        
-            gantt.attachEvent("onLinkClick", function (id) {
-                var link = this.getLink(id),
-                    src = this.getTask(link.source),
-                    trg = this.getTask(link.target),
-                    types = this.config.links;
-        
-                var first = "", second = "";
-                switch (link.type) {
-                    case types.finish_to_start:
-                        first = "finish";
-                        second = "start";
-                        break;
-                    case types.start_to_start:
-                        first = "start";
-                        second = "start";
-                        break;
-                    case types.finish_to_finish:
-                        first = "finish";
-                        second = "finish";
-                        break;
-                }
-        
-                gantt.message("Must " + first + " <b>" + src.text + "</b> to " + second + " <b>" + trg.text + "</b>");
-            });
-        
-            gantt.templates.task_class = function (start, end, task) {
-                if (task.progress === 1) {
-                    return "task-completed";
-                } else if (task.progress === 0) {
-                    return "task-not-started";
-                }
-                return "task-in-progress";
-            };
-        
-            // Función para abrir el modal de evidencia
-            function openEvidenceModal() {
-                document.getElementById("evidenceModal").style.display = "block";
-            }
-        
-            // Función para cerrar el modal de evidencia
-            function closeEvidenceModal() {
-                document.getElementById("evidenceModal").style.display = "none";
-            }
-        
-            // Cerrar el modal al hacer clic fuera de él
-            window.onclick = function(event) {
-                var modal = document.getElementById("evidenceModal");
-                if (event.target === modal) {
-                    modal.style.display = "none";
-                }
-            }
-        });
-        
-        
+                        body: JSON.stringify({
+                            gantt_data: currentGanttData,
+                        }),
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('Datos del Gantt guardados exitosamente', data);
+                        saveButton.disabled = false;
+                        spinner.classList.add('d-none');
+                        iconSaveButton.classList.remove('d-none');
+                    })
+                    .catch(error => {
+                        console.error('Error al guardar los datos del Gantt:', error);
+                        saveButton.disabled = false;
+                        spinner.classList.add('d-none');
+                        iconSaveButton.classList.remove('d-none');
+                    });
 
-    </script>
+                }
+            
+                // Función que parsea fechas personalizadas
+                function parseCustomDate(dateStr) {
+                    if (!dateStr || dateStr === "None" || dateStr === "") {
+                        return null;
+                    }
+                    if (dateStr instanceof Date) {
+                        return dateStr;
+                    }
+                    // ISO (YYYY-MM-DD)
+                    if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        const date = new Date(dateStr);
+                        if (!isNaN(date.getTime())) return date;
+                    }
+                    // Inglés largo: June 29, 2025
+                    if (dateStr.match(/^[A-Za-z]+ \d{1,2}, \d{4}$/)) {
+                        const date = new Date(dateStr);
+                        if (!isNaN(date.getTime())) return date;
+                    }
+                    // Europeo con hora: 30-06-2025 06:38 o 30-06-2025 00:00
+                    if (dateStr.match(/^\d{2}-\d{2}-\d{4}( \d{2}:\d{2})?$/)) {
+                        const [d, m, y, h = '00', min = '00'] = dateStr.split(/[- :]/);
+                        return new Date(`${y}-${m}-${d}T${h}:${min}:00`);
+                    }
+                    // Formato personalizado (Jan. 15, 2024)
+                    const months = {
+                        "Jan.": 0, "Jan": 0, "February": 1, "Feb.": 1, "Feb": 1, "Mar.": 2, "Mar": 2, "April": 3, "Apr.": 3, "Apr": 3,
+                        "May.": 4, "May": 4, "Jun.": 5, "Jun": 5, "Jul.": 6, "Jul": 6, "Aug.": 7, "Aug": 7, "Sep.": 8, "Sep": 8,
+                        "Oct.": 9, "Oct": 9, "Nov.": 10, "Nov": 10, "Dec.": 11, "Dec": 11
+                    };
+                    try {
+                        const parts = dateStr.split(' ');
+                        if (parts.length >= 3) {
+                            const month = months[parts[0]];
+                            const day = parseInt(parts[1].replace(',', ''), 10);
+                            const year = parseInt(parts[2], 10);
+                            if (month !== undefined && !isNaN(day) && !isNaN(year)) {
+                                return new Date(year, month, day);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error parsing custom date:', dateStr, error);
+                    }
+                    // Fallback
+                    console.warn('Could not parse date:', dateStr, 'using current date');
+                    return new Date();
+                }
+            
+                // Función que valida las fechas de inicio y fin
+                document.getElementById("saveDatesBtn").addEventListener("click", function(event) {
+                    if (!user.is_superuser && !user == project.project_manager && !user == project.sales_advisor && !user == project.accounting_manager) {
+                        alert("You are not authorized to update this project");
+                        event.preventDefault();
+                        return;}
+                    var startDate = document.getElementById("startDate").value;
+                    var endDate = document.getElementById("endDate").value;
+                    const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+            
+                    if (startDate && endDate) {
+                        if (new Date(startDate) > new Date(endDate)) {
+                            alert("The start date must be before the end date.");
+                            event.preventDefault();
+                        } else {
+                            var modal = bootstrap.Modal.getInstance(document.getElementById('dateModal'));
+                            modal.hide();
+            
+                            fetch(`/production/{{project.id}}/set_date_project/${startDate}/${endDate}/`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken,
+                                },
+                            })
+                            .then(() => {
+                                window.location.reload();
+                            })
+                            .catch((error) => {
+                                console.error('Error:', error);
+                            });
+                        }
+                    } else {
+                        alert("Please fill in both start and end dates.");
+                    }
+                });
+            
+                // Función que guarda el Gantt cada 30 segundos si hay cambios
+                setInterval(function() {
+                    if (hasGanttChanged() && !document.getElementById('saveGantButton').disabled) {
+                        console.log("El Gantt ha cambiado, guardando los datos...");
+                        previousGanttData = getGanttData();
+                        saveGanttDataToServer()
+                    } else {
+                        console.log('no hay cambios');
+                    }
+                }, 3000);
+            
+                // Inicialización de Gantt
+                gantt.plugins({
+                    quick_info: true,
+                    auto_scheduling: true,
+                    marker: true
+                });
+                // Definir la clase de progreso antes de parsear los datos
+                gantt.templates.progress_class = function (start, end, task) {
+                    if (task.progress === 1) {
+                        return "gantt-progress-completed";
+                    } else if (task.progress === 0) {
+                        return "gantt-progress-not-started";
+                    }
+                    return "gantt-progress-in-progress";
+                };
+
+                gantt.templates.task_class = function (start, end, task) {
+                    if (task.progress === 1) {
+                        return "gantt-progress-completed";
+                    } else if (task.progress === 0) {
+                        return "gantt-progress-not-started";
+                    }
+                    return "gantt-progress-in-progress";
+                };
+
+                gantt.templates.gantt_scale_line = function (date) {
+                    return "<span>" + date + "</span>";
+                };
+            
+                gantt.init("gantt_here");
+            
+                // Función para personalizar el texto de las tareas en Gantt
+                gantt.templates.task_text = function (start, end, task) {
+                    return "<span>" + task.text + "</span> " + 
+                        "<button onclick='addEvidence(" + task.id + ")' class='evidence-btn'>" +
+                        "<i class='bi bi-paperclip'></i></button>";
+                };
+                
+            
+                // Función para agregar evidencia
+                window.addEvidence = function(taskId) {
+                    alert("Añadir evidencia para la tarea con ID: " + taskId);
+                }
+            
+                // Definir fechas de inicio y fin del proyecto
+                const startDateStr = "{{ project.start_date }}";
+                const startDate = startDateStr && startDateStr !== "None" 
+                    ? parseCustomDate(startDateStr) 
+                    : new Date(); 
+            
+                const endDateStr = "{{ project.end_date }}"; 
+                const endDate = endDateStr && endDateStr !== "None" 
+                    ? parseCustomDate(endDateStr) 
+                    : null;
+            
+                gantt.config.min_date = startDate;
+                const maxDate = endDate ? endDate : new Date(startDate.getTime() + 120 * 24 * 60 * 60 * 1000);
+                gantt.config.max_date = maxDate;
+            
+                // Configuración de visualización del Gantt
+                gantt.config.scale_unit = "day"; 
+                gantt.config.date_scale = "%d"; 
+                gantt.config.subscales = [
+                    { unit: "month", step: 1, date: "%M" } 
+                ];
+            
+                var dateToStr = gantt.date.date_to_str(gantt.config.task_date);
+                var today = new Date(); 
+                gantt.addMarker({
+                    start_date: today,
+                    css: "today",
+                    text: "Today",
+                    title: "Today: " + dateToStr(today)
+                });
+            
+                var start = startDate;
+                gantt.addMarker({
+                    start_date: start,
+                    css: "status_line",
+                    text: "Start project",
+                    title: "Start project: " + dateToStr(start)
+                });
+
+                
+            
+                if (!ganttData || (ganttData.data && ganttData.data.length === 0)) {
+                    gantt.parse({
+                        data: [
+                            {
+                                id: 1,
+                                text: "Planning, budget and negotiation", 
+                                start_date: startDate, 
+                                end_date: new Date(startDate.getTime() + 6 * 24 * 60 * 60 * 1000), 
+                                progress: 1,
+                            },
+            
+                            {
+                                id: 2,
+                                text: "Project delivery",
+                                start_date: new Date(maxDate.getTime() - 2 * 24 * 60 * 60 * 1000), 
+                                end_date: maxDate, 
+                                progress: 0,
+                            }
+                        ],
+                        links: [
+                            {
+                                id: 1,
+                                source: 1,
+                                target: 2,
+                                type: "0"  // finish_to_start
+                            }
+                        ]
+                    });
+                } else {
+                    // Validar y limpiar los datos del Gantt antes de parsearlos
+                    const validatedGanttData = (ganttData.data || ganttData).map(task => {
+                        // Asegurar que las fechas sean objetos Date válidos
+                        if (task.start_date && typeof task.start_date === 'string') {
+                            task.start_date = parseCustomDate(task.start_date);
+                        }
+                        if (task.end_date && typeof task.end_date === 'string') {
+                            task.end_date = parseCustomDate(task.end_date);
+                        }
+                        // Si las fechas no son válidas, usar fechas por defecto
+                        if (!task.start_date || isNaN(task.start_date.getTime())) {
+                            task.start_date = startDate;
+                        }
+                        if (!task.end_date || isNaN(task.end_date.getTime())) {
+                            task.end_date = new Date(task.start_date.getTime() + 24 * 60 * 60 * 1000); // 1 día después
+                        }
+                        // Normalizar el progreso
+                        if (typeof task.progress === 'string') {
+                            task.progress = parseFloat(task.progress);
+                        }
+                        if (task.progress > 1) {
+                            task.progress = task.progress / 100;
+                        }
+                        if (isNaN(task.progress) || task.progress < 0) {
+                            task.progress = 0;
+                        }
+                        if (task.progress > 1) {
+                            task.progress = 1;
+                        }
+                        return task;
+                    });
+                    
+                    // Parsear tanto tareas como links
+                    gantt.parse({ 
+                        data: validatedGanttData,
+                        links: ganttData.links || []
+                    });
+                }
+                gantt.render(); // Forzar refresco visual después de parsear los datos
+            
+                gantt.attachEvent("onLinkClick", function (id) {
+                    var link = this.getLink(id),
+                        src = this.getTask(link.source),
+                        trg = this.getTask(link.target),
+                        types = this.config.links;
+            
+                    var first = "", second = "";
+                    switch (link.type) {
+                        case types.finish_to_start:
+                            first = "finish";
+                            second = "start";
+                            break;
+                        case types.start_to_start:
+                            first = "start";
+                            second = "start";
+                            break;
+                        case types.finish_to_finish:
+                            first = "finish";
+                            second = "finish";
+                            break;
+                    }
+            
+                    gantt.message("Must " + first + " <b>" + src.text + "</b> to " + second + " <b>" + trg.text + "</b>");
+                });
+
+                // Función para abrir el modal de evidencia
+                function openEvidenceModal() {
+                    document.getElementById("evidenceModal").style.display = "block";
+                }
+            
+                // Función para cerrar el modal de evidencia
+                function closeEvidenceModal() {
+                    document.getElementById("evidenceModal").style.display = "none";
+                }
+            
+                // Cerrar el modal al hacer clic fuera de él
+                window.onclick = function(event) {
+                    var modal = document.getElementById("evidenceModal");
+                    if (event.target === modal) {
+                        modal.style.display = "none";
+                    }
+                }
+
+                document.getElementById('requestCostBtn')?.addEventListener('click', function() {
+                    const costRequestType = document.getElementById('pmCostRequestType').value;
+                    fetch('/request_cost_by_pm/{{ project.id }}/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            cost_request_type: costRequestType
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'ok') {
+                            showAlert('Request sent to Accounting Manager.');
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        } else if (data.status === 'already_requested') {
+                            showAlert('There is already a pending request.');
+                        } else {
+                            showAlert('You are not authorized to perform this action.');
+                        }
+                    });
+                });
+
+                document.getElementById('assignCostForm')?.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const tipo = document.getElementById('tipo').value;
+                    const evidence = document.getElementById('evidence').checked;
+                    fetch('/assign_cost_by_accounting/{{ project.id }}/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: `tipo=${tipo}&evidence=${evidence}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'ok') {
+                            showAlert('Assignment made successfully.');
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        } else {
+                            showAlert('You are not authorized to perform this action.');
+                        }
+                    });
+                });
+
+                // --- Task Status Overview & Table ---
+                function updateTaskStatusOverview(tasks) {
+                    const now = new Date();
+                    let completed = 0, inProgress = 0, overdue = 0, upcoming = 0;
+                    let tableRows = '';
+                    let taskCount = 0;
+                    const maxTasks = 10;
+                    
+                    tasks.forEach(task => {
+                        if (!task.start_date || !task.end_date) return;
+                        if (taskCount >= maxTasks) return; // Limitar a máximo 10 tareas
+                        
+                        const start = parseCustomDate(task.start_date);
+                        const end = parseCustomDate(task.end_date);
+                        const progress = parseFloat(task.progress) || 0;
+                        let status = '';
+                        let daysLeft = '';
+                        if (progress >= 1) {
+                            completed++;
+                            status = '<span class="badge bg-success bg-opacity-25 text-success">Completed</span>';
+                        } else if (end < now) {
+                            overdue++;
+                            status = '<span class="badge bg-danger bg-opacity-25 text-danger">Overdue</span>';
+                        } else if (start <= now && end >= now) {
+                            inProgress++;
+                            status = '<span class="badge bg-warning bg-opacity-25 text-warning">In Progress</span>';
+                        } else if (start > now && (start - now) / (1000 * 60 * 60 * 24) <= 7) {
+                            upcoming++;
+                            status = '<span class="badge bg-info bg-opacity-25 text-info">Upcoming</span>';
+                        }
+                        if (end >= now) {
+                            daysLeft = Math.ceil((end - now) / (1000 * 60 * 60 * 24)) + ' days';
+                        } else {
+                            daysLeft = 'expired ' + Math.abs(Math.ceil((now - end) / (1000 * 60 * 60 * 24))) + ' days ago';
+                        }
+                        tableRows += `<tr>
+                            <td>${task.text || task.name || 'No name'}</td>
+                            <td>${status}</td>
+                            <td>${(progress * 100).toFixed(0)}%</td>
+                            <td>${start ? start.toLocaleDateString() : ''}</td>
+                            <td>${end ? end.toLocaleDateString() : ''}</td>
+                            <td>${task.duration || ''} days</td>
+                            <td>${daysLeft}</td>
+                        </tr>`;
+                        taskCount++;
+                    });
+                    
+                    // Agregar mensaje si hay más tareas de las mostradas
+                    if (tasks.length > maxTasks) {
+                        tableRows += `<tr class="table-info">
+                            <td colspan="7" class="text-center">
+                                <em>Showing ${maxTasks} of ${tasks.length} tasks. Scroll to see more.</em>
+                            </td>
+                        </tr>`;
+                    }
+                    
+                    document.getElementById('completedTasks').textContent = completed;
+                    document.getElementById('inProgressTasks').textContent = inProgress;
+                    document.getElementById('overdueTasks').textContent = overdue;
+                    document.getElementById('upcomingTasks').textContent = upcoming;
+                    document.getElementById('taskDetailsBody').innerHTML = tableRows;
+                }
+                if (typeof ganttData !== 'undefined' && ganttData.data) {
+                    updateTaskStatusOverview(ganttData.data);
+                }
+            });
+            
+            
+        </script>
+    {% endif %}
 
 {% endblock %}

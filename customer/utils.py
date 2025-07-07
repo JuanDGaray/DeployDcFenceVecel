@@ -156,7 +156,7 @@ def get_folders_in_drive(request):
                     "id": folder['id'],
                     "name": folder['name'],
                     "type": "folder",})
-            return JsonResponse({"message": "Estructura obtenida con éxito", "structure": structure})
+            return JsonResponse({"message": "Estructura obtenida con éxito", "structure": sorted(structure, key=lambda x: x['name'])})
     except HttpError as error:
         return JsonResponse({"message": "Error al obtener la estructura", "error": str(error)}, status=500)
 
@@ -335,9 +335,9 @@ def create_folders_by_projects(folder_name):
         ).execute()
 
         subfolders = [
-            'Contract-SOV', 'Invoices', 'ChangeOrder',
-            'Permit', 'Documents', 'Drawings', 
-            'Proposal', 'Evidence'
+            'SOV', 'Invoices', 'ChangeOrder',
+            'Permit', 'Documents', 'Plans/Drawings', 
+            'Proposal', 'Evidence', 'Material', 'COI Insurance', 'NTC/PO', 'Contract'
         ]
         created_subfolders = []
 
@@ -449,6 +449,15 @@ def upload_file_to_drive(request):
             mimeType = request.POST.get('mimeType')
             folder_id = str(request.POST.get('folder_id'))
             origin = request.META.get('HTTP_ORIGIN')
+            is_evidence = request.POST.get('is_evidence')
+            
+            # Validate and set default MIME type if not provided or invalid
+            if not mimeType or mimeType == 'file' or mimeType == '':
+                mimeType = 'application/octet-stream'
+            
+            if is_evidence:
+                folder_name = 'Evidence'
+                folder_id = search_folder_in_drive(folder_id, folder_name)
             
             file_metadata = {
                 'mimeType': mimeType,
@@ -485,10 +494,39 @@ def upload_file_to_drive(request):
             except HttpError as error:
                 print(f"Failed to upload {file_name}: {error}")
         except Exception as e:
+             print(f"Error occurred: {str(e)}")
              return JsonResponse({'message': f'Error occurred: {str(e)}'}, status=500)
-
+    
     return JsonResponse({'message': 'Method not allowed'}, status=405)
 
+
+
+def search_folder_in_drive(folder_id, folder_name, drive_id=None):
+    try:
+        service = GoogleService.get_service()['drive']
+        query = f"'{folder_id}' in parents and name='{folder_name}' and trashed=false"
+
+        kwargs = {
+            'q': query,
+            'fields': 'files(id, name)',
+            'includeItemsFromAllDrives': True,
+            'supportsAllDrives': True
+        }
+
+        # Si se especifica un drive_id (es un Shared Drive)
+        if drive_id:
+            kwargs['corpora'] = 'drive'
+            kwargs['driveId'] = drive_id
+        else:
+            kwargs['corpora'] = 'user'
+
+        results = service.files().list(**kwargs).execute()
+
+        folder_evidence = results.get('files', [])
+        return folder_evidence[0]['id'] if folder_evidence else None
+    except Exception as e:
+        print(f"Error occurred: {str(e)}")
+        return None
 
 
 def search_file_in_drive(folder_id, file_name):
@@ -748,6 +786,26 @@ def create_reply_notification(comment, sender):
             comment=comment,
             message=f'{sender.get_full_name()} replied to your comment on project "{comment.project.project_name}"'
         )
+
+def create_manager_assignment_notification(project, manager, manager_type, assigned_by):
+    """
+    Crea notificación cuando se asigna un manager (accounting o production) a un proyecto
+    
+    Args:
+        project: Instancia del proyecto
+        manager: Usuario asignado como manager
+        manager_type: Tipo de manager ('accounting' o 'production')
+        assigned_by: Usuario que realizó la asignación
+    """
+    manager_type_display = 'Accounting Manager' if manager_type == 'accounting' else 'Project Manager'
+    
+    Notification.objects.create(
+        recipient=manager,
+        sender=assigned_by,
+        notification_type='manager_assignment',
+        project=project,
+        message=f'You have been assigned as {manager_type_display} for project "{project.project_name}" by {assigned_by.get_full_name()}'
+    )
 
 def format_comment_with_mentions(text):
     """

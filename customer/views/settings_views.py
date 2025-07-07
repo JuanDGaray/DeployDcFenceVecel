@@ -21,9 +21,7 @@ def settings(request):
             sales_users = [{"name": user.first_name + user.last_name, "email": user.email, "user": user} for user in group.user_set.all()]
         elif group.name == "PRODUCTION":
             production_users = [{"name": user.first_name + user.last_name, "email": user.email, "user": user} for user in group.user_set.all()]
-    print(admin_users)
-    print(sales_users)
-    print(production_users)
+
     return render(request, "settings.html", {
         "admin_users": admin_users,
         "sales_users": sales_users,
@@ -62,7 +60,7 @@ def add_user_post(request):
                 return JsonResponse({"error": "Email already exists"}, status=400)
 
             # Validar permisos de usuario
-            if not request.user.groups.filter(name="ADMIN").exists():
+            if not request.user.groups.filter(name="ADMIN").exists() and not request.user.is_superuser:
                 return JsonResponse({"error": "You are not authorized to add users"}, status=403)
 
             # Validar grupo existente

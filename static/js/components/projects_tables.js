@@ -36,18 +36,18 @@ function renderTable(data) {
             <a href="/projects/${project.id}" class="mt-2" target="_blank">${project.id}</a>
         </td>
         <td class="">${formattedDate}</td>
-        <td style="max-width: 10%;">
+        <td class="text-truncate" style="max-width: 200px;" title="${project.project_name}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="${project.project_name}">
             <a href="/projects/${project.id}" target="_blank">
                 ${project.project_name}
             </a>
         </td>
         <td ">
-            <span class="status-empty status_${project.status} m-0 text-truncate">
+            <span class="status-empty status_${project.status} px-2 text-truncate">
                 <strong>•</strong> ${project.status}
             </span>
         </td>
         <td>
-            <a href="/customers/${project.customer_id}">
+            <a href="/customers/${project.customer}">
                 <span class="status title_${project.customer__customer_type} fs-6 text-truncate">
                     ${project.customer__customer_type === 'individual' ?
                 `${project.customer__first_name} ${project.customer__last_name}<i class="bi bi-person-arms-up"></i>` :
@@ -55,11 +55,20 @@ function renderTable(data) {
                 </span>
             </a>
         </td>
-        <td class="text-center text-truncate">${project.sales_advisor__username}</td>
-        <td class="text-center text-truncate">${project.estimated_cost}</td>
+        <td class="text-center text-truncate d-flex flex-row align-items-center gap-1 flex-nowrap">
+            <span
+                class="customer-avatar text-light rounded-circle m-0 bg-primary"
+                style="font-size: 0.8rem; font-weight: bold; width: 25px; height: 25px;">
+                ${project.sales_advisor__first_name[0] + project.sales_advisor__last_name[0]}
+            </span> 
+            <a href="/users/${project.sales_advisor__id}" target="_blank" class="text-decoration-none text-dark">
+                ${project.sales_advisor__first_name.split(' ')[0]} ${project.sales_advisor__last_name.split(' ')[0]}
+            </a>
+        </td>
+        <td class="text-truncate"> ${parseInt(project.estimated_cost).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</td>
         ${project.estimated_cost > project.actual_cost || project.actual_cost === 0
-                ? `<td><span class="status title_budgetUp text-truncate"><i class="bi bi-graph-up-arrow fs-6"></i> ${project.actual_cost}</span></td>`
-                : `<td><span class="status title_budgetDown text-truncate"><i class="bi bi-graph-down-arrow fs-6"></i> ${project.actual_cost}</span></td>`}           
+                ? `<td><span class="status title_budgetUp text-truncate"><i class="bi bi-graph-up-arrow fs-6"></i> ${parseInt(project.actual_cost).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span></td>`
+                : `<td><span class="status title_budgetDown text-truncate"><i class="bi bi-graph-down-arrow fs-6"></i> ${parseInt(project.actual_cost).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span></td>`}           
         <td class="text-center"><button class="btn btn-primary btn-sm rounded-2 p-1 modal-open button-show_project" id='button-show_project' onclick="openModal(event, project_id='${project.id}',proposal_id='None', object='project')"><i class="bi bi-eye-fill"></i></button></td>`
         projectsTableBody.appendChild(row);
     });

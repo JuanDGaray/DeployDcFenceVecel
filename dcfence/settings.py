@@ -94,12 +94,13 @@ DATABASES = {
              'sslrootcert': os.path.join(BASE_DIR, 'prod-ca-2021.crt'),
           },
       }
- }
+}
 
-# #Database local
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": "db.sqlite3",}}
+#Database local
+# DATABASES = {
+# "default": {
+#     "ENGINE": "django.db.backends.sqlite3",
+#     "NAME": "db.sqlite3",}}
 
 
 LOGIN_URL = '/signin/'

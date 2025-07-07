@@ -1347,7 +1347,7 @@ function removeItem(element, value) {
     ];
     ischeckboxMW.checked = false
     updateAddHole()
-    var ischeckboxFtPost = document.querySelectorAll(`.FT\\&Post${value.trim().replace(/\s+/g, '-')}`);
+    var ischeckboxFtPost = document.querySelectorAll(`.FT\\&Post${value.trim().replace(/\s+/g, '-').replace(/&/g, '\\&')}`);
     if (ischeckboxFtPost.length > 0) {
         ischeckboxFtPost.forEach((element) => {
             element.remove();

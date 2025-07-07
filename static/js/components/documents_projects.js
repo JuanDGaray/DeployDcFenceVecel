@@ -228,10 +228,13 @@ function renderFolderStructure(folders, parentId = '') {
 
 async function uploadFile(file, uploadUrl, folderIdInput) {
   const filesize = file.size;
+  // Ensure we have a valid MIME type, default to application/octet-stream if not available
+  const contentType = file.type || 'application/octet-stream';
+  
   const response = await fetch(uploadUrl, {
       method: 'PUT',
       headers: {
-        'Content-Type': file.type,
+        'Content-Type': contentType,
         'Content-Length': filesize,
       },
       body: file

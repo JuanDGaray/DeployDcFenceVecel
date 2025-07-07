@@ -1,116 +1,335 @@
 {% load static %}
 {% load custom_filters %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <div class="modal fade" id="UpdateCostSpent" tabindex="-1" aria-labelledby="UpdateCostSpent" aria-hidden="true">
     <div class="modal-dialog p-1 d-flex justify-content-center">
-      <div class="modal-content p-1">
+      <div class="modal-content p-1 m-0" style="min-width: 500px;">
         <div class="modal-header">
           <button type="button" class="btn-close btn-sm bg-danger" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body mb-0 pb-0">
+        </div>
+        <input type="hidden" id="evidenceRequired" value="{{ evidence_required }}">
+        <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+        <input type="hidden" id="idFolderProject" value="{{ project.folder_id }}">
+       
+        <div class="d-flex flex-column align-items-center justify-content-center p-2 mb-0 pb-0 bg-secondary  bg-opacity-10 rounded-2 border border-2 border-secondary border-opacity-25 mx-3   ">
+            {% if evidence_required %}
+            <span class="bg-warning p-2 rounded-2 bg-opacity-25"> <i class="bi bi-exclamation-triangle"></i> Evidence is required, you need to upload a file, invoice or receipt.</span>
+            {% else %}
+            <span class="bg-info p-2 rounded-2 bg-opacity-25"> <i class="bi bi-info-circle"></i> Evidence is not required, but you can upload a file, invoice or receipt.</span>
+            {% endif %}
+            <input type="file" class="form-control" id="evidenceFile" name="evidenceFile">
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-sm" id="confirmDeleteBtn"  onclick="submitForm()">Save</button>
+          <button type="button" class="btn btn-sm" id="confirmRealCost"  onclick="submitForm()">Save</button>
         </div>
       </div>
+
     </div>
 </div>
-<div class="d-flex flex-row">
-    <div class="card my-4 overflow m-4  w-50">
-    <h2 class="card-header fs-6 text-center py-1 bg-warning">Cost per items (BUDGETED)</h2>
-        <table class="table table-bordered mx-auto">
-            <thead>
-                <tr class="table-secondary">
-                    <th class="p-0 border text-center  px-2" style="width:70%">Items</th>
-                    <th class="p-0 border text-center  px-2" style="width:30%"> Cost</th>
-                </tr>
-            </thead>
-            <tbody class="word-wrap word-break">
-            {% for item in budget.dataPreview %}
-                {% if item|length == 2 %}
-                <tr>
-                    {% for data in item %}
-                        <td   class='text-end'><strong>{{data}}</strong></td>
-                    {% endfor %}
-                </tr>
-                {% else %}
-                <tr class="table-secondary p-4">
-                    {% for data in item %}
-                        <td colspan="2" class="p-0 border px-4">{{data}}</td>
-                    {% endfor %}
-                </tr>
-                {% endif %}
-            {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <div class="card my-4 overflow m-4 w-50">
-        <h2 class="card-header fs-6 text-center py-1 bg-success text-white">Cost per items (REAL)</h2>
+<div class="d-flex flex-column">
+    <div class="d-flex flex-row">
+        <div class="card my-4 overflow m-4  w-50 border border-2 border-warning">
+        <h2 class="card-header fs-6 text-center py-1 bg-warning text-dark bg-opacity-25">Cost per items (BUDGETED)</h2>
             <table class="table table-bordered mx-auto">
                 <thead>
-                    <tr class="table-secondary">
-                        <th class="p-0 border text-center  px-2" style="width:50%">Items</th>
-                        <th class="p-0 border text-center  px-2" style="width:25%"> Cost Estimated</th>
-                        <th class="p-0 border text-center  px-2" style="width:25%"> Cost Spent</th>
+                    <tr class="table-warning bg-warning bg-opacity-25">
+                        <th class="p-0 border text-center  px-2" style="width:70%">Items</th>
+                        <th class="p-0 border text-center  px-2" style="width:30%"> Cost</th>
                     </tr>
-                </thead> 
-                <tbody class="word-wrap word-break" id="dataTable">
+                </thead>
+                <tbody class="word-wrap word-break">
                 {% for item in budget.dataPreview %}
                     {% if item|length == 2 %}
                     <tr>
                         {% for data in item %}
-                            <td class='text-end'><strong>{{data}}</strong></td>
+                            <td   class='text-end'><strong>{{data}}</strong></td>
                         {% endfor %}
-                        <td class="text-end"><strong>{{ realCostItems|get_item_value:item.0 | currency_usd }}</strong>
-                            <button class="bg-primary text-white ms-2 incrementButton" onclick="showUpdateCostModal('{{item.0}}','{{item.1}}')">+</button>
-                        </td>
-                        {% endif %}
                     </tr>
-                    {% for subItem in realCostItems|get_Subitem:item.0 %}
-                    <tr class='table-secondary p-4'>
-                        <td colspan='2' class='p-0 border px-4'>
-                                {% if subItem.2 != 0 %}
-                                <i class="bi bi-caret-right text-light bg-none rounded-2 p-0 m-0 drownIcon collapsed" 
-                                    style="font-size:0.8rem"
-                                    data-bs-toggle="collapse" 
-                                    data-bs-target="#collapse-{{ forloop.counter }}" 
-                                    aria-expanded="false" 
-                                    aria-controls="collapse-{{ forloop.counter }}"
-                                    id="drownIcon icon-{{ forloop.counter }}"></i>
-                                {% endif %}
-                                {{subItem.0}}
-                            
-                        </td>
-                        <td colspan='1' class='p-0 border px-4'>
-                            {{subItem.2 | currency_usd}}
-                        </td>
+                    {% else %}
+                    <tr class="table-secondary p-4">
+                        {% for data in item %}
+                            <td colspan="2" class="p-0 border px-4">{{data}}</td>
+                        {% endfor %}
                     </tr>
-                    <tr class="collapse bg-light" id="collapse-{{ forloop.counter }}">
-                        <td colspan="3" class='p-0'>
-                            <table class="table table-sm table-borderless">
-                                {% for description in subItem.1 %}
-                                <tr class='p-0 border px-4'>
-                                    <td class="ps-4" style="font-size:0.8rem">
-                                        * {{ description.0 }}
-                                    </td>
-                                    <td class="text-end" style="font-size:0.8rem">
-                                        {{ description.1 | currency_usd }}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </table>
-                        </td>
-                    </tr>
-                    {% endfor %}
+                    {% endif %}
                 {% endfor %}
-                
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card my-4 overflow m-4 w-50 border border-2 border-success">
+            <h2 class="card-header fs-6 text-center py-1 bg-success text-dark bg-opacity-25">Cost per items (REAL)</h2>
+                <table class="table table-bordered mx-auto">
+                    <thead>
+                        <tr class="table-success bg-success bg-opacity-25">
+                            <th class="p-0 border text-center  px-2" style="width:50%">Items</th>
+                            <th class="p-0 border text-center  px-2" style="width:25%"> Cost Estimated</th>
+                            <th class="p-0 border text-center  px-2" style="width:25%"> Cost Spent</th>
+                        </tr>
+                    </thead> 
+                    <tbody class="word-wrap word-break" id="dataTable">
+                    {% for item in budget.dataPreview %}
+                        {% if item|length == 2 %}
+                        <tr>
+                            {% for data in item %}
+                                <td class='text-end' id="costEstimated"><strong>{{data}}</strong></td>
+                            {% endfor %}
+                            <td class="text-end" id="costSpent"><strong>{{ realCostItems|get_item_value:item.0 | currency_usd }}</strong>
+                                <button class="bg-success text-white ms-2 incrementButton border border-1 border-success rounded-2 " onclick="showUpdateCostModal('{{item.0}}','{{item.1}}')">+</button>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% for subItem in realCostItems|get_Subitem:item.0 %}
+                        <tr class='table-secondary p-4'>
+                            <td colspan='2' class='p-0 border px-4'>
+                                    {% if subItem.1|length >= 1 %}
+                                    <i class="bi bi-caret-right text-success fw-bold bg-light bg-opacity-75 rounded-2 p-0 m-0 drownIcon collapsed" 
+                                        style="font-size:0.9rem"
+                                        data-bs-toggle="collapse" 
+                                        data-bs-target="#collapse-{{ forloop.counter }}" 
+                                        aria-expanded="false" 
+                                        aria-controls="collapse-{{ forloop.counter }}"
+                                        id="drownIcon icon-{{ forloop.counter }}"></i>
+                                    {% endif %}
+                                    {{subItem.0}}
+                                    {% if subItem.0|slice:":2" != 'ID' %}
+                                        <span class="text-danger rounded-2 h-100 px-1 m-0 text-danger fw-bold bg-danger bg-opacity-10 border border-1 border-danger" style="font-size: 0.8rem;">
+                                            New Item
+                                        </span>
+                                        <a class="btn btn-sm rounded-2 p-1"  role="button" data-bs-toggle="tooltip" 
+                                            data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                                            data-bs-title="This is a new item that the sales team has not added to the budget." >
+                                            <i class="bi bi-info-circle text-danger" style="font-size: 0.8rem;"></i>
+                                        </a>
+                                    {% endif %}
+                            </td>
+                            <td colspan='1' class='p-0 border px-4'>
+                                {{ subItem.1|sum_values|currency_usd }}
+
+                            </td>
+                        </tr>
+                        <tr class="collapse bg-light" id="collapse-{{ forloop.counter }}">
+                            <td colspan="3" class='p-0'>
+                                <table class="table table-sm table-borderless table-striped">
+                                    {% for description in subItem.1 %}
+                                    <tr class='p-0 border px-6 ms-2'>
+                                        <td class="ps-4 d-flex flex-row align-items-center justify-content-betwee gap-2" style="font-size:0.9rem">
+                                            <span class="text-primary rounded-2 h-100 ms-4 px-1 text-secondary fw-bold bg-secondary bg-opacity-10">
+                                                {{ forloop.counter }}.
+                                                {{ description.0 }}
+                                            </span>
+                                            {% if description.1.evidence_url %}
+                                                <button class="border border-1 border-primary rounded-2 px-1 m-0 text-primary fw-bold bg-primary bg-opacity-10" title="View file" style="font-size: 0.8rem;" onclick="viewDocument('{{ description.1.evidence_url }}', '{{ description.1.costValue | currency_usd }}', '{{ description.0 }}')">
+                                                    <i class="bi bi-file-earmark-pdf text-primary"></i>
+                                                </button>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end" style="font-size:0.8rem">
+                                            <span class="text-success rounded-2 h-100 px-1 m-0 text-success fw-bold bg-success bg-opacity-10">
+                                                {{ description.1.costValue | currency_usd }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </table>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% endfor %}
+                    
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card my-4 overflow m-4 w-50 mx-auto">
+        <h2 class="card-header fs-6 text-center py-1 bg-secondary text-dark bg-opacity-25">Cost Comparison</h2>
+        <div class="card-body d-flex flex-row align-items-center justify-content-center" style="height: 300px;">
+            <div class="d-flex flex-column align-items-center justify-content-center">
+                <div style="width: 250px; height: 250px; position: relative;">
+                    <canvas id="costComparisonChart" width="250" height="250"></canvas>
+                </div>
+                <div class="mt-2 text-center">
+                    <div class="d-flex align-items-center justify-content-center gap-2">
+                        <div class="d-flex align-items-center gap-1">
+                            <div style="width: 12px; height: 12px; background-color: #28a745; border-radius: 50%;"></div>
+                            <small class="text-success">Budgeted</small>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <div style="width: 12px; height: 12px; background-color: #ff7300dc; border-radius: 50%;"></div>
+                            <small class="text-warning">Spent</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="m-2 bg-light rounded-2 p-2 border border-2 border-secondary">
+                <small class="text-muted" id="costStatus"></small>
+            </div>
+        </div>
+    </div>
+
+</div>
+<div class="modal fade" id="evidenceModal" tabindex="-1" aria-labelledby="evidenceModal" aria-hidden="true">
+    <div class="modal-dialog p-1 d-flex justify-content-center">
+        <div class="modal-content p-1 m-0" style="min-width: 75vw; min-height: 75vh; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h5 class="modal-title" id="evidenceModalLabel"> Evidence or Invoice</h5>
+                <button type="button" class="btn-close btn-sm bg-danger" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <iframe id="evidenceFrame" width="100%" height="100%" frameborder="0"></iframe>
+            </div>
+        </div>
     </div>
 </div>
 <script>
+    let costEstimate = 0;
+    let costSpend = 0;
+    let updateCostModal; // Declare as global variable
+    let totalValue = 0;
+    let costComparisonChart; // Variable para el gráfico de dona
+
+    // Función para crear el gráfico de dona
+    function createCostComparisonChart() {
+        const canvas = document.getElementById('costComparisonChart');
+        if (!canvas) {
+            console.error('Canvas element not found');
+            return;
+        }
+        
+        const ctx = canvas.getContext('2d');
+        
+        // Calcular totales del presupuesto y gastos reales
+        let totalBudgeted = 0;
+        let totalSpent = 0;
+        
+        // Obtener datos del presupuesto desde los elementos HTML
+        // Obtener todos los elementos con los IDs específicos
+        const costEstimatedElements = document.querySelectorAll('#costEstimated');
+        const costSpentElements = document.querySelectorAll('#costSpent');
+        
+        // Calcular total estimado
+        costEstimatedElements.forEach(element => {
+            const text = element.textContent || element.innerText;
+            const value = text.replace(/[$,]/g, '').trim();
+            const numValue = parseFloat(value);
+            if (!isNaN(numValue)) {
+                totalBudgeted += numValue;
+            }
+        });
+        
+        // Calcular total gastado desde elementos HTML
+        costSpentElements.forEach(element => {
+            const text = element.textContent || element.innerText;
+            const value = text.replace(/[$,]/g, '').trim();
+            const numValue = parseFloat(value);
+            if (!isNaN(numValue)) {
+                totalSpent += numValue;
+            }
+        });
+        
+        console.log("Total budgeted from HTML:", totalBudgeted);
+        console.log("Total spent from HTML:", totalSpent);
+        
+        // Calcular el remanente (presupuesto - gastado)
+        const remaining = Math.max(0, totalBudgeted - totalSpent);
+        
+        // Crear el gráfico
+        try {
+            costComparisonChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Spent', 'Remaining'],
+                    datasets: [{
+                        data: [totalSpent, remaining],
+                        backgroundColor: ['#ff0800', '#28a745'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.parsed;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                                    return `${context.label}: $${value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${percentage}%)`;
+                                }
+                            }
+                        }
+                    },
+                    cutout: '60%',
+                    layout: {
+                        padding: 10
+                    }
+                }
+            });
+        } catch (error) {
+            console.error("Error creating chart:", error);
+            // Mostrar un mensaje de error en lugar del gráfico
+            const canvas = document.getElementById('costComparisonChart');
+            if (canvas) {
+                canvas.style.display = 'none';
+                const errorDiv = document.createElement('div');
+                errorDiv.innerHTML = '<p class="text-danger">Error loading chart</p>';
+                canvas.parentNode.appendChild(errorDiv);
+            }
+        }
+        
+        // Actualizar el estado del costo
+        updateCostStatus(totalBudgeted, totalSpent);
+    }
+    
+    // Función para actualizar el estado del costo
+    function updateCostStatus(totalBudgeted, totalSpent) {
+        const costStatusElement = document.getElementById('costStatus');
+        const percentage = totalBudgeted > 0 ? ((totalSpent / totalBudgeted) * 100).toFixed(1) : 0;
+        
+        if (totalSpent === 0) {
+            costStatusElement.innerHTML = `<span class="text-success">No costs recorded yet</span>`;
+        } else if (totalSpent < totalBudgeted) {
+            const remaining = totalBudgeted - totalSpent;
+            costStatusElement.innerHTML = `<span class="text-success">Under budget by $${remaining.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${percentage}% used)</span>`;
+        } else if (totalSpent === totalBudgeted) {
+            costStatusElement.innerHTML = `<span class="text-warning">Budget fully utilized (${percentage}%)</span>`;
+        } else {
+            const overrun = totalSpent - totalBudgeted;
+            costStatusElement.innerHTML = `<span class="text-danger">Over budget by $${overrun.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${percentage}% used)</span>`;
+        }
+    }
+    
+    // Función para actualizar el gráfico después de agregar un nuevo costo
+    function updateCostChart() {
+        if (costComparisonChart) {
+            costComparisonChart.destroy();
+        }
+        createCostComparisonChart();
+    }
+
+    function viewDocument(documentFileId, costValue, description) {
+        const url = `https://drive.google.com/file/d/${documentFileId}/preview`;
+        const evidenceModalLabel = document.getElementById('evidenceModalLabel');
+        evidenceModalLabel.textContent = `${description} - ${costValue}`;
+        viewFile(url);
+    }
+
+    function viewFile(url) {
+        const evidenceFrame = document.getElementById('evidenceFrame');
+        evidenceFrame.src = url;
+        const evidenceModal = new bootstrap.Modal(document.getElementById('evidenceModal'));
+        evidenceModal.show();
+    }
+    
     function showUpdateCostModal(name, value) {
-        const updateCostModal = new bootstrap.Modal(document.getElementById('UpdateCostSpent'));
+        updateCostModal = new bootstrap.Modal(document.getElementById('UpdateCostSpent')); // Assign to global variable
         const modalBody = document.querySelector('#UpdateCostSpent .modal-body');
     
         // Manejar realCostItems
@@ -119,9 +338,14 @@
             const rawRealCostItems = "{{ realCostItems|escapejs }}";
             realValue = rawRealCostItems ? JSON.parse(rawRealCostItems) : {};
         } catch (error) {
-            console.error("Error parsing realCostItems:", error);
+            showAlert("Error parsing realCostItems:" + error, 'danger');
         }
-        const totalValue = realValue[name]?.total !== undefined ? realValue[name].total : 0;
+        
+        // Fix the variable assignments - value is estimated cost, realValue[name]?.total is spent cost
+        costEstimate = parseFloat(value.replace('$', '').replace(',', '')).toFixed(2).toLocaleString('en-US', {style: 'currency', currency: 'USD'}) ; // Estimated cost from the parameter
+        costSpend = realValue[name]?.total !== undefined ? parseFloat(realValue[name].total).toFixed(2).toLocaleString('en-US', {style: 'currency', currency: 'USD'}) : 0; // Spent cost
+        totalValue = costSpend; // For comparison, use spent cost as the limit
+        
     
         // Manejar costData
         let costConcepts = {};
@@ -129,7 +353,7 @@
             const rawCostData = "{{ costData|escapejs }}";
             costConcepts = rawCostData ? JSON.parse(rawCostData) : {};
         } catch (error) {
-            console.error("Error parsing costData:", error);
+            showAlert("Error parsing costData:" + error, 'danger');
         }
     
         // Generar opciones si costConcepts[name] existe
@@ -163,18 +387,20 @@
                         <label for="descriptionValue" class="form-label mx-1 my-0 w-50"><strong> Description:</strong></label>
                         <textarea id="descriptionValue" name="story" rows="3" cols="10"></textarea>
                     </div>
-                    <label for="concept" class="form-label">Choose or Add a Concept</label>
+                    <label for="concept" class="gap-2 d-flex flex-row w-100 align-items-center justify-content-center mb-2">
+                        <strong>Choose or Add a Concept</strong>
+                        <div class="gap-2 form-check p-2 d-flex flex-row align-items-center bg-light rounded-2 border border-2 border-secondary border-opacity-25">
+                            <input class="form-check-input m-0" style="width: 20px; height: 20px;" type="checkbox" id="addNewConcept" onchange="enableNewConcept()">
+                            <label class="form-check-label px-2 m-0  fw-bold" style="font-size: 0.8rem; margin-top: 2px;" for="addNewConcept">
+                                Add a new concept
+                            </label>
+                        </div>
+                    </label>
                     <select class="form-select" id="concept" aria-label="Select a concept">
                         <option selected>Choose a concept</option>
                         ${optionsHTML}
                     </select>
                     <input type="text" class="form-control d-none m-0" id="newConceptInput" placeholder="Write new concept" disabled>
-                    <div class="form-check d-flex flex-row w-100 align-items-center">
-                        <input class="form-check-input" style="width: 20px; height: 20px;" type="checkbox" id="addNewConcept" onchange="enableNewConcept()">
-                        <label class="form-check-label px-2 m-0" for="addNewConcept">
-                            Add a new concept
-                        </label>
-                    </div>
                 </div>
             </form>
         `;
@@ -198,10 +424,17 @@
             }
     }
 
-
-
     function submitForm() {
-        const costValue = document.getElementById('costValue').value;
+        const confirmRealCost = document.getElementById('confirmRealCost');
+        confirmRealCost.disabled = true;
+        confirmRealCost.innerHTML = 'Saving...';
+        confirmRealCost.classList.add('disabled');
+        confirmRealCost.classList.add('bg-secondary');
+        confirmRealCost.classList.add('text-white');
+        confirmRealCost.classList.add('border-0');
+        confirmRealCost.classList.add('border-0');  
+        event.preventDefault();
+        const costValue = parseFloat(document.getElementById('costValue').value) || 0;
         const concept = document.getElementById('concept').value;
         const costDescription = document.getElementById('descriptionValue').value;
         const newConcept = document.getElementById('newConceptInput').value;
@@ -209,13 +442,86 @@
         const Item = document.getElementById('NameCost');
         const ItemLabelText = (Item.textContent || Item.innerText).replace(/\s+/g, ' ').trim();
 
+
         const formData = {
             costValue: costValue,
             concept: addNewConcept ? newConcept : concept, 
             item: ItemLabelText,
             description:costDescription,
         };
+
+
+        const evidenceRequired = document.getElementById('evidenceRequired').value;
+        const file_input = document.getElementById('evidenceFile');
+        if (evidenceRequired == 'True') {
+                if (file_input.files.length == 0 || file_input.files[0].name == '') {
+                showAlert('Evidence file cannot be empty', 'danger');
+                return;
+            }
+        }
+
+        if (costValue == 0) {   // if the cost value is 0, show an alert
+            showAlert('Cost value cannot be 0', 'danger');
+            return;
+        }
+
+        if (costValue < 0) {
+            showAlert('Cost value cannot be negative', 'danger');
+            return;
+        }
+
+        if (costValue > costEstimate) {
+            showAlert(`Cost value (${costValue}) cannot be greater than the estimated value (${costEstimate})`, 'danger');
+            return; 
+        }
+
+        if (costValue == costEstimate) {
+            if (confirm('Are you sure you want to update the cost value to the estimated value? This will update the cost spend to the estimated value.')) {
+                formData.costValue = costEstimate;
+            } else {
+                return;
+            }
+        }
+
+        if (costDescription == '') {
+            showAlert('Description cannot be empty', 'danger');
+            return;
+        }
+
+        if (addNewConcept) {
+            if (newConcept == '') {
+                showAlert('New concept cannot be empty', 'danger');
+                return;
+            }
+        } else {
+            if (concept == 'Choose a concept' || concept == '') {
+                showAlert('Please select a valid concept', 'danger');
+                return;
+            }
+        }
+
         const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+
+        const folder_id = document.getElementById('idFolderProject').value;
+
+        if (file_input.files.length > 0 && file_input.files[0].name !== '') {
+            showAlert('Uploading file...', 'info');
+            uploadFileEvidence(file_input, folder_id).then(result => {
+                console.log(result, 'result');
+                formData.evidence_url = result;
+                submitFormData(formData);
+            }).catch(error => {
+                console.error('Error uploading file:', error);
+                showAlert('Error uploading file', 'danger');
+            });
+        } else {
+            submitFormData(formData);
+        }
+    }
+
+    function submitFormData(formData) {
+        const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+        
         fetch(`/production/{{project.id}}/save_real_cost_by_items/`, {
             method: 'POST',
             headers: {
@@ -225,13 +531,86 @@
             body: JSON.stringify(formData),
         })
         .then(() => {
-            alert('Guardado')
+            showAlert('Cost updated successfully', 'success');
+            updateCostModal.hide();
+            // Actualizar el gráfico en lugar de recargar la página
+            setTimeout(() => {
+                updateCostChart();
+                location.reload();
+            }, 500);
         })
         .catch((error) => {
             console.error('Error:', error);
+            showAlert('Error updating cost', 'danger');
         });
     }
 
+    // Inicializar el gráfico cuando se carga la página
+    document.addEventListener('DOMContentLoaded', function() {
+        createCostComparisonChart();
+    });
 
+    function uploadFileEvidence(file_input, folder_id) {
+        const formData = new FormData();
+        const file = file_input.files[0]; // Get the actual file from the input
+        formData.append('file_name', file.name);
+        formData.append('mimeType', file.type);
+        formData.append('folder_id', folder_id);
+        formData.append('is_evidence', true);
+        console.log(formData.get('mimeType'), 'mimeType');
+        console.log(formData.get('folder_id'), 'folder_id');
+        console.log(formData.get('is_evidence'), 'is_evidence');
+        console.log(formData.get('file_name'), 'file_name');
+        const csrfToken = document.getElementById('csrf-token').value;
+        
+        return fetch("/projects/upload-file/", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken,
+            }
+        })
+        .then(response => response.json())  // Convertir la respuesta a JSON        
+        .then(data => {
+            return uploadFile(file, data.uploadUrl, folder_id).then(result => {
+                console.log(result);
+                return result.id;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Error uploading file', 'danger');
+                throw error; // Re-throw the error to be caught by the caller
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error uploading file', 'danger');
+            throw error; // Re-throw the error to be caught by the caller
+        });
+    }
+
+    async function uploadFile(file, uploadUrl, folderIdInput) {
+    const filesize = file.size;
+    // Ensure we have a valid MIME type, default to application/octet-stream if not available
+    const contentType = file.type || 'application/octet-stream';
+    
+    const response = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': contentType,
+            'Content-Length': filesize,
+        },
+        body: file
+    }); 
+    let result = null;
+    if (response.ok) {
+        const data = await response.json();
+        showAlert("File uploaded successfully.", 'success');
+        return data;
+    } else {
+        showAlert("Error uploading file: " + response.statusText, 'danger');
+        return null;
+    }
+}
 </script>
 

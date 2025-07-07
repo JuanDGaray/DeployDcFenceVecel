@@ -96,15 +96,17 @@ def get_projects(request, page=1):
         if view == 'view_project':
             projects = Project.objects.order_by(sort).values(
                 'id', 'project_name', 'status', 
-                'sales_advisor__username', 'estimated_cost', 'actual_cost', 'created_at',
-                'customer__customer_type', 'customer__first_name', 'customer__last_name', 'customer__company_name'
+                'sales_advisor__username', 'estimated_cost', 'actual_cost', 'created_at', 'customer',
+                'customer__customer_type', 'customer__first_name', 'customer__last_name', 'customer__company_name',
+                'sales_advisor__first_name', 'sales_advisor__last_name',
             )
             numberProjects = 15
         else:
             projects = Project.objects.filter(sales_advisor=request.user).order_by(sort).values(
                 'id', 'project_name', 'status', 
-                'sales_advisor__username', 'estimated_cost', 'actual_cost', 'created_at',
-                'customer__customer_type', 'customer__first_name', 'customer__last_name', 'customer__company_name'
+                'sales_advisor__username', 'estimated_cost', 'actual_cost', 'created_at', 'customer',
+                'customer__customer_type', 'customer__first_name', 'customer__last_name', 'customer__company_name',
+                'sales_advisor__first_name', 'sales_advisor__last_name', 
             )
             numberProjects = 10
 
@@ -729,3 +731,13 @@ def get_documents_checklist(request, project_id):
         }, status=500)
 
         
+@login_required
+def send_to_production(request):
+    try:
+        project_id = int(request.POST.get('project_id'))
+        project = Project.objects.get(id=project_id)
+        project.status = Project.STATUS_IN_PRODUCTION
+        project.save()
+        return JsonResponse({'status': 'success', 'message': 'Project sent to production'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'error': str(e)}, status=500)

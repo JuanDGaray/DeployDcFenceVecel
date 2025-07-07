@@ -4,6 +4,9 @@ from ..models import Customer, Project
 from django.contrib.auth.models import User
 from ..form import CustomerForm 
 from django.core.paginator import Paginator
+from django.db.models import Sum, Q
+from ..models import ProposalProjects, InvoiceProjects, ProjectHistory
+from collections import Counter
 
 # View for listing and adding customers
 @login_required
@@ -76,7 +79,52 @@ def detail_customer(request, client_id):
         HttpResponse: Renders the 'details_customer.html' template with the customer's details.
     """
     client = get_object_or_404(Customer, pk=client_id)
-    projects = client.projects.all()
+    projects = client.projects.all().order_by('-created_at')
+    
+    # Calcular métricas financieras
+    total_billed = InvoiceProjects.objects.filter(
+        project__customer=client
+    ).aggregate(total=Sum('total_invoice'))['total'] or 0
+    
+    total_paid = InvoiceProjects.objects.filter(
+        project__customer=client
+    ).aggregate(total=Sum('total_paid'))['total'] or 0
+    
+    total_pending = total_billed - total_paid
+    
+    # Calcular porcentaje de pago
+    payment_percentage = 0
+    if total_billed > 0:
+        payment_percentage = (total_paid / total_billed) * 100
+    
+    # Contar propuestas
+    total_proposals = ProposalProjects.objects.filter(
+        project__customer=client
+    ).count()
+    
+    # Obtener propuestas recientes
+    proposals = ProposalProjects.objects.filter(
+        project__customer=client
+    ).select_related('project').order_by('-date_created')[:5]
+    
+    # Obtener facturas recientes
+    invoices = InvoiceProjects.objects.filter(
+        project__customer=client
+    ).select_related('project').order_by('-date_created')[:5]
+    
+    # Obtener actividad reciente
+    recent_activity = ProjectHistory.objects.filter(
+        project__customer=client
+    ).select_related('user', 'project').order_by('-timestamp')[:10]
+    for activity in recent_activity:
+        print(activity.user)
+        print(activity.user)
+    # Calcular distribución de estados de proyectos
+    project_status_distribution = {}
+    if projects.exists():
+        for project in projects:
+            status = project.status
+            project_status_distribution[status] = project_status_distribution.get(status, 0) + 1
     
     # Manejar el caso en el que company_name o first_name pueden estar vacíos o ser None
     if client.customer_type == "company":
@@ -87,7 +135,16 @@ def detail_customer(request, client_id):
     return render(request, 'details_customer.html', {
         'client': client, 
         'initial': initial,
-        'projects': projects
+        'projects': projects,
+        'total_billed': total_billed,
+        'total_pending': total_pending,
+        'total_proposals': total_proposals,
+        'proposals': proposals,
+        'invoices': invoices,
+        'recent_activity': recent_activity,
+        'project_status_distribution': project_status_distribution,
+        'total_paid': total_paid,
+        'payment_percentage': payment_percentage
     })
 
 # View for editing an existing customer

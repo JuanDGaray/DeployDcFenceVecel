@@ -1,0 +1,6 @@
+<a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+    data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+    data-bs-title="{{ description }}" 
+    aria-label="Info" data-bs-original-title="{{ title }}">
+    <i class="{% if icon %} bi {{ icon }}{% else %} bi bi-info-circle{% endif %}" style="{% if size %}font-size: {{ size }}px;{% else %}font-size: 15px;{% endif %} {% if type == 'warning' %}color: #ffc107;{% endif %}"></i>
+</a>

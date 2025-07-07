@@ -1049,3 +1049,41 @@ input:disabled[readonly] {
 .modal.modal-secondary + .modal-backdrop {
     z-index: 1055;
 }
+
+.production-card:hover{
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  scale: 1.02;
+  transition: all 0.3s ease;
+}
+
+/* Colores personalizados para la barra de progreso del Gantt */
+.task-completed .gantt_task_progress {
+    background-color: #198754 !important; /* Verde */
+}
+.task-in-progress .gantt_task_progress {
+    background-color: #ffc107 !important; /* Amarillo */
+}
+.task-not-started .gantt_task_progress {
+    background-color: #dc3545 !important; /* Rojo */
+}
+
+.gantt_task_progress {
+    min-width: 4px !important;
+}
+
+div.gantt_task_progress.gantt-progress-in-progress {
+  background-color: #00f !important;
+}
+
+.gantt-progress-completed {
+  background-color: #198754 !important;
+}
+
+.gantt-progress-not-started {
+  background-color: #dc3545 !important;
+}
+
+.gantt-progress-in-progress {
+  background-color: #ffc107 !important;
+}
