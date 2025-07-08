@@ -774,7 +774,10 @@ function toggleUtilitiesPerFT(){
         updateTotalCost()
         updateValuesUI()
         updateSelectOptions()
-        updateRowNumbers(materialsSection)}
+        updateRowNumbers(materialsSection)
+        console.log("updateTotalCost")
+        reloadMarginError()
+    }
 
 const elementUtilities = $$$("add-utilities-per-FT");
 elementUtilities.onclick = toggleUtilitiesPerFT;

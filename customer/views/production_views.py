@@ -391,21 +391,19 @@ def request_cost_by_pm(request, project_id):
 @login_required
 def assign_cost_by_accounting(request, project_id):
     project = Project.objects.get(id=project_id)
-    if request.user == project.accounting_manager and project.production_funding_request:
-        tipo = request.POST.get('tipo')
-        evidencia = request.POST.get('evidence') == 'true'
-        project.accounting_cost_request = tipo
-        project.evidence_required = evidencia
-        project.save()
-        # Notifica al project_manager
-        Notification.objects.create(
-            recipient=project.project_manager,
-            sender=request.user,
-            notification_type='project_update',
-            project=project,
-            message=f"{request.user.first_name} {request.user.last_name} assigned the type of cost request: {tipo} (Evidence required: {'Yes' if evidencia else 'No'}) for the project {project.project_name}."
-        )
-        return JsonResponse({'status': 'ok'})
-    return JsonResponse({'status': 'forbidden'}, status=403)
+    tipo = request.POST.get('tipo')
+    evidencia = request.POST.get('evidence') == 'true'
+    project.accounting_cost_request = tipo
+    project.evidence_required = evidencia
+    project.save()
+    Notification.objects.create(
+        recipient=project.project_manager,
+        sender=request.user,
+        notification_type='project_update',
+        project=project,
+        message=f"{request.user.first_name} {request.user.last_name} assigned the type of cost request: {tipo} (Evidence required: {'Yes' if evidencia else 'No'}) for the project {project.project_name}."
+    )
+    return JsonResponse({'status': 'ok'})
+
 
 
