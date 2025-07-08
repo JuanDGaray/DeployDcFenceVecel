@@ -277,13 +277,7 @@ def calculate_project_progress(tasks):
 def update_project_production(request, project_id):
     if request.method == 'POST':
         try:
-            if request.user != project.project_manager and not request.user.is_superuser and request.user != project.accounting_manager and request.user != project.sales_advisor:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'You are not authorized to update this project'
-                }, status=403)
             project = get_object_or_404(Project, pk=project_id)
-            
             # Get form data
             start_date = request.POST.get('start_date')
             end_date = request.POST.get('end_date')
