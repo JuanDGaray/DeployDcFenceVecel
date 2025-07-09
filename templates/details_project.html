@@ -119,22 +119,37 @@
                           role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Print">
                           <i class="bi bi-printer-fill" style="font-size: 15px;"></i>
                           </a>
+                          {% if last_proposal_approved %}
+                          <a class="btn bg-secondary text-light border border-2 btn-sm rounded-2 p-1" 
+                          role="button" style="cursor: not-allowed;" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="You cannot make a proposal because the last proposal has already been approved.">
+                          <i class="bi bi-receipt" style="font-size: 15px;"></i>
+                          </a>
+                          {% else %}
                           <a class="btn bg-success text-light border border-2 btn-sm rounded-2 p-1 {% if budget.latest_version.status == 'complete' or budget.latest_version.status == 'approved' or budget.latest_version.status == 'rejected' %}disabled{% endif %}" 
                           href="{% url 'view_budgetSimple' project.id budget.latest_version.id %}"
                           role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Make proposal">
                           <i class="bi bi-receipt" style="font-size: 15px;"></i>
                           </a>
+                          {% endif %}
+                      
                           <!-- Botón para Eliminar -->
-                          <a class="btn btn-danger btn-sm rounded-2 p-1 
-                            {% if budget.latest_version.status == 'complete' or budget.latest_version.status == 'approved' %}disabled{% endif %}" 
-                            href="{% url 'delete_budget' project.id budget.latest_version.id %}"                         
-                            role="button" title="Delete Budget" 
-                            data-bs-toggle="tooltip" 
-                            data-bs-placement="bottom" 
-                            data-bs-custom-class="custom-tooltip" 
-                            data-delete-action data-bs-title="Delete">
-                              <i class="bi bi-trash" style="font-size: 15px;"></i>
-                          </a>
+                          {% if last_proposal_approved.budget.id != budget.latest_version.id %}
+                            <a class="btn btn-danger btn-sm rounded-2 p-1 
+                              {% if budget.latest_version.status == 'complete' or budget.latest_version.status == 'approved' %}disabled{% endif %}" 
+                              href="{% url 'delete_budget' project.id budget.latest_version.id %}"                         
+                              role="button" title="Delete Budget" 
+                              data-bs-toggle="tooltip" 
+                              data-bs-placement="bottom" 
+                              data-bs-custom-class="custom-tooltip" 
+                              data-delete-action data-bs-title="Delete">
+                                <i class="bi bi-trash" style="font-size: 15px;"></i>
+                            </a>
+                          {% else %}
+                            <a class="btn bg-secondary text-light border border-2 btn-sm rounded-2 p-1" 
+                            role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="You cannot delete the last proposal because it has already been approved.">
+                            <i class="bi bi-trash" style="font-size: 15px;"></i>
+                            </a>
+                          {% endif %}
                         </div>
                       </td>
                     </tr>
@@ -273,12 +288,20 @@
                         role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Print">
                         <i class="bi bi-printer-fill" style="font-size: 15px;"></i>
                         </a>
-                        <a class="btn  bg-success border text-light border-2 btn-sm rounded-2 p-1 {% if budget.status == 'complete' or budget.status == 'approved' or budget.status == 'rejected' %}disabled{% endif %}" 
-                        href="{% url 'view_budgetSimple' project.id budget.id %}"
-                        role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Make invoice">
-                        <i class="bi bi-receipt" style="font-size: 15px;"></i>
-                        </a>
+                        {% if last_proposal_approved %}
+                          <a class="btn bg-secondary text-light border border-2 btn-sm rounded-2 p-1" 
+                          role="button" style="cursor: not-allowed;"  title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="You cannot make a proposal because the last proposal has already been approved.">
+                          <i class="bi bi-receipt" style="font-size: 15px;"></i>
+                          </a>
+                        {% else %}
+                          <a class="btn bg-success text-light border border-2 btn-sm rounded-2 p-1 {% if budget.status == 'complete' or budget.status == 'approved' or budget.status == 'rejected' %}disabled{% endif %}" 
+                          href="{% url 'view_budgetSimple' project.id budget.id %}"
+                          role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Make proposal">
+                          <i class="bi bi-receipt" style="font-size: 15px;"></i>
+                          </a>
+                        {% endif %}
                         <!-- Botón para Eliminar -->
+                        {% if last_proposal_approved.budget.id != budget.id %}
                         <a class="btn btn-danger btn-sm rounded-2 p-1 
                           {% if budget.status == 'complete' or budget.status == 'approved' %}disabled{% endif %}" 
                           href="{% url 'delete_budget' project.id budget.id %}"                         
@@ -289,7 +312,12 @@
                           data-delete-action data-bs-title="Delete">
                             <i class="bi bi-trash" style="font-size: 15px;"></i>
                         </a>
-              
+                        {% else %}
+                        <a class="btn bg-secondary text-light border border-2 btn-sm rounded-2 p-1" 
+                        role="button" style="cursor: not-allowed;" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="You cannot delete this budget because it is the reference of the last proposal approved.">
+                        <i class="bi bi-trash" style="font-size: 15px;"></i>
+                        </a>
+                        {% endif %}
                       </div>
                     </td>
                   </tr>
@@ -340,7 +368,18 @@
                       {% csrf_token %}
                       <input type="hidden" name="proposal_id" value="{{ proposal.id }}" style='display:none'>
                       <input type="hidden" name="budget_id" value="{{ proposal.budget.id }}" style='display:none'>
-                      <select name="status" class="status status-{{ proposal.status }}" onchange="this.form.submit()">
+                      <select name="status" 
+                      {% if last_proposal_approved and proposal.id != last_proposal_approved.id %}
+                        disabled  
+                        class="bg-secondary bg-opacity-25 border border-secondary border-2 text-secondary rounded-pill px-2" 
+                          style="cursor: not-allowed; font-size: 14px;" 
+                        {% elif proposal.status == 'approved' and project.accounting_manager %}
+                        disabled 
+                        class="status status-{{ proposal.status }}" 
+                        style="cursor: not-allowed; font-size: 14px;" 
+                      {% else %} 
+                        onchange="this.form.submit()" 
+                        class="status status-{{ proposal.status }}" {% endif %}>
                         {% for value, label in proposal.STATUS_CHOICES %}
                           <option value="{{ value }}" {% if proposal.status == value %}selected{% endif %}>
                             {{ label }}
@@ -348,7 +387,21 @@
                         {% endfor %}
                       </select>
                     </form>
-                    {% if proposal.status == 'new' %}
+                    {% if last_proposal_approved and proposal.id != last_proposal_approved.id %}
+                    <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                          data-bs-title="Already approved proposal, you cannot change its status. <strong class='text-danger bg-light'>If you dont neeed this proposal, you can delete it.</strong>" 
+                          aria-label="Info" data-bs-original-title="Last Approved Proposal">
+                          <i class="bi bi-info-circle text-warning" style="font-size: 15px;"></i>
+                      </a>
+                    {% elif proposal.status == 'approved' and project.accounting_manager %}
+                    <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                          data-bs-title="You cannot change the status of this proposal because this is used in production or planning and documentation." 
+                          aria-label="Info" data-bs-original-title="Last Approved Proposal">
+                          <i class="bi bi-info-circle text-warning" style="font-size: 15px;"></i>
+                      </a>
+                    {% elif proposal.status == 'new' %}
                         <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
                             data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
                             data-bs-title="The proposal is new. You cannot create an invoice for it." 
@@ -716,7 +769,33 @@
       <div class="col-md-12 mt-4">
         <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
           <div class="card-header d-flex justify-content-between p-3 border-bottom bg-gray">
-            <h1 class="card-header fs-4 rounded-4">Invoice</h1>
+            <h1 class="card-header fs-4 rounded-4 d-flex align-items-center gap-2 flex-row w-100 justify-content-between">Invoice
+              {% if project.accounting_manager %}
+              <div class="dropdown d-flex align-items-center">
+                {% if last_proposal_approved.billed_proposal != last_proposal_approved.total_proposal %}
+                <button class="btn bg-primary text-white border border-2 btn-sm rounded-2 px-2 py-1 dropdown-toggle fs-6" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false" title="Make Budget" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Make invoice">
+                  <i class="bi bi-cash-stack text-white fs-6"> </i>  Add Invoice
+                </button>
+                  <ul class="dropdown-menu p-0" aria-labelledby="dropdownMenuButton">
+                    <li><a class="dropdown-item" href="/projects/{{project.id}}/mdcpInvoice/{{last_proposal_approved.id}}" >Invoice MDCP</a></li>
+                    <li><a class="dropdown-item" href="/projects/{{project.id}}/broadInvoice10/{{last_proposal_approved.id}}" >Invoice BROD</a></li>
+                    <li><a class="dropdown-item" href="/projects/{{project.id}}/aiaInvoice5/{{last_proposal_approved.id}}" >Invoice AIA 5%</a></li>
+                    <li><a class="dropdown-item" href="/projects/{{project.id}}/aiaInvoice10/{{last_proposal_approved.id}}" >Invoice AIA 10%</a></li>
+                  </ul>
+                {% else %}
+                <button class="btn bg-secondary text-white border border-2 btn-sm rounded-2 px-2 py-1 dropdown-toggle fs-6" type="button" style="cursor: not-allowed;"  disabled>
+                  <i class="bi bi-cash-stack text-white fs-6"> </i>  Add Invoice
+                </button>
+                <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                    data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                    data-bs-title="You cannot add more invoices because the total of the proposal has already been invoiced." 
+                    aria-label="Info" data-bs-original-title="Rejected Proposal">
+                    <i class="bi bi-info-circle text-secondary fs-" style="font-size: 15px;"></i>
+                </a>
+                {% endif %}
+              </div>
+              {% endif %}
+             </h1>
           </div>
           <div class="card-body">
             <table class="table table-striped bgwarning">
@@ -759,15 +838,17 @@
                   <td>{{ invoice.total_invoice | currency_usd }} ({{ invoice.percentage_of_proposal }}%)</td>
                   <td>
                     {{ invoice.total_paid | currency_usd }} ({{ invoice.percentage_paid }}%) 
-                    {% if invoice.total_paid == 0 %}
-                      <!-- Icono para agregar pago si total_paid es cero -->
-                      <button class="btn btn-success btn-sm" onclick="openPaymentModal('{{ invoice.id }}', '{{invoice.total_paid}}', '{{invoice.total_invoice}}')" title="Attach Payment" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Attach payment">
-                        <i class="bi bi-wallet"></i>
-                      </button>
-                    {% elif invoice.total_paid <  invoice.total_invoice %}
-                      <button class="btn btn-primary btn-sm" onclick="openPaymentModal('{{ invoice.id }}', '{{invoice.total_paid}}', '{{invoice.total_invoice}}')" title="Edit Payment" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit payment">
-                        <i class="bi bi-pencil"></i>
-                      </button>
+                    {% if is_superuser_or_admin_or_accounting_manager %}
+                      {% if invoice.total_paid == 0 %}
+                        <!-- Icono para agregar pago si total_paid es cero -->
+                        <button class="btn btn-success btn-sm" onclick="openPaymentModal('{{ invoice.id }}', '{{invoice.total_paid}}', '{{invoice.total_invoice}}')" title="Attach Payment" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Attach payment">
+                          <i class="bi bi-wallet"></i>
+                        </button>
+                      {% elif invoice.total_paid <  invoice.total_invoice %}
+                        <button class="btn btn-primary btn-sm" onclick="openPaymentModal('{{ invoice.id }}', '{{invoice.total_paid}}', '{{invoice.total_invoice}}')" title="Edit Payment" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Add payment">
+                          <i class="bi bi-plus"></i>
+                        </button>
+                      {% endif %}
                     {% endif %}
                   </td>
                   <td style='width:80px'>
@@ -777,11 +858,13 @@
                     role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="View">
                     <i class="bi bi-eye-fill" style="font-size: 15px;"></i>
                   </a>
+                  {% if is_superuser_or_admin_or_accounting_manager %}
                     <a class="btn btn-danger btn-sm rounded-2 p-1" 
                       href="{% url 'delete_invoice' project.id invoice.id %}"
                       role="button" title="Delete Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-delete-action data-bs-title="Delete">
                       <i class="bi bi-trash" style="font-size: 15px;"></i>
                     </a>
+                    {% endif %}
                 </td>
                 </tr>
                 {% empty %}
@@ -911,46 +994,197 @@ document.addEventListener('DOMContentLoaded', function() {
       const loadingOverlay = document.getElementById('loadingOverlay');
       const csrfToken = document.getElementById('csrf-token').dataset.csrf;
       
-      modal.show();
-      const amount = document.getElementById('paymentAmount');
-      amount.value = paidTotal
-      amount.setAttribute('max', invoiceTotal);
-      amount.addEventListener('input', function() {
-        const maxAmount = parseFloat(amount.getAttribute('max'));
-        if (parseFloat(amount.value) > maxAmount) {
-          amount.value = maxAmount; 
-        }
-      });
+      // Set today's date as default
+      const today = new Date();
+      const todayString = today.toISOString().split('T')[0];
+      document.getElementById('paymentDate').value = todayString;
+      
+              modal.show();
+        const amount = document.getElementById('paymentAmount');
+        const remainingAmount = parseFloat(invoiceTotal) - parseFloat(paidTotal);
+        
+        // Set default amount to remaining amount (full payment)
+        amount.value = remainingAmount.toFixed(2);
+        amount.setAttribute('max', remainingAmount);
+        
+        // Add warning and limit functionality
+        amount.addEventListener('input', function() {
+            const inputAmount = parseFloat(amount.value) || 0;
+            const maxAmount = parseFloat(amount.getAttribute('max'));
+            
+            if (inputAmount > maxAmount) {
+                showAlert(`Warning: Payment amount ($${inputAmount.toFixed(2)}) exceeds the remaining balance ($${maxAmount.toFixed(2)})`, 'warning');
+                amount.value = maxAmount.toFixed(2);
+            }
+            
+            // Show remaining balance info
+            const remainingAfterPayment = maxAmount - inputAmount;
+            const paymentInfo = document.getElementById('paymentInfo');
+            if (paymentInfo) {
+                paymentInfo.innerHTML = `
+                    <small class="text-muted">
+                        Remaining after this payment: $${remainingAfterPayment.toFixed(2)}
+                    </small>
+                `;
+            }
+        });
       const confirmPaymentButton = document.getElementById('confirmPaymentBtn');
       confirmPaymentButton.onclick = function() {
+          // Disable button to prevent multiple submissions
+          confirmPaymentButton.disabled = true;
+          confirmPaymentButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+          
           const amount = document.getElementById('paymentAmount').value;
           const date = document.getElementById('paymentDate').value;
+          const description = document.getElementById('paymentDescription').value;
+          const paymentMethod = document.getElementById('paymentMethod').value;
+          const transactionId = document.getElementById('id_transaction').value;
+          const evidenceFile = document.getElementById('evidenceFile');
           
-          loadingOverlay.classList.remove('d-none');
+          // Validate required fields
+          if (!amount || amount <= 0) {
+              showAlert('Please enter a valid payment amount', 'error');
+              resetPaymentButton();
+              return;
+          }
           
-          fetch(`/projects/{{project.id}}/changePaidInvoice/${invoiceId}`, {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'X-CSRFToken': csrfToken,  // Asegúrate de definir csrfToken en tu plantilla
-              },
-              body: JSON.stringify({
-                  amount: amount,
-                  date: date,
-              }),
-          })
-          .then(jsonData => {
-              console.log('Respuesta del servidor:', jsonData);
-              window.location.href = `/projects/{{project.id}}/`;  // Redirigir al proyecto
-              loadingOverlay.classList.add('d-none');
-          })
-          .catch(error => {
-              console.error('Error al enviar los datos:', error);
-              loadingOverlay.classList.add('d-none');
-          });
+          if (!date) {
+              showAlert('Please select a payment date', 'error');
+              resetPaymentButton();
+              return;
+          }
+          
+          // Validate payment amount doesn't exceed remaining balance
+          const inputAmount = parseFloat(amount);
+          const maxAmount = parseFloat(document.getElementById('paymentAmount').getAttribute('max'));
+          
+          if (inputAmount > maxAmount) {
+              showAlert(`Payment amount ($${inputAmount.toFixed(2)}) cannot exceed the remaining balance ($${maxAmount.toFixed(2)})`, 'error');
+              resetPaymentButton();
+              return;
+          }
+          
+          // Prepare payment data
+          const paymentData = {
+              amount: amount,
+              date: date,
+              description: description,
+              payment_method: paymentMethod,
+              transaction_id: transactionId,
+          };
+          
+          // If file is selected, upload it first
+          if (evidenceFile.files.length > 0) {
+              showAlert('Uploading evidence...', 'info');
+              uploadEvidenceFile(evidenceFile).then(result => {
+                  paymentData.evidence_url = result;
+                  submitPaymentData(paymentData, invoiceId, csrfToken, loadingOverlay);
+              }).catch(error => {
+                  console.error('Error uploading file:', error);
+                  showAlert('Error uploading evidence', 'danger');
+                  resetPaymentButton();
+              });
+          } else {
+              submitPaymentData(paymentData, invoiceId, csrfToken, loadingOverlay);
+          }
       };
   };
 });
+
+// Function to upload evidence file
+function uploadEvidenceFile(fileInput) {
+    const formData = new FormData();
+    const file = fileInput.files[0];
+    const folderId = document.getElementById('projectFolderId').value;
+    
+    formData.append('file_name', file.name);
+    formData.append('mimeType', file.type);
+    formData.append('folder_id', folderId);
+    formData.append('is_evidence', true);
+    
+    const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+    
+    return fetch("/projects/upload-file/", {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': csrfToken,
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        return uploadFileToDrive(file, data.uploadUrl, folderId).then(result => {
+            console.log('File uploaded successfully:', result);
+            return result.id;
+        });
+    })
+    .catch(error => {
+        console.error('Error uploading file:', error);
+        throw error;
+    });
+}
+
+// Function to upload file to Google Drive
+async function uploadFileToDrive(file, uploadUrl, folderId) {
+    const filesize = file.size;
+    const contentType = file.type || 'application/octet-stream';
+    
+    const response = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': contentType,
+            'Content-Length': filesize,
+        },
+        body: file
+    });
+    
+    if (response.ok) {
+        const data = await response.json();
+        showAlert("Evidence uploaded successfully.", 'success');
+        return data;
+    } else {
+        showAlert("Error uploading evidence: " + response.statusText, 'error');
+        throw new Error('Upload failed');
+    }
+}
+
+// Function to reset payment button
+function resetPaymentButton() {
+    const confirmPaymentButton = document.getElementById('confirmPaymentBtn');
+    confirmPaymentButton.disabled = false;
+    confirmPaymentButton.innerHTML = 'Attach Payment';
+}
+
+// Function to submit payment data
+function submitPaymentData(paymentData, invoiceId, csrfToken, loadingOverlay) {
+    loadingOverlay.classList.remove('d-none');
+    
+    fetch(`/projects/{{project.id}}/changePaidInvoice/${invoiceId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken,
+        },
+        body: JSON.stringify(paymentData),
+    })
+    .then(response => {
+        if (response.ok) {
+            showAlert('Payment attached successfully', 'success');
+            window.location.href = `/projects/{{project.id}}/`;
+        } else {
+            showAlert('Error attaching payment', 'error');
+            resetPaymentButton();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error attaching payment', 'error');
+        resetPaymentButton();
+    })
+    .finally(() => {
+        loadingOverlay.classList.add('d-none');
+    });
+}
 
 
 function showSelectProject() {
@@ -1622,30 +1856,50 @@ function insertMention(username) {
 }
 
 function openAddCommentModal() {
-  const modal = new bootstrap.Modal(document.getElementById('addCommentModal'));
-  modal.show();
+  console.log('Opening Add Comment modal...');
+  const modalElement = document.getElementById('addCommentModal');
+  console.log('Modal element:', modalElement);
+  
+  if (modalElement) {
+    const modal = new bootstrap.Modal(modalElement);
+    console.log('Bootstrap modal instance:', modal);
+    modal.show();
+    console.log('Modal show() called');
+  } else {
+    console.error('Add Comment modal element not found!');
+  }
 }
 
 // Funciones para editar proyecto
 function openEditProjectModal() {
+  console.log('Opening Edit Project modal...');
   // Cargar datos actuales del proyecto en el modal
   loadProjectData();
   
   // Mostrar el modal
-  const modal = new bootstrap.Modal(document.getElementById('editProjectModal'));
-  modal.show();
+  const modalElement = document.getElementById('editProjectModal');
+  console.log('Modal element:', modalElement);
   
-  // Inicializar Select2 después de que el modal esté visible
-  setTimeout(function() {
-    $('#editProjectCustomer').select2({
-      placeholder: 'Select a customer',
-      allowClear: true,
-      dropdownParent: $('#editProjectModal')
-    });
+  if (modalElement) {
+    const modal = new bootstrap.Modal(modalElement);
+    console.log('Bootstrap modal instance:', modal);
+    modal.show();
+    console.log('Modal show() called');
     
-    // Establecer el valor seleccionado
-    $('#editProjectCustomer').val('{{ project.customer.id }}').trigger('change');
-  }, 100);
+    // Inicializar Select2 después de que el modal esté visible
+    setTimeout(function() {
+      $('#editProjectCustomer').select2({
+        placeholder: 'Select a customer',
+        allowClear: true,
+        dropdownParent: $('#editProjectModal')
+      });
+      
+      // Establecer el valor seleccionado
+      $('#editProjectCustomer').val('{{ project.customer.id }}').trigger('change');
+    }, 100);
+  } else {
+    console.error('Edit Project modal element not found!');
+  }
 }
 
 function loadProjectData() {
@@ -1743,6 +1997,58 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 });
+
+// Function to open Add Document modal
+function openAddDocumentModal() {
+  console.log('Opening Add Document modal...');
+  const modalElement = document.getElementById('addDocumentModal');
+  console.log('Modal element:', modalElement);
+  
+  if (modalElement) {
+    const modal = new bootstrap.Modal(modalElement);
+    console.log('Bootstrap modal instance:', modal);
+    modal.show();
+    console.log('Modal show() called');
+  } else {
+    console.error('Add Document modal element not found!');
+  }
+}
+
+// Function to open Accounting Manager confirmation modal
+function openAccountingManagerModal(managerId, managerName) {
+  console.log('Opening Accounting Manager modal...', managerId, managerName);
+  document.getElementById('selectedManagerId').value = managerId;
+  document.getElementById('selectedManagerName').textContent = managerName;
+  const modalElement = document.getElementById('confirmAccountingManagerModal');
+  console.log('Modal element:', modalElement);
+  
+  if (modalElement) {
+    const modal = new bootstrap.Modal(modalElement);
+    console.log('Bootstrap modal instance:', modal);
+    modal.show();
+    console.log('Modal show() called');
+  } else {
+    console.error('Accounting Manager modal element not found!');
+  }
+}
+
+// Function to open Project Manager confirmation modal
+function openProjectManagerModal(managerId, managerName) {
+  console.log('Opening Project Manager modal...', managerId, managerName);
+  document.getElementById('selectedProjectManagerId').value = managerId;
+  document.getElementById('selectedProjectManagerName').textContent = managerName;
+  const modalElement = document.getElementById('confirmProjectManagerModal');
+  console.log('Modal element:', modalElement);
+  
+  if (modalElement) {
+    const modal = new bootstrap.Modal(modalElement);
+    console.log('Bootstrap modal instance:', modal);
+    modal.show();
+    console.log('Modal show() called');
+  } else {
+    console.error('Project Manager modal element not found!');
+  }
+}
 
 </script>
 {% endblock %}

@@ -31,12 +31,12 @@
                 </div>
                 <div class="row mt-3">
                     <div class="card col-4 col-md-2 mx-4 mb-4">
-                        <p class="fw-semibold mb-0"> Etimated budget</p>
-                        <p class="text-end">{{ project.get_approved_proposal.total_proposal | currency_usd }}</p>
+                        <p class="fw-semibold mb-0"> Cost Estimated</p>
+                        <p class="text-end text-primary bg-primary bg-opacity-25 rounded-2 p-1 px-2 fw-bold fs-4" id="estimated-budget"></p>
                     </div>
                     <div class="card col-4 col-md-2 mx-4 mb-4">
-                        <p class="fw-semibold mb-0">Budget Spent</p>
-                        <p class="text-end">{{ project.get_approved_proposal.billed_proposal | currency_usd }}</p>
+                        <p class="fw-semibold mb-0">Cost Spent</p>
+                        <p class="text-end fw-bold fs-4 {% if project.actual_cost > project.estimated_cost %}text-danger bg-danger bg-opacity-25 rounded-2 p-1 px-2{% else %}text-success bg-success bg-opacity-25 rounded-2 p-1 px-2{% endif %}">{{ project.actual_cost | currency_usd }}</p>
                     </div>
                     <div class="card col-4 col-md-2 mx-4 mb-4" style="cursor: pointer;" data-bs-toggle="modal" data-bs-target="#dateModal">
                         <p class="fw-semibold mb-0">Dates</p>
@@ -55,9 +55,64 @@
                             </p>
                         {% endif %}
                     </div>
-                    <div class="card col-4 col-md-2 mx-4 mb-4">
-                        <p class="fw-semibold mb-0">Manager</p>
-                        <p class="text-end">@{{project.project_manager}}</p>
+                    <div class="card col-6 col-md-4 mx-4 mb-4 p-1">
+                        <p class="fw-semibold mb-0">Managers</p>
+                        <div class='d-flex flex-row justify-content-start bg-secondary p-2 bg-opacity-10 rounded-2 gap-1'>
+                            <div class='px-3 d-flex flex-row gap-2 justify-content-start align-items-center'>
+                                <span
+                                    class="customer-avatar text-light rounded-circle m-0 bg-warning"
+                                    style="font-size: 0.8rem; font-weight: bold; width: 30px; height: 30px;">
+                                    {{ project.sales_advisor.first_name|slice:":1" }}{{ project.sales_advisor.last_name|slice:":1" }}
+                                </span> 
+                                <div class='d-flex flex-column h-5' style="line-height: 1; gap: 0.1rem;">
+                                    <span class="m-0 align-self-center border-bottom border-3 border-bottom fw-bold">@{{ project.sales_advisor.first_name|short_name:project.sales_advisor.last_name }}</span>
+                                    <span class="m-0 text-warning bg-warning-subtle rounded-2 px-2 warp-nowrap" style="font-size: 0.7rem;">Sales Manager</span> 
+                                </div>
+                            </div>
+                            
+                            <div class='px-3 d-flex flex-row gap-2 justify-content-start'>
+                                <span
+                                    class="customer-avatar text-light rounded-circle m-0 {% if project.accounting_manager %} bg-success {% else %} bg-secondary {% endif %}"
+                                    style="font-size: 0.8rem; font-weight: bold; width: 30px; height: 30px;">
+                                    {% if project.accounting_manager %}
+                                        {{ project.accounting_manager.first_name|slice:":1" }}{{ project.accounting_manager.last_name|slice:":1" }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </span> 
+                                <div class='d-flex flex-column h-5' style="line-height: 1; gap: 0.1rem;">
+                                    {% if project.accounting_manager %}
+                                        <span class="m-0 align-self-center border-bottom border-3 border-bottom fw-bold">@{{ project.accounting_manager.first_name|short_name:project.accounting_manager.last_name }}</span>
+                                        <span class="m-0 text-success bg-success-subtle rounded-2 px-2" style="font-size: 0.7rem;">Accounting Manager</span> 
+                                    {% else %}
+                                        <span class="m-0 border-bottom border-3 border-bottom fw-bold">N/A</span>
+                                        <span class="m-0 text-secondary bg-secondary-subtle rounded-2 px-2" style="font-size: 0.7rem;">Accounting Manager</span> 
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            
+                            <div class='px-3 d-flex flex-row gap-2 justify-content-start'>
+                                <span
+                                    class="customer-avatar text-light rounded-circle m-0 {% if project.project_manager %} bg-primary {% else %} bg-secondary {% endif %}"
+                                    style="font-size: 0.8rem; font-weight: bold; width: 30px; height: 30px;">
+                                    {% if project.project_manager %}
+                                        {{ project.project_manager.first_name|slice:":1" }}{{ project.project_manager.last_name|slice:":1" }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </span> 
+                                <div class='d-flex flex-column h-5' style="line-height: 1; gap: 0.1rem;">
+                                    {% if project.project_manager %}
+                                        <span class="m-0  border-bottom border-3 border-bottom fw-bold">@{{ project.project_manager.first_name|short_name:project.project_manager.last_name }}</span>
+                                        <span class="m-0 text-primary bg-primary-subtle rounded-2 px-2" style="font-size: 0.7rem;">Project Manager</span> 
+                                    {% else %}
+                                        <span class="m-0 border-bottom border-3 border-bottom fw-bold">N/A</span>
+                                        <span class="m-0 text-secondary bg-secondary-subtle rounded-2 px-2" style="font-size: 0.7rem;">Project Manager</span> 
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -91,7 +146,16 @@
             </div>
 
         <div class="container d-flex flex-column justify-content-center p-4 bg-light rounded-4 border border-2 border-secondary mb-4 border-opacity-25">
-            <h2 class="text-center bg-white text-dark p-2 rounded-2 mb-3 border border-2 border-secondary border-opacity-25">Project Timeline        
+            <h2 class="text-center bg-white text-dark p-2 rounded-2 mb-3 border border-2 border-secondary border-opacity-25">Project Timeline
+                {% if not user_allowed_to_close_production %}
+                    <span class="badge bg-secondary fw-bold fs-6 bg-opacity-25 text-secondary border border-2 border-secondary rounded-2">Mode: Read Only
+                        <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
+                            data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                            data-bs-title="You are not the project manager or admin. you dont have permission to edit the gantt." >
+                            <i class="bi bi-info-circle text-secondary" style="font-size: 15px;"></i>
+                        </a>
+                    </span>
+                {% endif %}
                 <button onclick="hasGanttChanged()" class='btn p-2 rounded-5 bg-white border border-2 border-primary' id='saveGantButton'><i class="bi bi-floppy-fill fs-4 text-primary"id='logoSave'></i>  
                 <span id="spinner" class="spinner-border spinner-white spinner-border-sm d-none" role="status" aria-hidden="true""></span>
                 </button>
@@ -220,7 +284,7 @@
                                     </div>
                                     <button class="btn btn-primary" id="requestCostBtn">Request Cost Approval</button>
                                 </div>
-                            {% elif request.user == project.accounting_manager and not project.accounting_cost_request %}
+                                {% elif user_allowed_to_close_production and not project.accounting_cost_request %}
                                 <div class="d-flex justify-content-center flex-column align-items-center gap-3">
                                     <form id="assignCostForm" class="d-flex justify-content-center flex-column align-items-center gap-3">
 
@@ -256,8 +320,24 @@
                         </div>
                 {% endif %}
                 </div>
+                <div class="d-flex justify-content-center flex-column align-items-center gap-3" >
+                        {% if not project.production_closed %}
+                            {% if not user_allowed_to_close_production %}
+                            <a class="btn btn-sm rounded-2 p-1 bg-secondary text-white fw-bold fs-4 px-4" role="button" data-bs-toggle="tooltip" 
+                                data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                                data-bs-title="You are not the project manager. you dont have permission to close the production." >
+                                <i class="bi bi-exclamation-triangle text-danger fs-3 bg-light rounded-2 p-1 "></i>
+                                Close production
+                            </a>
+                            {% else %}
+                                <button class="btn btn-success rounded-2 fw-bold fs-5" id="closeProductionBtn" data-bs-toggle="modal" data-bs-target="#closeProductionModal">
+                                    <i class="bi bi-check-circle"></i> Close Production
+                                </button>
+                            {% endif %}
+                        {% else %}
+                            <h6 class="text-center bg-secondary bg-opacity-25 p-2 rounded-2 text-dark">Production closed on {{ project.production_closed_date }}</h6>
+                        {% endif %}
             </div>
-
             <!-- Historial de Cambios en Producción -->
             <div class="card my-4 d-none">
                 <div class="card-header bg-info text-dark text-center bg-opacity-25">
@@ -292,6 +372,58 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Modal de confirmación para cerrar producción -->
+            <div class="modal fade" id="closeProductionModal" tabindex="-1" aria-labelledby="closeProductionModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-warning text-dark">
+                            <h5 class="modal-title" id="closeProductionModalLabel">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                Confirm Close Production
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-warning" role="alert">
+                                <h6 class="alert-heading">
+                                    <i class="bi bi-exclamation-triangle me-2"></i>
+                                    Warning: This action cannot be undone!
+                                </h6>
+                                <p class="mb-0">
+                                    Are you sure you want to close production for project <strong>"{{ project.project_name }}"</strong>?
+                                </p>
+                            </div>
+                            <div class="card border-warning">
+                                <div class="card-body">
+                                    <h6 class="card-title text-warning">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        What will happen:
+                                    </h6>
+                                    <ul class="mb-0">
+                                        <li>Production will be marked as closed</li>
+                                        <li>Project status will change to <span class="badge bg-warning text-dark">Pending Payment</span></li>
+                                        <li>No further production changes will be allowed</li>
+                                        <li>Project will move to the payment phase</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="bi bi-x-circle me-2"></i>
+                                Cancel
+                            </button>
+                            <button type="button" class="btn btn-warning" id="confirmCloseProductionBtn">
+                                <i class="bi bi-check-circle me-2"></i>
+                                Yes, Close Production
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            
         </div>
 
         <!-- Carga de DHTMLX Gantt -->
@@ -299,7 +431,8 @@
         <script src="https://cdn.dhtmlx.com/gantt/edge/dhtmlxgantt.js"></script>
         <script> 
             // Forzar posicionamiento correcto del modal del Gantt
-                document.addEventListener('DOMContentLoaded', function () {
+            document.addEventListener('DOMContentLoaded', function () {
+                var userAllowedToEditGantt = JSON.parse('{% if user_allowed_to_close_production %}true{% else %}false{% endif %}');
             
                 let ganttData = JSON.parse('{{ ganttData|safe }}');
                 let previousGanttData = null;
@@ -449,6 +582,11 @@
                 }, 3000);
             
                 // Inicialización de Gantt
+                if (!userAllowedToEditGantt) {
+                    gantt.config.readonly = true;
+                    var saveBtn = document.getElementById('saveGantButton');
+                    if (saveBtn) saveBtn.style.display = 'none';
+                }
                 gantt.plugins({
                     quick_info: true,
                     auto_scheduling: true,
@@ -762,10 +900,86 @@
                 if (typeof ganttData !== 'undefined' && ganttData.data) {
                     updateTaskStatusOverview(ganttData.data);
                 }
+
+                // --- Close Production Functionality ---
+                document.getElementById('confirmCloseProductionBtn')?.addEventListener('click', function() {
+                    const confirmBtn = this;
+                    const originalText = confirmBtn.innerHTML;
+                    
+                    // Disable button and show loading state
+                    confirmBtn.disabled = true;
+                    confirmBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Closing Production...';
+                    
+                    fetch('/production/{{ project.id }}/close_production/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Show success message
+                            showAlert('Production closed successfully! Project status changed to Pending Payment.', 'success');
+                            
+                            // Close modal
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('closeProductionModal'));
+                            modal.hide();
+                            
+                            // Reload page after a short delay
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1500);
+                        } else {
+                            // Show error message
+                            showAlert(data.message || 'Error closing production.', 'error');
+                            
+                            // Reset button
+                            confirmBtn.disabled = false;
+                            confirmBtn.innerHTML = originalText;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showAlert('An error occurred while closing production.', 'error');
+                        
+                        // Reset button
+                        confirmBtn.disabled = false;
+                        confirmBtn.innerHTML = originalText;
+                    });
+                });
             });
             
             
         </script>
     {% endif %}
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Obtener dataPreview desde el contexto de Django
+    var dataPreview = {{ budget.dataPreview|safe }};
+    function extractNumber(str) {
+        var match = str.match(/-?\d+(?:[\.,]\d+)?/g);
+        if (match) {
+            return parseFloat(match[0].replace(/,/g, ''));
+        }
+        return 0;
+    }
+    function calculateEstimatedBudget(dataPreview) {
+        let total = 0;
+        dataPreview.forEach(function(row) {
+            if (Array.isArray(row) && row.length >= 2) {
+                total += extractNumber(row[1]);
+            }
+        });
+        return total;
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        var total = calculateEstimatedBudget(dataPreview);
+        document.getElementById('estimated-budget').textContent = total.toLocaleString('en-US', {style: 'currency', currency: 'USD'});
+    });
+</script>
 {% endblock %}

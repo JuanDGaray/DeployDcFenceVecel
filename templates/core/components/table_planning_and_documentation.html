@@ -1,0 +1,391 @@
+<!-- Planning and Documentation Table -->
+<div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm mb-4 planning-table">
+    <div class="card-header d-flex justify-content-between p-3 border-bottom bg-gray align-items-center">
+      <h1 class="card-header fs-4">Planning & Documentation
+        <span class="fs-6 status-empty px-2"><strong></strong> • <span id="planning-count">0</span></span>
+      </h1>
+      <div>
+        <button class="btn bg-primary" id="refresh-planning-btn">
+          <i class="bi bi-arrow-clockwise text-light fs-6"></i>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Filters Section -->
+    <div class="d-flex justify-content-center my-2 px-2 gap-2">
+      <div class="input-group px-2"> 
+        <input type="text" name="project_id" id="searchInputPlanningProjectId" class="form-control form-control-search form-filter me-2" placeholder="Project ID">
+        <input type="text" name="project_name" id="searchInputPlanningProjectName" class="form-control form-control-search form-filter me-2 w-50" placeholder="Project Name">
+        <select name="issue_type" id="searchInputPlanningIssueType" class="form-select form-control-search form-filter me-2">
+          <option value="">Issue Type...</option>
+          <option value="missing_documents">Missing Documents</option>
+          <option value="blocked_by_accounting">Blocked by Accounting</option>
+        </select>
+      </div>
+      <input type="date" name="created_date" id="searchInputPlanningCreatedDate" class="form-control form-control-search form-filter me-2 w-25">
+      <div class="d-flex gap-2 flex-row">
+        <button id="applyFiltersPlanning" class="btn btn-primary py-0">Apply</button>
+        <button id="clearFiltersPlanning" class="btn btn-secondary py-0">Clear</button>
+      </div>
+    </div>
+    
+    <!-- Table Section -->
+    <div class="card table-responsive rounded-0 border-0">
+      <table class="table">
+        <thead class="border-top">
+          <tr>
+            <th scope="col" class="bg-light text-center text-truncate">ID <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="id"></i></th>
+            <th scope="col" class="bg-light text-center text-truncate fs-6">Created Ago <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="created_at"></i></th>
+            <th scope="col" class="bg-light text-center text-truncate fs-6">Project Name <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="project_name"></i></th>
+            <th scope="col" class="bg-light text-center text-truncate fs-6">Status <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="status"></i></th>
+            <th scope="col" class="bg-light text-center text-truncate fs-6">Customer <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="customer__customer_type"></i></th>
+            <th scope="col" class="bg-light text-center text-truncate fs-6">Sales Advisor <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="sales_advisor"></i></th>
+            <th scope="col" class="bg-light text-center text-truncate fs-6">Issue Type <i class="button-sort border border-2 rounded-2 p-1 btn bi bi-sort-down" data-sort="issue_type"></i></th>
+            <th scope="col" class="bg-light text-center text-truncate fs-6">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="planningTableBody">
+          <!-- Placeholder rows while loading -->
+          <tr>
+            <td class="text-center placeholder-glow" colspan="8">
+              <span class="placeholder col-12 rounded-4"></span>
+            </td>
+          </tr>
+          <tr>
+            <td class="text-center placeholder-glow" colspan="8">
+              <span class="placeholder col-12 rounded-4"></span>
+            </td>
+          </tr>
+          <tr>
+            <td class="text-center placeholder-glow" colspan="8">
+              <span class="placeholder col-12 rounded-4"></span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <!-- Pagination -->
+      <div class="pagination text-center justify-content-center mb-2" id="paginationPlanning">
+        <ul class="paginationPlanning">
+          <!-- Pagination will be populated by JavaScript -->
+        </ul>
+      </div>
+    </div>
+  </div>
+
+<script>
+// Planning and Documentation Table Functions
+let planningProjectsData = [];
+let currentPlanningPage = 1;
+let planningItemsPerPage = 10;
+let planningSortBy = null;
+let planningSortDir = 'asc'; // 'asc' or 'desc'
+
+// Initialize planning table
+document.addEventListener('DOMContentLoaded', function() {
+    // Load initial data
+    loadPlanningTableData();
+    
+    // Event listeners for filters
+    document.getElementById('applyFiltersPlanning').addEventListener('click', function() {
+        currentPlanningPage = 1;
+        loadPlanningTableData();
+    });
+    
+    document.getElementById('clearFiltersPlanning').addEventListener('click', function() {
+        clearPlanningFilters();
+        currentPlanningPage = 1;
+        loadPlanningTableData();
+    });
+    
+    document.getElementById('refresh-planning-btn').addEventListener('click', function() {
+        loadPlanningTableData();
+    });
+    
+    // Event listeners for sorting
+    document.querySelectorAll('.button-sort').forEach(button => {
+        button.addEventListener('click', function() {
+            const sortBy = this.getAttribute('data-sort');
+            if (planningSortBy === sortBy) {
+                planningSortDir = planningSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                planningSortBy = sortBy;
+                planningSortDir = 'asc';
+            }
+            updateSortIcons();
+            const filteredData = applyPlanningFilters(planningProjectsData);
+            renderPlanningTable(filteredData);
+        });
+    });
+});
+
+function updateSortIcons() {
+    document.querySelectorAll('.button-sort').forEach(button => {
+        const sortBy = button.getAttribute('data-sort');
+        button.classList.remove('bi-sort-down', 'bi-sort-up');
+        if (planningSortBy === sortBy) {
+            button.classList.add(planningSortDir === 'asc' ? 'bi-sort-down' : 'bi-sort-up');
+        } else {
+            button.classList.add('bi-sort-down');
+        }
+    });
+}
+
+function loadPlanningTableData() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    // Show loading state
+    showPlanningTableLoading();
+    
+    ajaxPostRequest('/accounting/get_accounting_manager_projects/', {}, csrfToken, 
+        function(response) {
+            if (response.status === 'success') {
+                planningProjectsData = [];
+                
+                // Combine planning projects from different categories
+                if (response.data.planning.projects_awaiting_docs) {
+                    response.data.planning.projects_awaiting_docs.forEach(project => {
+                        project.issue_type = 'missing_documents';
+                        planningProjectsData.push(project);
+                    });
+                }
+                
+                if (response.data.planning.projects_blocked) {
+                    response.data.planning.projects_blocked.forEach(project => {
+                        project.issue_type = 'blocked_by_accounting';
+                        planningProjectsData.push(project);
+                    });
+                }
+                
+                // Apply filters
+                const filteredData = applyPlanningFilters(planningProjectsData);
+                
+                // Update count
+                document.getElementById('planning-count').textContent = filteredData.length;
+                
+                // Render table
+                renderPlanningTable(filteredData);
+                updateSortIcons();
+            } else {
+                console.error('Error loading planning projects:', response.message);
+                showPlanningTableError('Error loading data');
+            }
+        },
+        function(error) {
+            console.error('AJAX Error:', error);
+            showPlanningTableError('Network error');
+        }
+    );
+}
+
+function showPlanningTableLoading() {
+    const tbody = document.getElementById('planningTableBody');
+    tbody.innerHTML = `
+        <tr><td class="text-center placeholder-glow" colspan="8"><span class="placeholder col-12 rounded-4"></span></td></tr>
+        <tr><td class="text-center placeholder-glow" colspan="8"><span class="placeholder col-12 rounded-4"></span></td></tr>
+        <tr><td class="text-center placeholder-glow" colspan="8"><span class="placeholder col-12 rounded-4"></span></td></tr>
+    `;
+}
+
+function showPlanningTableError(message) {
+    const tbody = document.getElementById('planningTableBody');
+    tbody.innerHTML = `
+        <tr><td class="text-center text-danger" colspan="8">${message}</td></tr>
+    `;
+}
+
+function applyPlanningFilters(data) {
+    const projectId = document.getElementById('searchInputPlanningProjectId').value;
+    const projectName = document.getElementById('searchInputPlanningProjectName').value;
+    const issueType = document.getElementById('searchInputPlanningIssueType').value;
+    const createdDate = document.getElementById('searchInputPlanningCreatedDate').value;
+    
+    return data.filter(project => {
+        // Project ID filter
+        if (projectId && project.id.toString().indexOf(projectId) === -1) return false;
+        
+        // Project name filter
+        if (projectName && project.project_name.toLowerCase().indexOf(projectName.toLowerCase()) === -1) return false;
+        
+        // Issue type filter
+        if (issueType && project.issue_type !== issueType) return false;
+        
+        // Created date filter
+        if (createdDate) {
+            const projectDate = new Date(project.created_at).toISOString().split('T')[0];
+            if (projectDate !== createdDate) return false;
+        }
+        
+        return true;
+    });
+}
+
+function renderPlanningTable(data) {
+    const tbody = document.getElementById('planningTableBody');
+    tbody.innerHTML = '';
+    
+    // SORTING
+    if (planningSortBy) {
+        data.sort((a, b) => {
+            let valA = a[planningSortBy];
+            let valB = b[planningSortBy];
+            if (valA === undefined || valA === null) valA = '';
+            if (valB === undefined || valB === null) valB = '';
+            if (typeof valA === 'string') valA = valA.toLowerCase();
+            if (typeof valB === 'string') valB = valB.toLowerCase();
+            if (valA < valB) return planningSortDir === 'asc' ? -1 : 1;
+            if (valA > valB) return planningSortDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+    }
+    
+    if (data.length === 0) {
+        tbody.innerHTML = `
+            <tr><td class="text-center text-muted" colspan="8">No planning projects found</td></tr>
+        `;
+        return;
+    }
+    
+    // Calculate pagination
+    const startIndex = (currentPlanningPage - 1) * planningItemsPerPage;
+    const endIndex = startIndex + planningItemsPerPage;
+    const paginatedData = data.slice(startIndex, endIndex);
+    
+    paginatedData.forEach(project => {
+        const row = document.createElement('tr');
+        
+        const formattedDate = new Date(project.created_at).toLocaleDateString("en-US", {
+            day: "numeric",
+            month: "numeric",
+            year: "numeric",
+        });
+        
+        const issueTypeDisplay = project.issue_type === 'missing_documents' ? 
+            '<span class="badge bg-warning">Missing Documents</span>' : 
+            '<span class="badge bg-danger">Blocked by Accounting</span>';
+        
+        row.innerHTML = `
+            <td class="position-relative text-center">
+                <a href="/projects/${project.id}" class="mt-2" target="_blank">${project.id}</a>
+            </td>
+            <td class="">${formattedDate}</td>
+            <td class="text-truncate" style="max-width: 200px;" title="${project.project_name}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="${project.project_name}">
+                <a href="/projects/${project.id}" target="_blank">
+                    ${project.project_name}
+                </a>
+            </td>
+            <td class="text-truncate" style="max-width: 120px;">
+                <span class="status-empty status_${project.status}">
+                    <strong>•</strong> ${project.status === 'planning_and_documentation' ? 'Planning & Doc.' : project.status}
+                </span>
+            </td>
+            <td>
+                <a href="/customers/${project.customer}">
+                    <span class="status title_${project.customer__customer_type} fs-6 text-truncate">
+                        ${project.customer__customer_type === 'individual' ?
+                            `${project.customer__first_name} ${project.customer__last_name}<i class="bi bi-person-arms-up"></i>` :
+                            `${project.customer__company_name}<i class="bi bi-buildings-fill"></i>`}
+                    </span>
+                </a>
+            </td>
+            <td class="text-center d-flex flex-row align-items-center gap-1 flex-nowrap justify-content-center">
+                <span class="customer-avatar text-light rounded-circle m-0 bg-primary"
+                style="font-size: 0.8rem; font-weight: bold; width: 25px; height: 25px;">
+                    ${project.sales_advisor__first_name.slice(0,1)}${project.sales_advisor__last_name.slice(0,1)}
+                </span>
+                <span class="text-truncate" style="max-width: 120px;">
+                    ${project.sales_advisor__first_name} ${project.sales_advisor__last_name}
+                </span> 
+            </td>
+            <td class="text-center">
+                ${issueTypeDisplay}
+            </td>
+            <td class="text-center">
+                <a href="/projects/${project.id}" target="_blank" class="btn btn-sm btn-outline-primary" title="View Project">
+                    <i class="bi bi-eye"></i>
+                </a>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+    
+    // Render pagination
+    renderPlanningPagination(data.length);
+}
+
+function renderPlanningPagination(totalItems) {
+    const totalPages = Math.ceil(totalItems / planningItemsPerPage);
+    const paginationContainer = document.getElementById('paginationPlanning');
+    
+    if (totalPages <= 1) {
+        paginationContainer.innerHTML = '';
+        return;
+    }
+    
+    let paginationHTML = '';
+    
+    // Previous button
+    if (currentPlanningPage > 1) {
+        paginationHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="changePlanningPage(1)">
+                    <i class="bi bi-chevron-double-left"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="changePlanningPage(${currentPlanningPage - 1})">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+        `;
+    }
+    
+    // Page info
+    paginationHTML += `
+        <li class="page-item mx-2">
+            <span class="px-4">Page ${currentPlanningPage} of ${totalPages}</span>
+        </li>
+    `;
+    
+    // Next button
+    if (currentPlanningPage < totalPages) {
+        paginationHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="changePlanningPage(${currentPlanningPage + 1})">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="changePlanningPage(${totalPages})">
+                    <i class="bi bi-chevron-double-right"></i>
+                </a>
+            </li>
+        `;
+    }
+    
+    paginationContainer.innerHTML = paginationHTML;
+}
+
+function changePlanningPage(page) {
+    currentPlanningPage = page;
+    const filteredData = applyPlanningFilters(planningProjectsData);
+    renderPlanningTable(filteredData);
+}
+
+function clearPlanningFilters() {
+    document.getElementById('searchInputPlanningProjectId').value = '';
+    document.getElementById('searchInputPlanningProjectName').value = '';
+    document.getElementById('searchInputPlanningIssueType').value = '';
+    document.getElementById('searchInputPlanningCreatedDate').value = '';
+}
+
+function sortPlanningTable(sortBy) {
+    // Implementation for sorting planning table
+    planningSortBy = sortBy;
+    planningSortDir = planningSortDir === 'asc' ? 'desc' : 'asc';
+    const filteredData = applyPlanningFilters(planningProjectsData);
+    renderPlanningTable(filteredData);
+    updateSortIcons();
+}
+</script>

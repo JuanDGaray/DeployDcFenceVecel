@@ -7,8 +7,8 @@ from django.contrib.auth.models import User
 from ..models import (Customer, Project, 
                       BudgetEstimate, BudgetEstimateMaterialData, BudgetEstimateDeductsData,
                       BudgetEstimateLaborData, BudgetEstimateContractorData,
-                      BudgetEstimateMiscData, BudgetEstimateProfitData, BudgetEstimateUtil, InvoiceProjects, ProposalProjects, ProjectBudgetXLSX)
-from django.db.models import Max
+                      BudgetEstimateMiscData, BudgetEstimateProfitData, BudgetEstimateUtil, InvoiceProjects, ProposalProjects, ProjectBudgetXLSX, PaymentsReceived)
+from django.db.models import Max, Sum
 from ..form import CustomerForm, ProjectsForm 
 from django.core.paginator import Paginator
 from django.utils.text import capfirst
@@ -128,8 +128,37 @@ def changePaidInvoice(request,project_id, invoice_id):
     if request.method == 'POST':
         print(request.body)
         data = json.loads(request.body)
-        invoice.total_paid = data['amount']
+        
+        # Update invoice total_paid by summing all payments
+        from decimal import Decimal
+        existing_payments = PaymentsReceived.objects.filter(invoice=invoice).aggregate(total=Sum('amount'))['total'] or 0
+        new_amount = Decimal(str(data['amount']))
+        new_total_paid = existing_payments + new_amount
+        invoice.total_paid = new_total_paid
         invoice.save()
+        
+        # Create payment record in PaymentsReceived
+        payment_date = timezone.now()
+        if 'date' in data and data['date']:
+            try:
+                payment_date = datetime.strptime(data['date'], '%Y-%m-%d')
+                payment_date = timezone.make_aware(payment_date)
+            except ValueError:
+                payment_date = timezone.now()
+        
+        payment_data = {
+            'invoice': invoice,
+            'amount': new_amount,
+            'date': payment_date,
+            'description': data.get('description', ''),
+            'user': request.user,
+            'payment_method': data.get('payment_method', ''),
+            'id_transaction': data.get('transaction_id', ''),
+            'url_receipt': data.get('evidence_url', ''),
+        }
+        
+        PaymentsReceived.objects.create(**payment_data)
+        
         log_project_history(request, project, 'UPDATE', 'Invoice paid updated')
         return HttpResponse(status=200)
 
@@ -328,7 +357,11 @@ def detail_project(request, project_id):
         status_choices = Project.STATUS_CHOICES
         timeline_steps = get_timeline_steps(project)
 
-                # Renderizar la plantilla
+        last_proposal_approved = None
+        if proposals.filter(status=ProposalProjects.STATUS_APPROVED).exists():
+            last_proposal_approved = proposals.filter(status=ProposalProjects.STATUS_APPROVED).last()
+
+        # Renderizar la plantilla
         return render(request, 'details_project.html', {
             'project': project,
             'budgets': budgets,
@@ -341,7 +374,9 @@ def detail_project(request, project_id):
             'productionUsers': productionUsers,
             'customers': customers,
             'project_manager_not_available': project_manager_not_available,
-            'accounting_manager_not_available': accounting_manager_not_available
+            'accounting_manager_not_available': accounting_manager_not_available,
+            'last_proposal_approved': last_proposal_approved,
+            'is_superuser_or_admin_or_accounting_manager': request.user.is_superuser or request.user.groups.filter(name='ADMIN').exists() or project.accounting_manager == request.user ,
         })
     
     else:
@@ -1001,13 +1036,20 @@ def decimal_to_float(data):
     
 def save_invoice(data,project, budget, proposal, saleAdvisor):
     print(data)
-    if 'startDate' in data:
+    
+    # Handle different invoice types
+    if 'dateId' in data:
+        # MDCP Invoice has dateId field
         date_created = datetime.strptime(data['dateId'], '%Y-%m-%d')
+    elif 'startDate' in data:
+        # BrodInvoice has startDate field
+        date_created = datetime.strptime(data['startDate'], '%Y-%m-%d')
     else:
-        date_created = datetime.strptime(data['dateId'], '%Y-%m-%d')
+        # Default to today's date
+        date_created = datetime.now()
         
-    if 'endDate' in data :
-        due_date = data['endDate']
+    if 'endDate' in data:
+        due_date = datetime.strptime(data['endDate'], '%Y-%m-%d')
     else:
         due_date = date_created + timedelta(days=90)
     
@@ -1462,6 +1504,5 @@ def edit_project(request, project_id):
         'status': 'error',
         'message': 'Invalid request method'
     }, status=405)
-
 
 

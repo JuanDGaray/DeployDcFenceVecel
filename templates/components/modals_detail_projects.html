@@ -1,5 +1,5 @@
-<!-- Modal para Adjuntar Pago -->
-<div class="modal fade" id="attachPaymentModal" tabindex="-1" aria-labelledby="attachPaymentModalLabel" aria-hidden="true">
+  <!-- Modal para Adjuntar Pago -->
+  <div class="modal fade" id="attachPaymentModal" tabindex="-1" aria-labelledby="attachPaymentModalLabel" aria-hidden="true">
     <div class="modal-dialog p-1 d-flex justify-content-center">
       <div class="modal-content p-1">
         <div class="modal-header">
@@ -11,17 +11,47 @@
           <form id="paymentForm" enctype="multipart/form-data">
             <div class="row">
               <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}">
-  
+              <input type="hidden" id="projectFolderId" value="{{ project.folder_id }}">
+
               <div class="col-md-6 mb-3">
                 <label for="paymentAmount" class="form-label">Amount*</label>
                 <input type="number" class="form-control" id="paymentAmount" placeholder="Enter payment amount" required>
               </div>
+
               <div class="col-md-6 mb-3">
                 <label for="paymentDate" class="form-label">Payment Date*</label>
                 <input type="date" class="form-control" id="paymentDate" required>
               </div>
+
+              <div class="col-md-12 mb-3">
+                <label for="paymentDescription" class="form-label">Description</label>
+                <textarea class="form-control" id="paymentDescription" rows="3" placeholder="Enter payment description"></textarea>
+              </div>
+
+              <div class="col-md-12 mb-3 d-flex flex-row justify-content-between gap-2">
+                <div class="col-md-6">
+                  <label for="paymentMethod" class="form-label">Payment Method</label>
+                  <select class="form-control" id="paymentMethod">
+                    <option value="Cash">Cash</option>
+                    <option value="Check">Check</option>
+                    <option value="Wire Transfer">Wire Transfer</option>
+                    <option value="Credit Card">Credit Card</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label for="id_transaction" class="form-label">Transaction</label>
+                  <input type="text" class="form-control" id="id_transaction" placeholder="Enter id transaction">
+                </div>
+              </div>
+
+              <div class="col-md-12 mb-3">
+                <label for="evidenceFile" class="form-label">Evidence File (Optional)</label>
+                <input type="file" class="form-control" id="evidenceFile" name="evidenceFile" accept=".pdf,.jpg,.jpeg,.png">
+                <small class="text-muted">Upload receipt, invoice or payment proof</small>
+              </div>
             </div>
-          </form>
+          </form> <!-- ✅ Formulario correctamente cerrado -->
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -30,6 +60,7 @@
       </div>
     </div>
   </div>
+
   
   <!-- Modal para Confirmar Asignación de Accounting Manager -->
   <div class="modal fade" id="confirmAccountingManagerModal" tabindex="-1" aria-labelledby="confirmAccountingManagerModalLabel" aria-hidden="true">
@@ -217,5 +248,4 @@
         </div>
       </div>
     </div>
-  </div>
-</div>
+  </div></div>

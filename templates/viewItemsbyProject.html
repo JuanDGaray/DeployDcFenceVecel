@@ -70,6 +70,7 @@
                         </tr>
                     </thead> 
                     <tbody class="word-wrap word-break" id="dataTable">
+                        {{budget.dataPreview}}
                     {% for item in budget.dataPreview %}
                         {% if item|length == 2 %}
                         <tr>
@@ -77,10 +78,12 @@
                                 <td class='text-end' id="costEstimated"><strong>{{data}}</strong></td>
                             {% endfor %}
                             <td class="text-end" id="costSpent"><strong>{{ realCostItems|get_item_value:item.0 | currency_usd }}</strong>
-                                <button class="bg-success text-white ms-2 incrementButton border border-1 border-success rounded-2 " onclick="showUpdateCostModal('{{item.0}}','{{item.1}}')">+</button>
+                                <button class="bg-success text-white ms-2 incrementButton border border-1 border-success rounded-2"{% if not user_allowed_to_close_production %} disabled style="opacity: 0.5; cursor: not-allowed;" {% endif %}  onclick="showUpdateCostModal('{{item.0}}','{{item.1}}')" >+</button>
                             </td>
-                            {% endif %}
                         </tr>
+                        {% endif %}
+
+                        
                         {% for subItem in realCostItems|get_Subitem:item.0 %}
                         <tr class='table-secondary p-4'>
                             <td colspan='2' class='p-0 border px-4'>
@@ -460,15 +463,7 @@
             }
         }
 
-        if (costValue == 0) {   // if the cost value is 0, show an alert
-            showAlert('Cost value cannot be 0', 'danger');
-            return;
-        }
-
-        if (costValue < 0) {
-            showAlert('Cost value cannot be negative', 'danger');
-            return;
-        }
+    
 
         if (costValue > costEstimate) {
             showAlert(`Cost value (${costValue}) cannot be greater than the estimated value (${costEstimate})`, 'danger');

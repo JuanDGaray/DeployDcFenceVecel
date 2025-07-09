@@ -58,6 +58,22 @@
         top: -56px;
         opacity: 1;
     }
+    
+    /* Calculator styles */
+    .calculator-icon:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .calculator-panel {
+        transition: opacity 0.3s ease;
+        backdrop-filter: blur(5px);
+        border: 2px solid #6c757d;
+    }
+    
+    .calculator-panel:hover {
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
     </style>
 {% endblock %}
 {% block title %} BRO | {{ project.project_name }}{% endblock %}
@@ -69,7 +85,7 @@
     <h1 class='fs-5 bg-white border border-4 border-primary fw-bold text-primary p-2 m-2 rounded-4 w-50 d-flex flex-row justify-content-between align-items-center'>BROWARD TEMPLATE - ID{{project.id}} {{project.project_name}}
         <div>
             <button id="saveButton" class="btn btn-primary rounded-2" onclick="saveInvoice()">
-            <i class="bi bi-floppy text-light"></i>Save
+            <i class="bi bi-floppy text-light me-2"></i>Save
             </button>
             <a class="btn btn-sm rounded-2 p-1 d-none" role="button" data-bs-toggle="tooltip" id='infoSave'
                 data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
@@ -79,7 +95,7 @@
             </a>
         </div>
     </h1>
-    <div class="container-sm mx-5 my-4 rounded-4 mx-auto col-md-10" id='containerInvoice'>
+    <div class="container-sm mx-5 my-4 rounded-4 mx-auto col-md-10 position-relative" id='containerInvoice'>
         <div class="d-flex flex-row mb-4">
             <div class="col">
                 <span class="bg-primary text-white px-3 py-2">INVOICE :  <input id="invoiceId" type='text' class="bg-primary border-0 text-white" style="width: auto; min-width: 1ch; text-align: center;" size="8" value="{{project.id}}-{{proposal.id}}{{next_invoice_id}}"></span>
@@ -159,7 +175,7 @@
             <div class="row">
                 <div class="col-4 fw-bold border border-2 text-end">PROJECT NAME</div>
                 <div class="col-8">
-                    <input id="projectName" type="text" class="form-control border-bottom" value="{{project.project_name}}">
+                    <input id="projectName" type="text" class="form-control border-bottom text-uppercase" value="{{project.project_name}}">
                 </div>
             </div>
         </div>
@@ -187,19 +203,51 @@
                     <tr class='itemRow'>
                         <td style='width:40px'><input id="item1Quantity" type="number" class="form-control" value="1"></td>
                         <td><input id="item1Description" type="text" class="form-control" value="Supply and install Chain Link Fence and Gates"></td>
-                        <td class="text-end w-25"><input id="item1Amount" type="text" class="form-control text-end" value="{{proposal.remaining_amount}}" oninput="updateTotal()"></td>
+                        <td class="text-end w-25"><input id="item1Amount" type="text" class="form-control text-end" value="{{proposal.remaining_amount|floatformat:2}}" oninput="updateTotal()"></td>
                     </tr>
                 </tbody>
                 <tfoot>
                     <tr>
                         <td colspan="2" class="text-end text-primary fw-bold"><strong>TOTAL :</strong></td>
                         <td class="text-end bg-primary">
-                            <input id="totalAmount" type="text" class="form-control text-end bg-primary text-light fw-bold" value="{{proposal.remaining_amount}}" readonly >
+                            <input id="totalAmount" type="text" class="form-control text-end bg-primary text-light fw-bold" value="{{proposal.remaining_amount|floatformat:2}}" readonly >
                         </td>
                     </tr>
                 </tfoot>
             </table>
             <button id="addItem" class="btn btn-primary py-1 fs-6">+ Add Item</button>
+            
+            <!-- Percentage Calculator -->
+            <div class="position-absolute bottom-0 end-0 m-3" id="calculatorContainer">
+                <!-- Calculator Icon (Always Visible) -->
+                <div class="calculator-icon bg-white border border-secondary rounded-circle p-2 shadow-sm" 
+                     style="width: 50px; height: 50px; cursor: pointer; transition: all 0.3s ease;"
+                     onclick="toggleCalculator()">
+                    <i class="bi bi-calculator text-success fs-4 d-flex justify-content-center align-items-center h-100"></i>
+                </div>
+                
+                <!-- Calculator Panel (Hidden by default) -->
+                <div class="calculator-panel bg-white border border-secondary rounded shadow-sm p-3" 
+                     id="calculatorPanel" 
+                     style="position: absolute; bottom: 60px; right: 0; width: 300px; display: none; z-index: 1000;">
+                    <div class="d-flex flex-column gap-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="number" id="percentageInput" class="form-control bg-secondary bg-opacity-25" 
+                                   placeholder="%" min="0" max="100" step="0.01" style="width: 80px;">
+                            <button class="btn btn-secondary text-white btn-sm" type="button" onclick="calculatePercentage()">
+                                Calculate
+                            </button>
+                        </div>
+                        <div class="d-flex gap-1 flex-wrap">
+                            <button class="btn btn-success btn-sm" onclick="applyPercentage(10)">10%</button>
+                            <button class="btn btn-success btn-sm" onclick="applyPercentage(25)">25%</button>
+                            <button class="btn btn-success btn-sm" onclick="applyPercentage(50)">50%</button>
+                            <button class="btn btn-success btn-sm" onclick="applyPercentage(75)">75%</button>
+                        </div>
+                        <small class="text-muted">Click to calculate percentages</small>
+                    </div>
+                </div>
+            </div>
         </div>
         
     
@@ -209,11 +257,6 @@
                 <p class="text-danger mb-2" id="paymentInstructions">Please make checks payable to: DC FENCE SOLUTIONS</p>
                 <p class="text-primary" id="thankYouMessage">Thank you for your trust</p>
             </div>
-            <div class="d-flex flex-column bg-white justify-content-center align-items-center text-center px-1">
-                <span id="trackingId">{{proposal.tracking_id}}</span>
-                <h4>Tracking ID <span style='font-size: 1rem'> <i class="btn bi bi-copy p-1  text-sm d-real"></i></span></h4>
-                <p class="m-0">You can view the status of your project at <a href='www.dcfence.org/traking/'><br><b> www.dcfence.org/traking</b></a></p>
-            </div>
         </div>
     </div>
     <div id="alert-container"></div>
@@ -222,7 +265,41 @@
         document.getElementById('addItem').addEventListener('click', addItem);
 
         let itemCount = 1;
-        let total = {{proposal.remaining_amount}}
+        let total = parseFloat('{{proposal.remaining_amount}}') || 0;
+
+        // Initialize currency formatting on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Format initial amount as USD
+            const initialAmount = document.getElementById('item1Amount');
+            if (initialAmount) {
+                const value = parseFloat(initialAmount.value) || 0;
+                initialAmount.value = value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            }
+            
+            // Format total as USD
+            const totalElement = document.getElementById('totalAmount');
+            if (totalElement) {
+                const value = parseFloat(totalElement.value) || 0;
+                totalElement.value = value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            }
+            
+            // Set default dates
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+            
+            if (startDate && endDate) {
+                // Set today's date
+                const today = new Date();
+                const todayString = today.toISOString().split('T')[0];
+                startDate.value = todayString;
+                
+                // Set date 30 days from today
+                const thirtyDaysLater = new Date();
+                thirtyDaysLater.setDate(today.getDate() + 30);
+                const thirtyDaysLaterString = thirtyDaysLater.toISOString().split('T')[0];
+                endDate.value = thirtyDaysLaterString;
+            }
+        });
 
         function addItem() {
             itemCount++;
@@ -254,21 +331,22 @@
             total = 0;
             const amounts = document.querySelectorAll('[id^="item"][id$="Amount"]');
             amounts.forEach(input => {
-                total += parseFloat(input.value) || 0;
+                // Remove currency formatting and parse as number
+                const value = input.value.replace(/[$,]/g, '');
+                total += parseFloat(value) || 0;
             });
             const infoSaved = document.getElementById("infoSave");
-            const maxTotal = parseFloat('{{ proposal.total_proposal }}'); 
+            const maxTotal = parseFloat('{{ proposal.remaining_amount }}'); 
             const totalElement = document.getElementById('totalAmount');
-            totalElement.value = (parseFloat(total)).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            totalElement.value = total.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
             const saveButton = document.getElementById('saveButton');
-            const warningDiv = document.getElementById('warningDiv');
+            
             if (total > maxTotal) {
-                
                 if (infoSaved.classList.contains("d-none")) {
                     infoSaved.classList.remove("d-none");
                 }
                 saveButton.disabled = true;
-                showAlert('The budget amount exceeds the available total for billing.'+'${{proposal.remaining_amount}}', 'warning');
+                showAlert('The budget amount exceeds the available total for billing. $' + maxTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD' }), 'warning');
             } else {
                 saveButton.disabled = false;
                 if (!infoSaved.classList.contains("d-none")) {
@@ -350,6 +428,86 @@
             }, 4000); 
             return alert;
         }
+
+        // Percentage calculation functions
+        function calculatePercentage() {
+            const percentageInput = document.getElementById('percentageInput');
+            const percentage = parseFloat(percentageInput.value);
+            
+            if (isNaN(percentage) || percentage < 0 || percentage > 100) {
+                showAlert('Please enter a valid percentage between 0 and 100', 'warning');
+                return;
+            }
+            
+            const maxTotal = parseFloat('{{ proposal.remaining_amount }}');
+            const calculatedAmount = (maxTotal * percentage) / 100;
+            
+            // Update the first item amount
+            const firstItemAmount = document.getElementById('item1Amount');
+            if (firstItemAmount) {
+                firstItemAmount.value = calculatedAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            }
+            
+            // Update total
+            updateTotal();
+            
+            showAlert(`Applied ${percentage}% of remaining budget`, 'success');
+        }
+
+        function applyPercentage(percentage) {
+            const maxTotal = parseFloat('{{ proposal.total_proposal }}');
+            const calculatedAmount = (maxTotal * percentage) / 100;
+            
+            // Update the first item amount
+            const firstItemAmount = document.getElementById('item1Amount');
+            if (firstItemAmount) {
+                firstItemAmount.value = calculatedAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            }
+            
+            // Update total
+            updateTotal();
+            
+            showAlert(`Applied ${percentage}% of remaining budget`, 'success');
+        }
+
+        // Calculator toggle function
+        function toggleCalculator() {
+            const panel = document.getElementById('calculatorPanel');
+            const icon = document.querySelector('.calculator-icon');
+            
+            if (panel.style.display === 'none' || panel.style.display === '') {
+                // Show calculator
+                panel.style.display = 'block';
+                panel.style.opacity = '0';
+                setTimeout(() => {
+                    panel.style.opacity = '1';
+                }, 10);
+                icon.style.backgroundColor = '#e9ecef';
+            } else {
+                // Hide calculator
+                panel.style.opacity = '0';
+                setTimeout(() => {
+                    panel.style.display = 'none';
+                }, 300);
+                icon.style.backgroundColor = 'white';
+            }
+        }
+
+        // Close calculator when clicking outside
+        document.addEventListener('click', function(event) {
+            const calculatorContainer = document.getElementById('calculatorContainer');
+            const panel = document.getElementById('calculatorPanel');
+            
+            if (panel && panel.style.display !== 'none') {
+                if (!calculatorContainer.contains(event.target)) {
+                    panel.style.opacity = '0';
+                    setTimeout(() => {
+                        panel.style.display = 'none';
+                    }, 300);
+                    document.querySelector('.calculator-icon').style.backgroundColor = 'white';
+                }
+            }
+        });
         
     </script>
 

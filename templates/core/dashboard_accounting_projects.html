@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}Projects Accounting{% endblock %}
+
+{% block content %}
+<div class="container d-flex flex-column justify-content-center my-4">
+    {% csrf_token %}
+    <h4 class="bg-secondary bg-opacity-10 border border-secondary border-opacity-25 text-dark p-2 rounded-3 mb-4"> <i class="bi bi-emoji-smile"></i> Hello <strong class="text-primary" fw-bold>{{user.first_name}} {{user.last_name}}</strong>, here are your alerts:</h4>
+    <div class="row">
+        {% include "core/components/project_accounting_header.html" %}
+
+        {% include "core/components/table_planning_and_documentation.html" %}
+        {% include "core/components/table_production.html" %}
+        {% include "core/components/table_payment_pending.html" %}  
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Load accounting manager projects data
+    loadAccountingManagerProjects();
+});
+
+function loadAccountingManagerProjects() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    ajaxPostRequest('/accounting/get_accounting_manager_projects/', {}, csrfToken, 
+        function(response) {
+            if (response.status === 'success') {
+                updateProjectCounts(response.data);
+            } else {
+                console.error('Error loading projects:', response.message);
+            }
+        },
+        function(error) {
+            console.error('AJAX Error:', error);
+        }
+    );
+}
+
+function updateProjectCounts(data) {
+    // Update planning counts
+    const planningAwaitingDocs = document.getElementById('awaiting_documents');
+    const planningBlocked = document.getElementById('blocked_by_accounting');
+    
+    if (planningAwaitingDocs) {
+        planningAwaitingDocs.innerHTML = data.planning.awaiting_documents;
+    }
+    if (planningBlocked) {
+        planningBlocked.innerHTML = data.planning.blocked_by_accounting;
+    }
+    
+    // Update production counts
+    const productionWaiting = document.getElementById('waiting_for_type_request');
+    if (productionWaiting) {
+        productionWaiting.innerHTML = data.production.waiting_type_request;
+    }
+    
+    // Update payment counts
+    const paymentUnpaid = document.getElementById('unpaid_invoices');
+    const paymentNoInvoices = document.getElementById('no_invoices');
+    
+    if (paymentUnpaid) {
+        paymentUnpaid.innerHTML = data.payment.unpaid_invoices;
+    }
+    if (paymentNoInvoices) {
+        paymentNoInvoices.innerHTML = data.payment.no_invoices;
+    }
+}
+</script>
+{% endblock %}

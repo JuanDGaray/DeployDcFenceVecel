@@ -23,6 +23,7 @@ from django.conf.urls.static import static
 from django.conf.urls import handler404
 from customer import utils
 from customer.views.projects_views import project_history
+from customer.views.production_views import close_production
 
 
 handler404 = views.custom_404_view
@@ -86,6 +87,7 @@ urlpatterns = [
     path('production/<int:project_id>/save_gantt_data/', views.save_gantt_data, name='save_gantt_data'),
     path('production/<int:project_id>/update_project_production/', views.update_project_production, name='update_project_production'),
     path('production/<int:project_id>/save_real_cost_by_items/', views.save_real_cost_by_items, name='save_real_cost_by_items'),
+    path('production/<int:project_id>/close_production/', views.close_production, name='close_production'),
     path('api/chat/', views.chat_with_groq, name='chat_with_groq'),
     path('settings/', views.settings, name='settings'),
     path('add_user/', views.add_user_post, name='add_user'),

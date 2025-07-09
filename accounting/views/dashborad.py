@@ -1,12 +1,13 @@
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from accounting.models import Account, Transaction
-from customer.models import InvoiceProjects
+from customer.models import InvoiceProjects, Project
 from django.db.models import Sum
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 from django.shortcuts import render
+
 
 # Dashboard view
 @login_required
@@ -178,3 +179,7 @@ def dashboard(request):
         'cash_flow_data': cash_flow_data,
     }
     return render(request, 'core/dashboard.html', context)
+
+
+def dashboard_accounting_projects(request):
+    return render(request, 'core/dashboard_accounting_projects.html')

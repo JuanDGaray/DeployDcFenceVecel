@@ -346,6 +346,9 @@ class Project(models.Model):
     accounting_cost_request = models.CharField("Accounting Cost Request", max_length=50, choices=ACCOUNTING_COST_REQUEST_CHOICES, default=None, null=True, blank=True)
     production_funding_request = models.OneToOneField('ProductionFundingRequest', null=True, blank=True, on_delete=models.SET_NULL, related_name='project_funding')
     evidence_required = models.BooleanField(default=False, null=True, blank=True)
+    production_closed = models.BooleanField(default=False, null=True, blank=True)
+    production_closed_date = models.DateTimeField(null=True, blank=True, verbose_name="Production Closed Date")
+    
     def __str__(self):
         return self.project_name
     
@@ -361,6 +364,7 @@ class Project(models.Model):
     
     def estimated_cost_usd(self):
         return self.estimated_cost.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) if self.estimated_cost else '0.00'
+
 
 
 class ProjectDocumentRequirement(models.Model):
@@ -444,6 +448,8 @@ class InvoiceProjects(models.Model):
     status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default=STATUS_SENT)
     total_paid = models.DecimalField("Total Invoice Paid", max_digits=15, decimal_places=2, default=0)
     type_invoice =  models.CharField(max_length=255, default='none')
+
+    
     class Meta:
         verbose_name = "Invoice"
         verbose_name_plural = "Invoices"
@@ -466,12 +472,9 @@ class PaymentsReceived(models.Model):
     date = models.DateTimeField(default=timezone.now)
     description = models.TextField(blank=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Sales Advisor", blank=True)
-    account = models.ForeignKey('accounting.Account', on_delete=models.SET_NULL, null=True, verbose_name="Account", blank=True)
     payment_method = models.CharField(max_length=255, null=True, blank=True)
     id_transaction = models.CharField(max_length=255, null=True, blank=True)
-    additional_info = models.TextField(blank=True)
-    is_receipt = models.BooleanField(default=False)
-    data_receipt = models.CharField(max_length=255, null=True, blank=True)
+    url_receipt = models.CharField(max_length=255, null=True, blank=True)
     
 class ProposalProjects(models.Model):
     # Estados del invoice

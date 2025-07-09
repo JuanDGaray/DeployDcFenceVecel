@@ -75,6 +75,18 @@ def production_project(request, project_id):
     budget = proposal.budget
     costData = {}
     progress = 0
+    user_allowed_to_close_production = False
+    # Calcular el total del presupuesto desde dataPreview
+    estimated_budget_total = 0
+    if budget.dataPreview:
+        for elemet in budget.dataPreview:
+            if isinstance(elemet, list) and len(elemet) >= 2:
+                try:
+                    estimated_budget_total += float(elemet[1])
+                except Exception:
+                    pass
+    if (request.user == project.project_manager or request.user.groups.filter(name='ADMIN').exists()) and not project.production_closed:
+        user_allowed_to_close_production = True
     last_index = None
     for elemet in budget.dataPreview:
         if len(elemet) >= 2:
@@ -90,7 +102,6 @@ def production_project(request, project_id):
         if isinstance(gantt_data, dict) and 'data' in gantt_data:
             progress = calculate_project_progress(gantt_data['data'])
         else:
-            # Para compatibilidad con datos antiguos
             progress = calculate_project_progress(gantt_data)
     else:
         gantt_data = []
@@ -107,6 +118,7 @@ def production_project(request, project_id):
         'progress': round(progress*100),
         'taskGantt':taskGantt,
         'realCostItems': RealCostByItems,
+        'user_allowed_to_close_production': user_allowed_to_close_production
     })
     
     
@@ -212,6 +224,10 @@ def save_real_cost_by_items(request, project_id):
             dictItems[item]['total'] = sum_all_cost_values(dictItems[item]['subItems'])
             realCostData.items = dictItems
             realCostData.save()
+
+            # Sumar correctamente todos los costos reales de los items principales
+            project.actual_cost = sum(float(item_data.get('total', 0)) for item_data in dictItems.values() if isinstance(item_data, dict))
+            project.save()
 
             # Guardar en el historial
             ProductionChangeLog.objects.create(
@@ -404,6 +420,53 @@ def assign_cost_by_accounting(request, project_id):
         message=f"{request.user.first_name} {request.user.last_name} assigned the type of cost request: {tipo} (Evidence required: {'Yes' if evidencia else 'No'}) for the project {project.project_name}."
     )
     return JsonResponse({'status': 'ok'})
+
+@login_required
+@require_POST
+def close_production(request, project_id):
+    """
+    Close production for a project and change status to pending_payment
+    """
+    try:
+        project = get_object_or_404(Project, pk=project_id)
+        
+        # Check if user has permission to close production
+        if not (request.user == project.project_manager or 
+                request.user.groups.filter(name='ADMIN').exists() or 
+                request.user.is_superuser):
+            return JsonResponse({
+                'status': 'error',
+                'message': 'You are not authorized to close production for this project.'
+            }, status=403)
+        
+        # Check if production is already closed
+        if project.production_closed:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Production is already closed for this project.'
+            }, status=400)
+        
+        # Update project status and production closed fields
+        project.status = Project.STATUS_PENDING_PAYMENT
+        project.production_closed = True
+        project.production_closed_date = timezone.now()
+        project.save()
+        
+        # Log the production closure
+        log_project_history(request, project, 'CLOSE_PRODUCTION', 
+                           f'Production closed by {request.user.get_full_name() or request.user.username}')
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Production closed successfully. Project status changed to Pending Payment.',
+            'closed_date': project.production_closed_date.strftime('%Y-%m-%d %H:%M')
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Error closing production: {str(e)}'
+        }, status=500)
 
 
 

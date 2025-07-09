@@ -1,0 +1,99 @@
+<div class="col-md-12 mb-4">
+    <div class="row g-3">
+        <!-- Project in planning and documentation -->
+        <div class="col-md-4">
+            <div class="card border-primary h-100 shadow-sm">
+                <div class="card-header bg-primary bg-opacity-10 border-primary">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-exclamation-triangle-fill text-primary me-2 fs-4"></i>
+                        <h6 class="card-title mb-0 fw-bold text-primary">Planning & Documentation</h6>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="bg-primary bg-opacity-10 rounded-3 p-3 mb-2">
+                                <div class="fs-2 fw-bold text-primary" id="awaiting_documents">
+                                   <span class="placeholder-glow">
+                                    <span class="placeholder col-12" style="--bs-placeholder-opacity: 1;"></span>
+                                   </span>
+                                </div>
+                                <small class="text-muted">Awaiting Documents</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="bg-danger bg-opacity-10 rounded-3 p-3 mb-2">
+                                <div class="fs-2 fw-bold text-danger" id="blocked_by_accounting">
+                                    <span class="placeholder-glow">
+                                        <span class="placeholder col-12" style="--bs-placeholder-opacity: 1;"></span>
+                                    </span>
+                                </div>
+                                <small class="text-muted">Blocked by Accounting</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project in production -->
+        <div class="col-md-4">
+            <div class="card border-info h-100 shadow-sm">
+                <div class="card-header bg-info bg-opacity-10 border-info">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-gear-fill text-info me-2 fs-4"></i>
+                        <h6 class="card-title mb-0 fw-bold text-info">Production</h6>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="text-center">
+                        <div class="bg-info bg-opacity-10 rounded-3 p-3">
+                            <div class="fs-2 fw-bold text-info" id="waiting_for_type_request">
+                                <span class="placeholder-glow">
+                                    <span class="placeholder col-12" style="--bs-placeholder-opacity: 1;"></span>
+                                </span>
+                            </div>
+                            <small class="text-muted">Waiting for Type Request</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Project pending payment -->
+        <div class="col-md-4">
+            <div class="card border-danger h-100 shadow-sm">
+                <div class="card-header bg-danger bg-opacity-10 border-danger">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-cash-stack text-danger me-2 fs-4"></i>
+                        <h6 class="card-title mb-0 fw-bold text-danger">Payment Pending</h6>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="bg-danger bg-opacity-10 rounded-3 p-3 mb-2">
+                                <div class="fs-2 fw-bold text-danger" id="unpaid_invoices">
+                                    <span class="placeholder-glow">
+                                        <span class="placeholder col-12" style="--bs-placeholder-opacity: 1;"></span>
+                                    </span>
+                                </div>
+                                <small class="text-muted">Unpaid Invoices</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="bg-primary bg-opacity-10 rounded-3 p-3 mb-2">
+                                <div class="fs-2 fw-bold text-primary" id="no_invoices">
+                                    <span class="placeholder-glow">
+                                        <span class="placeholder col-12" style="--bs-placeholder-opacity: 1;"></span>
+                                    </span>
+                                </div>
+                                <small class="text-muted">No Invoices</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
