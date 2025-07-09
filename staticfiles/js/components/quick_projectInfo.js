@@ -23,6 +23,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const loadingOverlay = document.getElementById('loadingOverlay');
         const csrfToken = document.getElementById('csrf-token').dataset.csrf;
         
+        // Set today's date as default
+        const today = new Date();
+        const todayString = today.toISOString().split('T')[0];
+        document.getElementById('paymentDate').value = todayString;
+        
         modal.show();
         const amount = document.getElementById('paymentAmount');
         amount.value = paidTotal

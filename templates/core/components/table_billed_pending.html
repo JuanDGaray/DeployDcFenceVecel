@@ -1,0 +1,279 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Billed Pending Projects</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <!-- Incluye Bootstrap o tu framework si lo usas -->
+</head>
+<body>
+    <!-- Billed Pending Table -->
+    <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm mb-4 billed-pending-table">
+        <div class="card-header d-flex justify-content-between p-3 border-bottom bg-gray align-items-center">
+            <h1 class="card-header fs-4">Billed Pending
+                <span class="fs-6 status-empty px-2"><strong></strong> • <span id="billed-pending-count">0</span></span>
+            </h1>
+            <div>
+                <button class="btn bg-primary" id="refresh-billed-pending-btn">
+                    <i class="bi bi-arrow-clockwise text-light fs-6"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Filters Section -->
+        <div class="d-flex justify-content-center my-2 px-2 gap-2">
+            <div class="input-group px-2">
+                <input type="text" name="project_id" id="searchInputBilledPendingProjectId" class="form-control form-control-search form-filter me-2" placeholder="Project ID">
+                <input type="text" name="project_name" id="searchInputBilledPendingProjectName" class="form-control form-control-search form-filter me-2 w-50" placeholder="Project Name">
+            </div>
+            <input type="date" name="created_date" id="searchInputBilledPendingCreatedDate" class="form-control form-control-search form-filter me-2 w-25">
+            <div class="d-flex gap-2 flex-row">
+                <button id="applyFiltersBilledPending" class="btn btn-primary py-0">Apply</button>
+                <button id="clearFiltersBilledPending" class="btn btn-secondary py-0">Clear</button>
+            </div>
+        </div>
+        <!-- Table Section -->
+        <div class="card table-responsive rounded-0 border-0">
+            <table class="table">
+                <thead class="border-top">
+                    <tr>
+                        <th scope="col" class="bg-light text-center text-truncate">ID</th>
+                        <th scope="col" class="bg-light text-center text-truncate fs-6">Created Ago</th>
+                        <th scope="col" class="bg-light text-center text-truncate fs-6">Project Name</th>
+                        <th scope="col" class="bg-light text-center text-truncate fs-6">Status</th>
+                        <th scope="col" class="bg-light text-center text-truncate fs-6">Customer</th>
+                        <th scope="col" class="bg-light text-center text-truncate fs-6">Sales Advisor</th>
+                        <th scope="col" class="bg-light text-center text-truncate fs-6">Total Invoice</th>
+                        <th scope="col" class="bg-light text-center text-truncate fs-6">Total Paid</th>
+                        <th scope="col" class="bg-light text-center text-truncate fs-6">Pending Amount</th>
+                        <th scope="col" class="bg-light text-center text-truncate fs-6">Issue Type</th>
+                        <th scope="col" class="bg-light text-center text-truncate fs-6">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="billedPendingTableBody">
+                    <!-- Placeholder rows while loading -->
+                    <tr>
+                        <td class="text-center placeholder-glow" colspan="10">
+                            <span class="placeholder col-12 rounded-4"></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-center placeholder-glow" colspan="10">
+                            <span class="placeholder col-12 rounded-4"></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-center placeholder-glow" colspan="10">
+                            <span class="placeholder col-12 rounded-4"></span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <!-- Pagination -->
+            <div class="pagination text-center justify-content-center mb-2" id="paginationBilledPending">
+                <ul class="paginationBilledPending">
+                    <!-- Pagination will be populated by JavaScript -->
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Billed Pending Table Functions
+    let billedPendingProjectsData = [];
+    let currentBilledPendingPage = 1;
+    let billedPendingItemsPerPage = 10;
+
+    // Filtros y eventos
+    function showBilledPendingTableLoading() {
+        const tbody = document.getElementById('billedPendingTableBody');
+        tbody.innerHTML = `
+            <tr><td class="text-center placeholder-glow" colspan="11"><span class="placeholder col-12 rounded-4"></span></td></tr>
+            <tr><td class="text-center placeholder-glow" colspan="11"><span class="placeholder col-12 rounded-4"></span></td></tr>
+            <tr><td class="text-center placeholder-glow" colspan="11"><span class="placeholder col-12 rounded-4"></span></td></tr>
+        `;
+    }
+
+    function showBilledPendingTableError(message) {
+        const tbody = document.getElementById('billedPendingTableBody');
+        tbody.innerHTML = `<tr><td class="text-center text-danger" colspan="10">${message}</td></tr>`;
+    }
+
+    function applyBilledPendingFilters(data) {
+        const projectId = document.getElementById('searchInputBilledPendingProjectId').value;
+        const projectName = document.getElementById('searchInputBilledPendingProjectName').value;
+        const createdDate = document.getElementById('searchInputBilledPendingCreatedDate').value;
+        return data.filter(project => {
+            if (projectId && project.id.toString().indexOf(projectId) === -1) return false;
+            if (projectName && project.project_name.toLowerCase().indexOf(projectName.toLowerCase()) === -1) return false;
+            if (createdDate) {
+                const projectDate = new Date(project.created_at).toISOString().split('T')[0];
+                if (projectDate !== createdDate) return false;
+            }
+            return true;
+        });
+    }
+
+    function renderBilledPendingTable(data) {
+        const tbody = document.getElementById('billedPendingTableBody');
+        tbody.innerHTML = '';
+        if (data.length === 0) {
+            tbody.innerHTML = `<tr><td class="text-center text-muted" colspan="10">No billed pending projects found</td></tr>`;
+            return;
+        }
+        // Paginación
+        const startIndex = (currentBilledPendingPage - 1) * billedPendingItemsPerPage;
+        const endIndex = startIndex + billedPendingItemsPerPage;
+        const paginatedData = data.slice(startIndex, endIndex);
+        paginatedData.forEach(project => {
+            const row = document.createElement('tr');
+            const formattedDate = new Date(project.created_at).toLocaleDateString("en-US", {
+                day: "numeric",
+                month: "numeric",
+                year: "numeric",
+            });
+            row.innerHTML = `
+                <td class="position-relative text-center">
+                    <a href="/projects/${project.id}" class="mt-2" target="_blank">${project.id}</a>
+                </td>
+                <td class="">${formattedDate}</td>
+                <td class="text-truncate" style="max-width: 200px;" title="${project.project_name}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="${project.project_name}">
+                    <a href="/projects/${project.id}" target="_blank">
+                        ${project.project_name}
+                    </a>
+                </td>
+                <td class="text-truncate" style="max-width: 120px;">
+                    <span class="status-empty status_${project.status}">
+                        <strong>•</strong> ${project.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </span>
+                </td>
+                <td>
+                    <a href="/customers/${project.customer}">
+                        <span class="status title_${project.customer__customer_type} fs-6 text-truncate">
+                            ${project.customer__customer_type === 'individual' ?
+                                `${project.customer__first_name} ${project.customer__last_name}<i class="bi bi-person-arms-up"></i>` :
+                                `${project.customer__company_name}<i class="bi bi-buildings-fill"></i>`}
+                        </span>
+                    </a>
+                </td>
+                <td class="text-center d-flex flex-row align-items-center gap-1 flex-nowrap justify-content-center">
+                    <span class="customer-avatar text-light rounded-circle m-0 bg-primary"
+                    style="font-size: 0.8rem; font-weight: bold; width: 25px; height: 25px;">
+                        ${project.sales_advisor__first_name.slice(0,1)}${project.sales_advisor__last_name.slice(0,1)}
+                    </span>
+                    <span class="text-truncate" style="max-width: 120px;">
+                        ${project.sales_advisor__first_name} ${project.sales_advisor__last_name}
+                    </span>
+                </td>
+                <td class="text-end">${(project.total_invoice !== undefined && !isNaN(project.total_invoice)) ? project.total_invoice.toLocaleString('en-US', {style: 'currency', currency: 'USD'}) : '$0.00'}</td>
+                <td class="text-end">${(project.total_paid !== undefined && !isNaN(project.total_paid)) ? project.total_paid.toLocaleString('en-US', {style: 'currency', currency: 'USD'}) : '$0.00'}</td>
+                <td class="text-end">${(project.pending_amount !== undefined && !isNaN(project.pending_amount)) ? project.pending_amount.toLocaleString('en-US', {style: 'currency', currency: 'USD'}) : '$0.00'}</td>
+                <td class="text-center" ><span class="${project.issue_type === 'No Billing' ? 'text-danger fw-bold bg-danger bg-opacity-25 rounded-2 p-1 px-2' : 'text-warning fw-bold bg-warning bg-opacity-25 rounded-2 p-1 px-2'}">${project.issue_type || ''}</span></td>
+                <td class="text-center">
+                    <a href="/projects/${project.id}" target="_blank" class="btn btn-sm btn-outline-primary" title="View Project">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+        renderBilledPendingPagination(data.length);
+        document.getElementById('billed-pending-count').textContent = data.length;
+    }
+
+    function renderBilledPendingPagination(totalItems) {
+        const totalPages = Math.ceil(totalItems / billedPendingItemsPerPage);
+        const paginationContainer = document.getElementById('paginationBilledPending');
+        if (totalPages <= 1) {
+            paginationContainer.innerHTML = '';
+            return;
+        }
+        let paginationHTML = '';
+        if (currentBilledPendingPage > 1) {
+            paginationHTML += `
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="changeBilledPendingPage(1)">
+                        <i class="bi bi-chevron-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="changeBilledPendingPage(${currentBilledPendingPage - 1})">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+            `;
+        }
+        paginationHTML += `
+            <li class="page-item mx-2">
+                <span class="px-4">Page ${currentBilledPendingPage} of ${totalPages}</span>
+            </li>
+        `;
+        if (currentBilledPendingPage < totalPages) {
+            paginationHTML += `
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="changeBilledPendingPage(${currentBilledPendingPage + 1})">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="#" onclick="changeBilledPendingPage(${totalPages})">
+                        <i class="bi bi-chevron-double-right"></i>
+                    </a>
+                </li>
+            `;
+        }
+        paginationContainer.innerHTML = paginationHTML;
+    }
+
+    function changeBilledPendingPage(page) {
+        currentBilledPendingPage = page;
+        const filteredData = applyBilledPendingFilters(billedPendingProjectsData);
+        renderBilledPendingTable(filteredData);
+    }
+
+    function clearBilledPendingFilters() {
+        document.getElementById('searchInputBilledPendingProjectId').value = '';
+        document.getElementById('searchInputBilledPendingProjectName').value = '';
+        document.getElementById('searchInputBilledPendingCreatedDate').value = '';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cargar datos iniciales
+        loadBilledPendingTableData();
+        document.getElementById('applyFiltersBilledPending').addEventListener('click', function() {
+            currentBilledPendingPage = 1;
+            loadBilledPendingTableData();
+        });
+        document.getElementById('clearFiltersBilledPending').addEventListener('click', function() {
+            clearBilledPendingFilters();
+            currentBilledPendingPage = 1;
+            loadBilledPendingTableData();
+        });
+        document.getElementById('refresh-billed-pending-btn').addEventListener('click', function() {
+            loadBilledPendingTableData();
+        });
+    });
+
+    function loadBilledPendingTableData() {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        showBilledPendingTableLoading();
+        fetch('/accounting/get_accounting_manager_projects/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(response => {
+            if (response.status === 'success') {
+                billedPendingProjectsData = response.data.billed_pending.projects || [];
+                const filteredData = applyBilledPendingFilters(billedPendingProjectsData);
+                renderBilledPendingTable(filteredData);
+            } else {
+                showBilledPendingTableError('Error loading data');
+            }
+        })
+        .catch(() => showBilledPendingTableError('Network error'));
+    }
+    </script>
+</body>
+</html> 

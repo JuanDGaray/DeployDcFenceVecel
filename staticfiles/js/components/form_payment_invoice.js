@@ -6,6 +6,12 @@ window.openPaymentModal = function(invoiceId, customerName, projectName, totalIn
     document.getElementById('invoiceId').value = invoiceId;
     document.getElementById('customerName').value = customerName;
     document.getElementById('projectName').value = projectName;
+    
+    // Set today's date as default
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0];
+    document.getElementById('paymentDate').value = todayString;
+    
     modal.show();
     loadAccounts();
     const amount = document.getElementById('paymentAmount');
