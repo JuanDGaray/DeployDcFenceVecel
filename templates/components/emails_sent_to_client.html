@@ -1,0 +1,1105 @@
+{% load static %}
+
+<!-- Include Quill.js -->
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+
+<style>
+.conversation-timeline {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.body:nth-child(1) {
+    line-height: 1 !important;
+}
+
+.email-message {
+    border-left: 4px solid #dee2e6;
+    padding-left: 15px;
+    margin-bottom: 20px;
+}
+
+.email-message.sent {
+    border-left-color: #007bff;
+}
+
+.email-message.received {
+    border-left-color: #28a745;
+}
+
+.email-content {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+}
+
+.email-subject {
+    color: #495057;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+}
+
+.email-body {
+    color: #727a81;
+    line-height: 1.5;
+}
+
+.email-content-body {
+    font-family: inherit;
+    line-height: 1.6;
+    color: #333;
+}
+
+.email-content-body img {
+    max-width: 100%;
+    height: auto;
+    margin: 10px 0;
+}
+
+.email-content-body p {
+    margin-bottom: 10px;
+}
+
+.email-content-body ul, .email-content-body ol {
+    margin-bottom: 10px;
+    padding-left: 20px;
+}
+
+.email-content-body blockquote {
+    border-left: 4px solid #dee2e6;
+    padding-left: 15px;
+    margin: 15px 0;
+    color: #6c757d;
+}
+
+.email-content-body pre {
+    background-color: #f8f9fa;
+    padding: 10px;
+    border-radius: 4px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    font-family: monospace;
+}
+
+.email-content-body br {
+    display: block;
+    margin: 2px 0;
+}
+
+.email-content-body {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+#emailDetails {
+    border-left: 1px solid #dee2e6;
+    background-color: #f8f9fa;
+}
+
+#emailDetails iframe {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.button-email {
+    background-color: #dfe0e0c9;
+    border: none;
+    width: 150px;
+    padding: 8px 2px;
+    border-radius: 8px 8px 0px 0px;
+    margin-top: auto;
+    font-weight: 600;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+
+}
+
+.button-active {
+    background-color: #8abdf3c0;
+}
+
+.button-inactive:hover {
+    background-color: #dfe0e0;
+}
+
+.button-active:hover {
+    background-color: #8abdf3;
+}
+
+.unread-notification {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+    }
+}
+
+.row-email:hover {
+    background-color: #f1f1f1;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.row-email:hover .action-email {
+    display: flex;
+}
+
+.row-email:hover .date-email {
+    display: none;
+}
+
+.row-email .action-email {
+    display: none;
+}
+
+.row-email:active {
+    background-color: #e9ecef;
+}
+
+
+
+</style>
+
+<div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm mt-4 position-relative" style="min-height: 500px;">
+    <div id="filterSpinner" class="position-absolute top-0 end-0 m-0 w-100 h-100 d-flex align-items-center rounded-4  justify-content-center bg-secondary bg-opacity-25" style="z-index: 20; display: none;">
+        <img src="/static/img/loading.gif" alt="Loading..." style="width: 100px; height: 100px;" />
+    </div>
+    <div class="card-header d-flex justify-content-between p-3 border-bottom bg-light text-white align-items-center w-100">
+        <div class="d-flex flex-row gap-2 align-items-center justify-content-between w-100">
+            <h2 class="card-header fs-4 mb-0 text-primary rounded-2 px-2 py-1 text-center"><strong>Email Manager</strong></h2>
+            <div class="d-flex align-items-center gap-2 mt-2 text-primary bg-light bg-opacity-50 border border-2 border-secondary rounded-2 p-2 py-1 me-4">
+                <div class="bg-white rounded-circle d-flex align-items-center justify-content-center fw-bold p-2" style="width: 40px; height: 40px;">
+                    {{ project.customer.email|first|upper }}
+                </div>
+                <div >
+                    <strong class="text-primary">{{ project.customer.get_full_name }}</strong><br>
+                    <small class="text-muted">{{ project.customer.email }}</small>
+                </div>
+            </div>
+        </div>
+        <div>
+            <button class="btn btn-primary btn-sm " onclick="refreshEmails()">
+                <i class="bi bi-arrow-repeat fs-5 text-white"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-light border-bottom d-flex flex-row gap-2">
+        <div class="d-flex align-items-center flex-row gap-1 mx-1">
+            <button class="button-email button-active" id="email-send" onclick="sendEmail()">
+                <i class="bi bi-envelope-at text-dark fs-5 me-2"></i> Send
+            </button>
+            <button class="button-email button-inactive" id="email-receive" onclick="receiveEmail()">
+                <i class="bi bi-inbox text-dark fs-5 me-2"></i> Receive
+            </button>
+        </div>
+        <div class="align-items-end justify-content-end w-100 d-flex flex-row gap-2 w-100 m-2">
+            <div class="d-flex align-items-center flex-row gap-2">
+                <label for="dateFrom" class="form-label fw-bold small text-muted m-0">From:</label>
+                <input type="date" id="dateFrom" name="dateFrom" class="form-control form-control-sm">
+            </div>
+            <div class="d-flex align-items-center justify-content-center flex-row gap-2">
+                <label for="dateTo" class="form-label fw-bold small text-muted m-0">To:</label>
+                <input type="date" id="dateTo" name="dateTo" class="form-control form-control-sm">
+            </div>
+            <div class="d-flex align-items-center justify-content-center flex-row gap-2">
+                <label for="subjectFilter" class="form-label fw-bold small text-muted m-0">Subject:</label>
+                <input type="text" id="subjectFilter" name="subjectFilter" placeholder="Search in subject..." class="form-control form-control-sm">
+            </div>
+            <div class="d-flex align-items-center justify-content-center flex-row">
+                <button class="btn btn-primary btn-sm" onclick="filterEmails()">
+                    <i class="fas fa-search"></i> Filter
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="d-flex flex-row w-100 h-100">
+        <div id="emailsTable" style="width: 40%; height: 100%;">
+            <div class="text-center p-5 text-muted">
+                <i class="fas fa-spinner fa-spin fs-4"></i>
+                <p class="mt-2">Loading emails...</p>
+            </div>
+        </div>
+        <div id="emailDetails" style="width: 60%;" class="bg-secondary bg-opacity-10">
+            <div class="text-center p-5 text-muted">
+                <i class="fas fa-envelope fs-4"></i>
+                <p class="mt-2">Select an email to view details</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal to view email details -->
+<div class="modal fade" id="emailDetailsModal" tabindex="-1" aria-labelledby="emailDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="width: 50vw;" >
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Email Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Modal content will be filled dynamically -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal to reply to client -->
+<div class="modal fade" id="replyModal" tabindex="-1" aria-labelledby="replyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="width: 50vw;">
+            <div class="modal-header">
+                <h5 class="modal-title bg-white rounded-4" id="replyModalTitle">Reply to Client</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="replyForm">
+                    <div class="mb-3">
+                        <label for="replySubject" class="form-label">Subject</label>
+                        <input type="text" class="form-control" id="replySubject" required readonly>
+                    </div>
+                    <div class="mb-3 position-relative">
+                        <label for="replyBody" class="form-label">Message</label>
+                        <div id="replyEditor" class="position-relative" style="height: 300px;"></div>
+                        <div class="position-absolute bottom-0 end-0 d-flex align-items-end gap-2" style="right: 0; bottom: 0;">
+                            <span class="text-muted small mb-4 border border-muted rounded-2 p-1" id="fenciResponse" style="display: none;"> Generating response... </span>
+                            <img src="/static/img/FenciBot.png" class="rounded-circle me-2" id="fenciThinking" alt="Fenci Bot" style="width: 48px; height: 48px; z-index: 10; display: none;" />
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="sendReply()">Send Reply</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Eliminar el modal y botón de Send Reminder y su JS -->
+<!-- Eliminar el modal y botón de View Full Conversation y su JS -->
+
+<script>
+window.currentResponderName = "{{ request.user.get_full_name|escapejs }}";
+window.currentResponderEmail = "{{ request.user.email|escapejs }}";
+
+let currentEmails = [];
+let currentPage = 1;
+const emailsPerPage = 10;
+let currentFilter = 'sent'; // 'sent' or 'received'
+let unreadEmailsCount = 0;
+
+
+
+// Load emails when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadEmails();
+    // Initialize with sent emails by default
+    sendEmail();
+});
+
+function loadEmails(callback) {
+    const clientEmail = '{{ project.customer.email }}';
+    const projectId = '{{ project.id }}';
+    const dateFrom = document.getElementById('dateFrom').value;
+    const dateTo = document.getElementById('dateTo').value;
+    const subjectFilter = document.getElementById('subjectFilter').value.trim().toLowerCase();
+    
+    let url = `/get_client_emails/?client_email=${encodeURIComponent(clientEmail)}&project_id=${encodeURIComponent(projectId)}`;
+    
+    if (dateFrom) {
+        url += `&start_date=${dateFrom.replace(/-/g, '/')}`;
+    }
+    if (dateTo) {
+        url += `&end_date=${dateTo.replace(/-/g, '/')}`;
+    }
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                let emails = data.emails;
+                // Filtrar por subject en el frontend si hay filtro
+                if (subjectFilter) {
+                    emails = emails.filter(e => (e.subject || '').toLowerCase().includes(subjectFilter));
+                }
+                currentEmails = emails;
+                
+                // Contar emails no leídos
+                // Los emails recibidos con read: false se consideran no leídos
+                unreadEmailsCount = emails.filter(email => 
+                    email.direction === 'received' && email.read === false
+                ).length;
+                
+                // Actualizar el botón de Receive con el contador
+                updateReceiveButton();
+                
+                displayEmails();
+            } else {
+                showError(data.message);
+            }
+            
+            // Ocultar spinner y ejecutar callback
+            const spinner = document.getElementById('filterSpinner');
+            if (spinner) spinner.classList.add('d-none');
+            if (callback) callback();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('Error loading emails');
+            
+            // Ocultar spinner y ejecutar callback
+            const spinner = document.getElementById('filterSpinner');
+            if (spinner) spinner.classList.add('d-none');
+            if (callback) callback();
+        });
+}
+
+function displayEmails() {
+    const tableContainer = document.getElementById('emailsTable');
+    
+    if (currentEmails.length === 0) {
+        tableContainer.innerHTML = `
+            <div class="text-center p-5 text-muted">
+                <i class="fas fa-inbox fs-4"></i>
+                <p class="mt-2">No emails found for this client</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Filter emails by current filter (sent/received)
+    let filteredEmails = currentEmails.filter(email => email.direction === currentFilter);
+    
+    if (filteredEmails.length === 0) {
+        tableContainer.innerHTML = `
+            <div class="text-center p-5 text-muted">
+                <i class="fas fa-inbox fs-4"></i>
+                <p class="mt-2">No ${currentFilter} emails found for this client</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Group emails by conversation
+    const groupedEmails = groupEmailsByConversation(filteredEmails);
+    
+    const startIndex = (currentPage - 1) * emailsPerPage;
+    const endIndex = startIndex + emailsPerPage;
+    const pageEmails = groupedEmails.slice(startIndex, endIndex);
+
+    let tableHTML = `
+        <div class="card table-responsive rounded-0 border-0">
+            <table class="table">
+                <thead class="border-top">
+                    <tr>
+                        <th scope="col" class="bg-light text-center text-truncate"></th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    pageEmails.forEach(email => {
+        const date = new Date(email.date);
+        const formattedDate = date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+        // Determinar la dirección del email
+        let directionBadge = '';
+        if (email.direction === 'sent') {
+            directionBadge = '<span class="badge bg-primary fs-6 bg-opacity-25 text-primary border border-primary rounded-2">Sent</span>';
+        } else {
+            directionBadge = '<span class="badge bg-success fs-6 bg-opacity-25 text-success border border-success rounded-2">Received</span>';
+        }
+        
+        // Determinar si es parte de una conversación
+        let conversationIndicator = '';
+        if (email.subject && (email.subject.toLowerCase().startsWith('re:') || email.subject.toLowerCase().startsWith('fwd:'))) {
+            conversationIndicator = '<small class="text-muted d-block">Part of conversation</small>';
+        }
+        
+        // Determinar si el email no ha sido leído
+        // Los emails recibidos con read: false se consideran no leídos
+        const isUnread = email.direction === 'received' && email.read === false;
+        const unreadClass = isUnread ? 'bg-primary bg-opacity-25' : '';
+        
+        tableHTML += `
+            <tr>
+                <td class='position-relative row-email ${unreadClass}' onclick="viewEmail('${email.id}')" style="cursor: pointer;">
+                    <div>${escapeHtml(email.from) == 'dcfenceapp@dcfence.org' ? 'Me, Dcfence' : escapeHtml(email.from)}</div>
+                    <div class="fw-bold text-dark mb-1">${escapeHtml(email.subject)}</div>
+                    <div class="text-muted small">${escapeHtml(email.snippet)}</div>
+                    <span class="text-muted small position-absolute top-0 end-0 m-2 date-email">${formattedDate}</span>
+                    ${isUnread ? '<span class="badge bg-danger position-absolute top-0 start-0 m-2">New</span>' : ''}
+                    <div class="btn-group justify-content-center gap-1 position-absolute top-0 end-0 m-2 action-email" role="group">
+                        ${email.direction === 'received' ? 
+                            `<button class="btn bg-opacity-25 bg-primary btn-sm rounded-2 p-1" onclick="event.stopPropagation(); replyToClient('${email.id}')" title="Reply to Client">
+                                <i class="bi bi-reply-fill"></i>
+                            </button>` : 
+                            ``
+                        }
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+
+    tableHTML += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    // Add pagination
+    const totalPages = Math.ceil(groupedEmails.length / emailsPerPage);
+    if (totalPages > 1) {
+        tableHTML += generatePagination(totalPages);
+    }
+
+    tableContainer.innerHTML = tableHTML;
+}
+
+function generatePagination(totalPages) {
+    let paginationHTML = `
+        <div class="pagination text-center justify-content-center mb-2">
+            <ul class="pagination mb-0">
+    `;
+    
+    // Previous button
+    paginationHTML += `
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+    `;
+
+    // Page numbers
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+            paginationHTML += `
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>
+                </li>
+            `;
+        } else if (i === currentPage - 3 || i === currentPage + 3) {
+            paginationHTML += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+        }
+    }
+
+    // Next button
+    paginationHTML += `
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+    `;
+
+    paginationHTML += `
+            </ul>
+        </div>
+    `;
+    return paginationHTML;
+}
+
+function changePage(page) {
+    const totalPages = Math.ceil(currentEmails.length / emailsPerPage);
+    if (page >= 1 && page <= totalPages) {
+        currentPage = page;
+        displayEmails();
+    }
+}
+
+function filterEmails() {
+    currentPage = 1;
+    const filterBtn = document.querySelector('button[onclick="filterEmails()"]');
+    const spinner = document.getElementById('filterSpinner');
+    if (spinner) spinner.classList.add('d-none'); // Oculta antes por si acaso
+    if (filterBtn) filterBtn.disabled = true;
+    if (spinner) spinner.classList.remove('d-none');
+    let timeout = setTimeout(() => {
+        if (spinner) spinner.classList.add('d-none');
+        if (filterBtn) filterBtn.disabled = false;
+    }, 10000); // 10 segundos
+    loadEmails(() => {
+        clearTimeout(timeout);
+        if (filterBtn) filterBtn.disabled = false;
+        if (spinner) spinner.classList.add('d-none');
+        // Mantener el filtro actual después de recargar
+        if (currentFilter === 'sent') {
+            sendEmail();
+        } else {
+            receiveEmail();
+        }
+    });
+}
+
+function refreshEmails() {
+    currentPage = 1;
+    
+    // Mostrar el spinner de carga
+    const spinner = document.getElementById('filterSpinner');
+    if (spinner) {
+        spinner.classList.remove('d-none');
+    }
+    
+    // Desactivar el botón de refresh mientras carga
+    const refreshBtn = document.querySelector('button[onclick="refreshEmails()"]');
+    if (refreshBtn) {
+        refreshBtn.disabled = true;
+    }
+    
+    loadEmails(() => {
+        // Ocultar el spinner cuando termine
+        if (spinner) {
+            spinner.classList.add('d-none');
+        }
+        // Reactivar el botón de refresh
+        if (refreshBtn) {
+            refreshBtn.disabled = false;
+        }
+    });
+}
+
+function viewEmail(emailId) {
+    const email = currentEmails.find(e => e.id === emailId);
+    if (!email) return;
+
+    // Marcar como leído si es un email recibido no leído
+    if (email.direction === 'received' && email.read === false) {
+        email.read = true;
+        unreadEmailsCount = Math.max(0, unreadEmailsCount - 1);
+        updateReceiveButton();
+        
+        // Actualizar visualmente la fila del email
+        const emailRow = document.querySelector(`[onclick="viewEmail('${emailId}')"]`);
+        if (emailRow) {
+            emailRow.classList.remove('bg-primary', 'bg-opacity-25');
+            const newBadge = emailRow.querySelector('.badge.bg-danger');
+            if (newBadge) {
+                newBadge.remove();
+            }
+        }
+        
+        // Notificar al backend que el email ha sido leído usando Gmail API
+        fetch('/mark_email_as_read/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: new URLSearchParams({
+                email_id: emailId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status !== 'success') {
+                console.warn('Error marking email as read:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error marking email as read:', error);
+        });
+    }
+
+    const emailDetailsContainer = document.getElementById('emailDetails');
+
+    const date = new Date(email.date);
+    const formattedDate = date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    emailDetailsContainer.innerHTML = `
+        <div class="p-4">
+            <div class="mb-3">
+                <div class="d-flex flex-row justify-content-between align-items-start mb-3">
+                    <div class="flex-grow-1">
+                        <div class="row mb-2">
+                            <div class="col-3 fw-bold text-muted">From:</div>
+                            <div class="col-9">${escapeHtml(email.from)}</div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-3 fw-bold text-muted">To:</div>
+                            <div class="col-9">${escapeHtml(email.to)}</div>
+                        </div>
+                    </div>
+                    <div class="text-muted small">${formattedDate}</div>
+                </div>  
+                <div class="mb-3 text-center">
+                    <div class="fw-bold text-muted">Subject:</div>
+                    <div class="fw-bold fs-5">${escapeHtml(email.subject)}</div>
+                </div>
+            </div>
+            <div id="attachments-section"></div>
+            <div class="bg-light p-3 rounded mb-3">
+                <iframe id="emailFrame" style="width:100%; height:80%; min-height: 400px; border:none;"></iframe>
+            </div>
+        </div>
+    `;
+
+    // Modal para previsualización
+    if (!document.getElementById('previewAttachmentModal')) {
+        const modalHtml = `
+        <div class="modal fade" id="previewAttachmentModal" tabindex="-1" aria-labelledby="previewAttachmentModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-xl" style="max-width: 75%; width: 75%;">
+            <div class="modal-content w-100">
+              <div class="modal-header">
+                <h5 class="modal-title" id="previewAttachmentModalLabel">Preview Attachment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body d-flex justify-content-center align-items-center" id="previewAttachmentBody" style="min-height:60vh;">
+                <!-- Content will be injected here -->
+              </div>
+            </div>
+          </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    // Mostrar adjuntos con botones de previsualizar y descargar
+    setTimeout(() => {
+        if (email.attachments && email.attachments.length > 0) {
+            let attachmentsHtml = `<div class='mt-3'><strong>Attachments:</strong><ul class='list-group'>`;
+            email.attachments.forEach(att => {
+                const isPreviewable = att.mime_type.startsWith('image/') || att.mime_type === 'application/pdf';
+                attachmentsHtml += `
+                    <li class='list-group-item d-flex justify-content-between align-items-center'>
+                        <span><i class="bi bi-paperclip"></i> ${att.filename} (${(att.size/1024).toFixed(1)} KB)</span>
+                        <div class="btn-group gap-1">
+                            ${isPreviewable ? `<button class='btn btn-sm btn-outline-secondary' onclick="previewEmailAttachment('${email.id}', '${att.attachment_id}', '${att.filename}', '${att.mime_type}')"><i class='bi bi-eye'></i> Previsualizar</button>` : ''}
+                            <button class='btn btn-sm btn-outline-primary' onclick="downloadEmailAttachment('${email.id}', '${att.attachment_id}', '${att.filename}')">
+                                <i class="bi bi-download"></i> Descargar
+                            </button>
+                        </div>
+                    </li>
+                `;
+            });
+            attachmentsHtml += `</ul></div>`;
+            const attachmentsSection = document.getElementById('attachments-section');
+            if (attachmentsSection) {
+                attachmentsSection.innerHTML = attachmentsHtml;
+            }
+        } else {
+            const attachmentsSection = document.getElementById('attachments-section');
+            if (attachmentsSection) {
+                attachmentsSection.innerHTML = '<div class="mt-3 text-muted"><em>No attachments</em></div>';
+            }
+        }
+    }, 200);
+
+    // Inserta el HTML completo en el iframe
+    setTimeout(() => {
+        const iframe = document.getElementById('emailFrame');
+        if (iframe && email.body) {
+            // Inyectar el CSS para la primera sección con class 'body'
+            let html = email.body;
+            
+            // Si el contenido está vacío o es muy corto, mostrar un mensaje
+            if (!html || html.length < 50) {
+                html = '<div style="color: #666; font-style: italic; padding: 20px; text-align: center;">No se pudo cargar el contenido del email</div>';
+            }
+            
+            // Remover line-height del primer div
+            html = removeLineHeightFromFirstDiv(html);
+            const styleTag = `<style>.body { line-height: 1 !important; }</style>`;
+            // Insertar el style justo después de <head> si existe, si no, al inicio
+            if (html.includes('<head>')) {
+                html = html.replace('<head>', '<head>' + styleTag);
+            } else {
+                html = styleTag + html;
+            }
+            iframe.contentDocument.open();
+            iframe.contentDocument.write(html);
+            iframe.contentDocument.close();
+        }
+    }, 100);
+}
+
+function removeLineHeightFromFirstDiv(html) {
+    // Busca el primer <div ... style="...line-height:...">
+    return html.replace(
+        /(<body[^>]*>\s*<div[^>]*style=")([^"]*?)line-height\s*:\s*[^;"]+;?([^"]*)"/i,
+        (match, p1, before, after) => {
+            // Quita solo el line-height del style
+            let newStyle = (before + after).replace(/;;+/g, ';').replace(/^;|;$/g, '');
+            return p1 + newStyle + '"';
+        }
+    );
+}
+
+let currentEmailId = null;
+let replyQuill = null;
+
+function replyToClient(emailId) {
+    currentEmailId = emailId;
+    const email = currentEmails.find(e => e.id === emailId);
+    if (!email) return;
+    // Obtener datos del cliente y del usuario que responde
+    const clientEmail = email.from;
+    const clientName = email.client_name || '';
+    const responderName = window.currentResponderName || '';
+    const responderEmail = window.currentResponderEmail || '';
+    // Initialize Quill editor if not already done
+    if (!replyQuill) {
+        replyQuill = new Quill('#replyEditor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    ['bold', 'italic', 'underline'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    ['link'],
+                    ['clean']
+                ]
+            }
+        });
+    }
+    // Set default subject
+    document.getElementById('replySubject').value = `Re: ${email.subject}`;
+    replyQuill.setText('');
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('replyModal'));
+    modal.show();
+    // Mostrar imagen de Fenci pensando y texto
+    const fenciImg = document.getElementById('fenciThinking');
+    const fenciResponse = document.getElementById('fenciResponse');
+    if (fenciImg) fenciImg.style.display = 'block';
+    if (fenciResponse) fenciResponse.style.display = 'block';
+    // Llamar a la IA para generar la respuesta automática
+    const csrftoken = getCookie('csrftoken');
+    fetch('/api/chat/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrftoken
+        },
+        body: JSON.stringify({
+            message: email.snippet || '',
+            type: 'cortesia',
+            messageHistory: '',
+            table: '',
+            client_email: clientEmail,
+            client_name: clientName,
+            responder_name: responderName,
+            responder_email: responderEmail
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (fenciImg) fenciImg.style.display = 'none';
+        if (fenciResponse) fenciResponse.style.display = 'none';
+        if (data && data.response) {
+            // Si la respuesta es JSON, extraer el campo content
+            let content = data.response;
+            try {
+                const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+                if (parsed && parsed.content) {
+                    content = parsed.content;
+                }
+            } catch (e) {}
+            // Armar saludo y firma
+            const saludo = `<strong>Hola${clientName ? ' ' + clientName : ''},</strong><br>`;
+            const firma = `<br><strong>Fenci Team</strong> ${responderName} (${responderEmail})`;
+            replyQuill.root.innerHTML = saludo + content + firma;
+        }
+    })
+    .catch(error => {
+        if (fenciImg) fenciImg.style.display = 'none';
+        if (fenciResponse) fenciResponse.style.display = 'none';
+        // Si falla, dejar el editor vacío
+        replyQuill.setText('');
+    });
+}
+
+function sendReply() {
+    if (!currentEmailId) return;
+    const subject = document.getElementById('replySubject').value;
+    const body = replyQuill.root.innerHTML;
+    // Obtener el email original para extraer el destinatario
+    const email = currentEmails.find(e => e.id === currentEmailId);
+    if (!email) return;
+    const recipient_email = email.from;
+    
+
+    
+    // Desactivar el botón y mostrar 'Enviando...'
+    const sendBtn = document.querySelector('#replyModal .btn.btn-primary');
+    if (sendBtn) {
+        sendBtn.disabled = true;
+        sendBtn.innerHTML = '<i class="bi bi-arrow-repeat"></i> Sending...';
+    }
+    fetch('/reply_email/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: new URLSearchParams({
+            recipient_email,
+            subject,
+            body,
+            original_message_id: currentEmailId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Reactivar el botón y restaurar texto
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<i class="bi bi-reply"></i> Send Reply';
+        }
+        if (data.status === 'success') {
+            // Cerrar el modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('replyModal'));
+            modal.hide();
+            // Recargar solo el email manager
+            loadEmails();
+        } else {
+            alert('Error sending reply: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = 'Send Reply';
+        }
+        alert('Error sending reply: ' + error);
+    });
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function renderEmailContent(content) {
+    if (!content) return '';
+    return escapeHtml(content);
+}
+
+function renderSnippetWithLineBreaks(text) {
+    if (!text) return '';
+    return escapeHtml(text).replace(/(?:\r\n|\r|\n)/g, '<br>');
+}
+
+function groupEmailsByConversation(emails) {
+    const conversationGroups = {};
+    
+    // Group emails by cleaned subject
+    emails.forEach(email => {
+        let cleanSubject = email.subject;
+        if (cleanSubject.toLowerCase().startsWith('re:')) {
+            cleanSubject = cleanSubject.substring(3).trim();
+        } else if (cleanSubject.toLowerCase().startsWith('fwd:')) {
+            cleanSubject = cleanSubject.substring(4).trim();
+        }
+        
+        if (!conversationGroups[cleanSubject]) {
+            conversationGroups[cleanSubject] = [];
+        }
+        conversationGroups[cleanSubject].push(email);
+    });
+    
+    // Sort conversations by latest email date
+    const sortedConversations = Object.entries(conversationGroups).map(([subject, emails]) => {
+        // Sort emails within conversation by date
+        emails.sort((a, b) => new Date(b.date) - new Date(a.date));
+        return {
+            subject: subject,
+            emails: emails,
+            latestDate: emails[0].date
+        };
+    });
+    
+    // Sort conversations by latest date
+    sortedConversations.sort((a, b) => new Date(b.latestDate) - new Date(a.latestDate));
+    
+    // Flatten back to list of emails, maintaining conversation order
+    const groupedEmails = [];
+    sortedConversations.forEach(conversation => {
+        groupedEmails.push(...conversation.emails);
+    });
+    
+    return groupedEmails;
+}
+
+function extractBodyFromHtml(html) {
+    const match = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    if (match) {
+        return match[1];
+    }
+    return html; // fallback si no hay <body>
+}
+
+function sendEmail() {
+    currentFilter = 'sent';
+    currentPage = 1;
+    document.getElementById('email-send').classList.add('button-active');
+    document.getElementById('email-send').classList.remove('button-inactive');
+    document.getElementById('email-receive').classList.remove('button-active');
+    document.getElementById('email-receive').classList.add('button-inactive');
+    displayEmails();
+}
+
+function receiveEmail() {
+    currentFilter = 'received';
+    currentPage = 1;
+    document.getElementById('email-receive').classList.add('button-active');
+    document.getElementById('email-receive').classList.remove('button-inactive');
+    document.getElementById('email-send').classList.remove('button-active');
+    document.getElementById('email-send').classList.add('button-inactive');
+    displayEmails();
+}
+
+function updateReceiveButton() {
+    const receiveButton = document.getElementById('email-receive');
+    if (unreadEmailsCount > 0) {
+        // Agregar badge con contador
+        const badge = `<span class="badge bg-danger ms-2">${unreadEmailsCount}</span>`;
+        receiveButton.innerHTML = `<i class="bi bi-inbox text-dark fs-5 me-2"></i> Receive ${badge}`;
+        receiveButton.classList.add('unread-notification');
+    } else {
+        // Remover badge y clase de notificación
+        receiveButton.innerHTML = `<i class="bi bi-inbox text-dark fs-5 me-2"></i> Receive`;
+        receiveButton.classList.remove('unread-notification');
+    }
+}
+
+function showError(message) {
+    let errorIcon = 'fas fa-exclamation-triangle';
+    let errorClass = 'text-muted';
+    
+    // Detectar errores de conectividad
+    if (message.toLowerCase().includes('ssl') || 
+        message.toLowerCase().includes('timeout') || 
+        message.toLowerCase().includes('connection') ||
+        message.toLowerCase().includes('connectivity')) {
+        errorIcon = 'fas fa-wifi';
+        errorClass = 'text-warning';
+    }
+    
+    document.getElementById('emailsTable').innerHTML = `
+        <div class="text-center p-5 ${errorClass}">
+            <i class="${errorIcon} fs-4"></i>
+            <p class="mt-2">${message}</p>
+            <button class="btn btn-primary btn-sm mt-3" onclick="loadEmails()">
+                <i class="fas fa-sync-alt"></i> Reintentar
+            </button>
+        </div>
+    `;
+}
+
+// Función para descargar adjunto
+window.downloadEmailAttachment = function(messageId, attachmentId, filename) {
+    fetch('/attachment_download/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            message_id: messageId,
+            attachment_id: attachmentId,
+            filename: filename,
+            mime_type: 'application/octet-stream'
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.blob();
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+    })
+    .catch(error => {
+        alert('Error downloading attachment: ' + error.message);
+    });
+}
+
+// Función para previsualizar adjunto
+window.previewEmailAttachment = function(messageId, attachmentId, filename, mimeType) {
+    fetch('/attachment_download/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            message_id: messageId,
+            attachment_id: attachmentId,
+            filename: filename,
+            mime_type: mimeType
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.blob();
+    })
+    .then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        let content = '';
+        if (mimeType.startsWith('image/')) {
+            content = `<img src='${url}' alt='${filename}' class='img-fluid rounded shadow' style='max-height:60vh;'>`;
+        } else if (mimeType === 'application/pdf') {
+            content = `<iframe src='${url}' style='width:100%; height:70vh; border:none;'></iframe>`;
+        } else {
+            content = `<div class='text-muted'>No se puede previsualizar este tipo de archivo.</div>`;
+        }
+        document.getElementById('previewAttachmentBody').innerHTML = content;
+        const modal = new bootstrap.Modal(document.getElementById('previewAttachmentModal'));
+        modal.show();
+    })
+    .catch(error => {
+        alert('Error previewing attachment: ' + error.message);
+    });
+}
+</script>
+
+
+

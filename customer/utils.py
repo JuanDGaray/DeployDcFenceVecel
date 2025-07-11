@@ -13,6 +13,12 @@ import os
 import requests
 import re
 from django.contrib.auth.models import User
+import time
+import base64
+from email.mime.text import MIMEText
+import html
+import email
+from email import policy
 
 
 drive_id = '0AF4IswhouZv_Uk9PVA'
@@ -676,7 +682,6 @@ def search_file_in_drive(folder_id, file_name):
         return files
 
     except Exception as e:
-        print(f"Error al listar archivos en la carpeta: {e}")
         return []
 
 def new_aia5_xlxs_template(request,project_id):
@@ -694,9 +699,12 @@ def new_aia10_xlxs_template(request,project_id):
 
 
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 import base64
 
-def send_email(subject, html_body, recipient_email):
+def send_email(subject, html_body, recipient_email, project_id=None, proposal_id=None):
     """
     Envía un correo electrónico con contenido HTML utilizando la API de Gmail.
 
@@ -704,19 +712,130 @@ def send_email(subject, html_body, recipient_email):
         subject (str): Asunto del correo.
         html_body (str): Contenido HTML del mensaje.
         recipient_email (str): Dirección de correo del destinatario.
+        project_id (int, optional): ID del proyecto para seguimiento.
+        proposal_id (int, optional): ID de la propuesta para seguimiento.
 
     Returns:
         dict: Resultado del envío con 'status' y detalles adicionales.
     """
     try:
-        # Obtén el servicio de Gmail (asegúrate de que esté correctamente implementado)
         service = GoogleService.get_service()['gmail']
 
         # Crear el mensaje con HTML
         message = MIMEText(html_body, 'html')  # Ahora el mensaje es HTML
         message['to'] = recipient_email
-        message['from'] = "tu_correo@gmail.com"  # Configura correctamente tu correo remitente
+        message['from'] = "dcfenceapp@dcfence.org"  # Usar el correo correcto de DC Fence
         message['subject'] = subject
+        # Agregar headers personalizados para seguimiento
+        if project_id:
+            message['X-Project-Id'] = f'P{project_id}'
+        if proposal_id:
+            message['X-Proposal-Id'] = f'PR{proposal_id}'
+
+        # Codificar el mensaje en base64url
+        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+
+        # Enviar el mensaje
+        send_message = (
+            service.users()
+            .messages()
+            .send(userId='me', body={'raw': raw_message})
+            .execute()
+        )
+
+        return {'status': 'success', 'messageId': send_message['id']}
+    
+    except HttpError as error:
+        return {'status': 'error', 'message': str(error)}
+
+    except Exception as e:
+        return {'status': 'error', 'message': f"Unexpected error: {e}"}
+
+
+def send_reply_email(subject, html_body, recipient_email, original_message_id=None, project_id=None, proposal_id=None):
+    """
+    Envía una respuesta a un email utilizando la API de Gmail.
+    Configura los headers apropiados para que se reconozca como una respuesta.
+
+    Args:
+        subject (str): Asunto del correo (debe incluir "Re:").
+        html_body (str): Contenido HTML del mensaje.
+        recipient_email (str): Dirección de correo del destinatario.
+        original_message_id (str, optional): ID del mensaje original al que se responde.
+        project_id (int, optional): ID del proyecto para seguimiento.
+        proposal_id (int, optional): ID de la propuesta para seguimiento.
+
+    Returns:
+        dict: Resultado del envío con 'status' y detalles adicionales.
+    """
+    try:
+        service = GoogleService.get_service()['gmail']
+
+        # Agregar footer profesional con logo y slogan
+        professional_footer = """
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0; text-align: center; font-family: Arial, sans-serif;">
+            <div style="color: #666; font-size: 14px; font-style: italic; margin-bottom: 10px;">
+                <strong>2500 W 3 Ct Hialeah FL 33010</strong>
+                <br>
+                <strong>(O) 786-747-4766</strong>
+                <br>
+                <strong>(F)  786-747-4766</strong>
+                <br>
+                "Because everyone needs Boundaries”"
+            </div>
+            <div style="margin-bottom: 15px;">
+                <img src="https://office.dcfence.org/static/img/LogoCompleteLarge.png" alt="DC FENCE" style="max-width: 200px; height: auto;">
+            </div>
+            <div style="color: #999; font-size: 12px;">
+                <strong>Lic: 20BS00539/21-F22501-R</strong>
+                <br>
+                <strong>SBE-CON/SBE-G&S/LDB CAGE:8ZKA7 Duns:117970612</strong>
+            </div>
+            </div>
+        </div>
+        """
+        
+        # Combinar el contenido del email con el footer
+        complete_html_body = html_body + professional_footer
+
+        # Crear el mensaje con HTML
+        message = MIMEText(complete_html_body, 'html')
+        message['to'] = recipient_email
+        message['from'] = "dcfenceapp@dcfence.org"
+        message['subject'] = subject
+        
+        # Agregar headers para que se reconozca como respuesta
+        # Los headers In-Reply-To y References deben contener el Message-ID del email original
+        if original_message_id:
+            # Obtener el Message-ID del email original
+            try:
+                original_msg = service.users().messages().get(
+                    userId='me',
+                    id=original_message_id,
+                    format='metadata',
+                    metadataHeaders=['Message-ID']
+                ).execute()
+                
+                # Extraer el Message-ID del email original
+                headers = original_msg.get('payload', {}).get('headers', [])
+                original_message_id_header = None
+                for header in headers:
+                    if header.get('name', '').lower() == 'message-id':
+                        original_message_id_header = header.get('value', '')
+                        break
+                
+                if original_message_id_header:
+                    message['In-Reply-To'] = original_message_id_header
+                    message['References'] = original_message_id_header
+                    
+            except Exception as e:
+                pass
+        
+        # Agregar headers personalizados para seguimiento
+        if project_id:
+            message['X-Project-Id'] = f'P{project_id}'
+        if proposal_id:
+            message['X-Proposal-Id'] = f'PR{proposal_id}'
 
         # Codificar el mensaje en base64url
         raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
@@ -822,3 +941,530 @@ def format_comment_with_mentions(text):
             return match.group(0)
     
     return re.sub(mention_pattern, replace_mention, text)
+
+def get_html_payload(payload):
+    """
+    Extrae el contenido HTML o texto plano del payload de Gmail API.
+    Maneja diferentes tipos de contenido incluyendo multipart y emails de respuesta.
+    """
+    if not payload:
+        return ""
+    
+    # Si es text/html directo
+    if payload.get("mimeType") == "text/html":
+        data = payload.get("body", {}).get("data", "")
+        if data:
+            return base64.urlsafe_b64decode(data + '=' * (-len(data) % 4)).decode("utf-8", errors="replace")
+    
+    # Si es text/plain, convertir a HTML
+    elif payload.get("mimeType") == "text/plain":
+        data = payload.get("body", {}).get("data", "")
+        if data:
+            text = base64.urlsafe_b64decode(data + '=' * (-len(data) % 4)).decode("utf-8", errors="replace")
+            # Convertir saltos de línea a <br> y envolver en HTML básico
+            return f"<div style='font-family: Arial, sans-serif; line-height: 1.6;'>{text.replace(chr(10), '<br>').replace(chr(13), '')}</div>"
+    
+    # Si es multipart (más común en emails de respuesta)
+    elif payload.get("mimeType", "").startswith("multipart/"):
+        parts = payload.get("parts", [])
+        
+        # Buscar primero contenido HTML
+        for part in parts:
+            if part.get("mimeType") == "text/html":
+                html = get_html_payload(part)
+                if html:
+                    return html
+        
+        # Si no hay HTML, buscar texto plano
+        for part in parts:
+            if part.get("mimeType") == "text/plain":
+                html = get_html_payload(part)
+                if html:
+                    return html
+        
+        # Si no hay partes directas, buscar en subpartes
+        for part in parts:
+            if part.get("mimeType", "").startswith("multipart/"):
+                html = get_html_payload(part)
+                if html:
+                    return html
+    
+    # Si no se encontró contenido, devolver un mensaje de error
+    return "<div style='color: #666; font-style: italic;'>No se pudo cargar el contenido del email</div>"
+
+def extract_headers(message_payload):
+    """
+    Recibe el objeto 'msg' completo o directamente msg['payload'].
+    Devuelve un dict con subject, date, from, to (minúsculas).
+    """
+    headers_list = message_payload['headers']  # lista de headers
+    wanted = {'subject', 'date', 'from', 'to'}
+    result = {}
+
+    for h in headers_list:
+        name = h.get('name', '').lower()
+        if name in wanted:
+            result[name] = h.get('value', '')
+
+            # Salir temprano si ya tenemos los 4
+            if len(result) == len(wanted):
+                break
+
+    # Si algún header no está, poner cadena vacía
+    for key in wanted:
+        result.setdefault(key, '')
+
+    return result
+
+
+# --- NUEVA FUNCION AUXILIAR ---
+def extract_attachments_metadata(payload):
+    """
+    Extrae metadatos de los archivos adjuntos del payload de Gmail API.
+    Devuelve una lista de dicts con filename, mime_type, size, attachment_id.
+    """
+    attachments = []
+    def process_parts(parts):
+        for part in parts:
+            if part.get('filename') and part.get('body', {}).get('attachmentId'):
+                attachments.append({
+                    'filename': part['filename'],
+                    'mime_type': part.get('mimeType', 'application/octet-stream'),
+                    'size': part.get('body', {}).get('size', 0),
+                    'attachment_id': part['body']['attachmentId']
+                })
+            if part.get('parts'):
+                process_parts(part['parts'])
+    if payload.get('parts'):
+        process_parts(payload['parts'])
+    elif payload.get('body', {}).get('attachmentId'):
+        attachments.append({
+            'filename': payload.get('filename', 'attachment'),
+            'mime_type': payload.get('mimeType', 'application/octet-stream'),
+            'size': payload.get('body', {}).get('size', 0),
+            'attachment_id': payload['body']['attachmentId']
+        })
+    return attachments
+
+# --- MODIFICAR get_emails_sent_to_client ---
+def get_emails_sent_to_client(client_email, project_id=None):
+    """
+    Extract all emails sent to a specific client using the Gmail API.
+    If project_id is provided, filters by X-Project-Id header.
+    
+    Args:
+        client_email (str): Email address of the client to search.
+        project_id (int, optional): Project ID to filter emails by X-Project-Id header.
+        
+    Returns:
+        dict: Result with 'status' and list of found emails or error message.
+    """
+    try:
+        # Get the Gmail service
+        service = GoogleService.get_service()['gmail']
+        
+        # Build queries to search for emails sent to the client AND emails from the client
+        query_sent = f'to:{client_email}'
+        query_received = f'from:{client_email}'
+        
+        # NOTA: Gmail API no permite buscar directamente por headers personalizados
+        # Solo campos estándar como subject, from, to, etc.
+        # Por eso usamos batch request para filtrar después
+        if project_id:
+            query_sent += f' subject:"P{project_id}"'
+            query_received += f' subject:"P{project_id}"'
+        
+                # Perform the search for messages sent TO the client
+        try:
+            results_sent = service.users().messages().list(
+                userId='me',
+                q=query_sent,
+                maxResults=100,
+                fields="messages(id,snippet,internalDate,payload/headers)"
+            ).execute()
+        except Exception as e:
+            print(f"Error al buscar emails enviados: {str(e)}")
+            results_sent = {'messages': []}
+        
+        # Perform the search for messages received FROM the client
+        try:
+            results_received = service.users().messages().list(
+                userId='me',        
+                q=query_received,
+                maxResults=100,
+                fields="messages(id,snippet,internalDate,payload/headers)"
+            ).execute()
+        except Exception as e:
+            print(f"Error al buscar emails recibidos: {str(e)}")
+            results_received = {'messages': []}
+        
+        # Combine both results
+        messages_sent = results_sent.get('messages', [])
+        messages_received = results_received.get('messages', [])
+        
+        # Combine and deduplicate messages
+        all_messages = messages_sent + messages_received
+        # Remove duplicates based on message ID
+        seen_ids = set()
+        unique_messages = []
+        for msg in all_messages:
+            if msg['id'] not in seen_ids:
+                seen_ids.add(msg['id'])
+                unique_messages.append(msg)
+        
+        messages = unique_messages
+        
+        # Sort messages by date in descending order (most recent first)
+        # We'll sort after getting the full message details since we need the date
+        
+        if not messages:
+            if project_id:
+                return {
+                    'status': 'success',
+                    'message': f'No se encontraron correos relacionados con {client_email} y P{project_id}',
+                    'emails': []
+                }
+            else:
+                return {
+                    'status': 'success',
+                    'message': f'No se encontraron correos relacionados con {client_email}',
+                    'emails': []
+                }
+        
+        # Procesar todos los emails encontrados
+        emails_details = []
+        
+        # Procesar todos los emails encontrados
+        if messages:
+
+            for message in messages:
+                try:
+                    # Obtener el email completo con formato raw
+                    try:
+                        msg = service.users().messages().get(
+                            userId='me',
+                            id=message['id'],
+                            format='full'
+                        ).execute()
+                    except Exception as e:
+                        print(f"Error al obtener mensaje {message['id']}: {str(e)}")
+                        continue
+
+                    
+                    
+                    headers = extract_headers(msg['payload'])  # 👈 usa la función nueva
+
+                    subject = headers['subject']
+                    date    = headers['date']
+                    from_header   = headers['from']  
+                    to_header      = headers['to']
+                    html_payload = get_html_payload(msg['payload'])
+                    
+                    # Extract project_id and proposal_id from subject and headers (flexible)
+                    project_id_from_subject = None
+                    proposal_id_from_subject = None
+                    import re
+                    # First try to get from custom headers
+                    x_project_id = headers.get('x-project-id')
+                    x_proposal_id = headers.get('x-proposal-id')
+                    x_tracking_id = headers.get('x-tracking-id')
+
+                    
+                    if x_project_id:
+                        project_match = re.search(r'P(\d+)', x_project_id)
+                        if project_match:
+                            project_id_from_subject = int(project_match.group(1))
+                    if x_proposal_id:
+                        proposal_match = re.search(r'PR(\d+)', x_proposal_id)
+                        if proposal_match:
+                            proposal_id_from_subject = int(proposal_match.group(1))
+                    
+                    # If not found in headers, try subject
+                    if not project_id_from_subject:
+                        pattern = r'P(\d+)(?:PR|Pr)?(\d+)?'
+                        match = re.search(pattern, subject)
+                        if match:
+                            project_id_from_subject = int(match.group(1))
+                            
+                            if match.group(2):
+                                proposal_id_from_subject = int(match.group(2))
+                    
+
+                    
+                    # Determine if this is an email we sent or received
+                    is_sent_by_us = from_header.lower().find('dcfenceapp@dcfence.org') != -1
+                    
+                    # Extract email body from raw format (simplified)
+                    email_body = msg.get('snippet', '')
+                    
+                    # Determinar si el email ha sido leído usando las labels de Gmail
+                    # Gmail usa la label 'UNREAD' para emails no leídos
+                    # Si el email tiene la label 'UNREAD', no ha sido leído
+                    labels = msg.get('labelIds', [])
+                    is_unread = 'UNREAD' in labels
+                    
+                    # Los emails enviados siempre se consideran leídos
+                    # Los emails recibidos se marcan como no leídos si tienen la label 'UNREAD'
+                    is_read = is_sent_by_us or not is_unread
+                    
+                    # --- NUEVO: extraer adjuntos ---
+                    attachments = extract_attachments_metadata(msg['payload'])
+                
+
+                    email_info = {
+                        'id': message['id'],
+                        'subject': subject,
+                        'date': date,
+                        'from': from_header,
+                        'to': to_header,
+                        'snippet': msg.get('snippet', ''),
+                        'body': html_payload,
+                        'project_id': project_id_from_subject,
+                        'proposal_id': proposal_id_from_subject,
+                        'tracking_id': x_tracking_id,
+                        'direction': 'sent' if is_sent_by_us else 'received',
+                        'read': is_read,
+                        'attachments': attachments  # <--- AQUI
+                    }
+                    
+                    emails_details.append(email_info)
+                    
+                except Exception as e:
+                    print(f"Error al procesar mensaje {message['id']}: {str(e)}")
+                    continue
+            
+            # Sort emails by date in descending order (most recent first)
+            emails_details.sort(key=lambda x: x['date'], reverse=True)
+            
+
+
+        if project_id:
+            return {
+                'status': 'success',
+                'message': f'Se encontraron {len(emails_details)} correos relacionados con {client_email} y P{project_id}',
+                'emails': emails_details
+            }
+        else:
+            return {
+                'status': 'success',
+                'message': f'Se encontraron {len(emails_details)} correos relacionados con {client_email}',
+                'emails': emails_details
+            }
+        
+    except HttpError as error:
+        print(f"Error al acceder a Gmail API: {str(error)}")
+        return {
+            'status': 'error',
+            'message': f'Error al acceder a Gmail API: {str(error)}'
+        }
+    except Exception as e:
+        print(f"Error inesperado en get_emails_sent_to_client: {str(e)}")
+        return {
+            'status': 'error',
+            'message': f'Error inesperado: {str(e)}'
+        }
+
+def send_email_with_attachment(subject, html_body, recipient_email, recipient_name='', attachment_path=None, attachment_name=None):
+    """
+    Envía un correo electrónico con contenido HTML y archivo adjunto utilizando la API de Gmail.
+
+    Args:
+        subject (str): Asunto del correo.
+        html_body (str): Contenido HTML del mensaje.
+        recipient_email (str): Dirección de correo del destinatario.
+        recipient_name (str): Nombre del destinatario (opcional).
+        attachment_path (str): Ruta al archivo adjunto (opcional).
+        attachment_name (str): Nombre del archivo adjunto (opcional).
+
+    Returns:
+        dict: Resultado del envío con 'status' y detalles adicionales.
+    """
+    try:
+        # Obtén el servicio de Gmail
+        service = GoogleService.get_service()['gmail']
+
+        # Crear el mensaje con HTML
+        message = MIMEMultipart()
+        message['to'] = recipient_email
+        message['from'] = "dcfenceapp@dcfence.org"
+        message['subject'] = subject
+
+        # Agregar el cuerpo HTML del mensaje
+        html_part = MIMEText(html_body, 'html')
+        message.attach(html_part)
+
+        # Agregar archivo adjunto si se proporciona
+        if attachment_path and attachment_name:
+            with open(attachment_path, 'rb') as attachment:
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload(attachment.read())
+            
+            encoders.encode_base64(part)
+            part.add_header(
+                'Content-Disposition',
+                f'attachment; filename= {attachment_name}'
+            )
+            message.attach(part)
+
+        # Codificar el mensaje en base64url
+        raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
+
+        # Enviar el mensaje
+        send_message = (
+            service.users()
+            .messages()
+            .send(userId='me', body={'raw': raw_message})
+            .execute()
+        )
+
+        return {'status': 'success', 'messageId': send_message['id']}
+    
+    except HttpError as error:
+        return {'status': 'error', 'message': str(error)}
+    except Exception as e:
+        return {'status': 'error', 'message': f"Unexpected error: {e}"}
+
+def get_emails_by_date_range(client_email, start_date=None, end_date=None):
+    """
+    Extrae correos enviados a un cliente en un rango de fechas específico.
+    
+    Args:
+        client_email (str): Dirección de correo del cliente.
+        start_date (str): Fecha de inicio en formato 'YYYY/MM/DD'.
+        end_date (str): Fecha de fin en formato 'YYYY/MM/DD'.
+        
+    Returns:
+        dict: Resultado con correos filtrados por fecha.
+    """
+    try:
+        service = GoogleService.get_service()['gmail']
+        
+        # Construir la consulta base
+        query = f'to:{client_email}'
+        
+        # Agregar filtros de fecha si se proporcionan
+        if start_date:
+            query += f' after:{start_date}'
+        if end_date:
+            query += f' before:{end_date}'
+        
+        results = service.users().messages().list(
+            userId='me',
+            q=query,
+            maxResults=100
+        ).execute()
+        
+        messages = results.get('messages', [])
+        
+        if not messages:
+            return {
+                'status': 'success',
+                'message': f'No se encontraron correos enviados a {client_email} en el rango de fechas especificado',
+                'emails': []
+            }
+        
+        # Procesar mensajes (similar a la función anterior)
+        emails_details = []
+        for message in messages:
+            try:
+                msg = service.users().messages().get(
+                    userId='me',
+                    id=message['id'],
+                    format='full'
+                ).execute()
+                
+                headers = msg['payload']['headers']
+                subject = next((h['value'] for h in headers if h['name'].lower() == 'subject'), 'Sin asunto')
+                date = next((h['value'] for h in headers if h['name'].lower() == 'date'), '')
+                from_header = next((h['value'] for h in headers if h['name'].lower() == 'from'), '')
+                
+                email_info = {
+                    'id': message['id'],
+                    'subject': subject,
+                    'date': date,
+                    'from': from_header,
+                    'snippet': msg.get('snippet', '')
+                }
+                
+                emails_details.append(email_info)
+                
+            except Exception as e:
+                print(f"Error al procesar mensaje {message['id']}: {str(e)}")
+                continue
+        
+        return {
+            'status': 'success',
+            'message': f'Se encontraron {len(emails_details)} correos enviados a {client_email}',
+            'emails': emails_details
+        }
+        
+    except HttpError as error:
+        print(f"Error al acceder a Gmail API: {str(error)}")
+        return {
+            'status': 'error',
+            'message': f'Error al acceder a Gmail API: {str(error)}'
+        }
+    except Exception as e:
+        print(f"Error inesperado: {str(e)}")
+        return {
+            'status': 'error',
+            'message': f'Error inesperado: {str(e)}'
+        }
+
+
+
+def extract_headers_from_raw(message):
+    """
+    Extrae los headers del mensaje raw de Gmail API.
+    
+    Args:
+        message (dict): Mensaje raw de Gmail API
+        
+    Returns:
+        dict: Headers del email
+    """
+    try:
+        # Decodificar el mensaje raw
+        raw_data = message.get('raw', '')
+        if not raw_data:
+            return {}
+        
+        # Decodificar de base64url
+        decoded_data = base64.urlsafe_b64decode(raw_data + '=' * (-len(raw_data) % 4))
+        email_message = email.message_from_bytes(decoded_data, policy=policy.default)
+        
+        # Extraer headers
+        headers = {}
+        for key, value in email_message.items():
+            headers[key.lower()] = value
+        
+        return headers
+        
+    except Exception as e:
+        print(f"Error extracting headers from raw: {str(e)}")
+        return {}
+
+
+
+
+
+
+def get_email_full_content(message_id):
+    """
+    Obtiene el contenido completo de un email específico incluyendo archivos adjuntos.
+    """
+    try:
+        service = GoogleService.get_service()['gmail']
+        msg = service.users().messages().get(
+            userId='me',
+            id=message_id,
+            format='full'
+        ).execute()
+        attachments = extract_attachments_metadata(msg['payload'])
+        return {
+            'id': message_id,
+            'attachments': attachments
+        }
+    except Exception as e:
+        print(f"Error obteniendo contenido completo del email {message_id}: {str(e)}")
+        return None

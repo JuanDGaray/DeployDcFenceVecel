@@ -447,12 +447,14 @@
                     role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="View">
                     <i class="bi bi-eye-fill" style="font-size: 15px;"></i>
                     </a>
-                    <a class="btn bg-light border border-2 btn-sm rounded-2" 
-                    href="{% url 'edit_budgetSimple' project_id=project.id budget_id=proposal.budget.id proposal_id=proposal.id %}" target='_blank'
-                    role="button" title="Edit Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit">
-                    <i class="bi bi-pencil-square" style="font-size: 15px;"></i>
-                    </a>
-                    <div class="dropdown d-flex">
+                    {% if proposal.status == 'new' or proposal.status == 'sent' or proposal.status == 'pending' or proposal.status == 'rejected' %}
+                      <a class="btn bg-light border border-2 btn-sm rounded-2" 
+                      href="{% url 'edit_budgetSimple' project_id=project.id budget_id=proposal.budget.id proposal_id=proposal.id %}" target='_blank'
+                      role="button" title="Edit Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit">
+                      <i class="bi bi-pencil-square" style="font-size: 15px;"></i>
+                      </a>
+                    {% endif %}
+                    <div class="dropdown d-flex d-none">
                       <button 
                         class="btn bg-light border border-2 btn-sm rounded-2 px-1 py-0 dropdown-toggle  {% if proposal.status == 'new' or proposal.status == 'sent' or proposal.status == 'pending'  or proposal.status == 'rejected' or  proposal.total_proposal <=  proposal.billed_proposal %}disabled{% endif %}" 
                         type="button" 
@@ -490,20 +492,36 @@
                       
                       {% endif %}
                     </div>
-                    
-                    <a class="btn btn-danger btn-sm rounded-2 p-1 {% if proposal.status == 'approved' or proposal.status == 'sent' or proposal.status == 'pending' %}disabled{% endif %}" 
+                    {% if proposal.status == 'new' or proposal.status == 'sent' or proposal.status == 'pending' or proposal.status == 'approved' %}
+                      <a class="btn bg-light border border-2 btn-sm rounded-2" role="button" data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                          data-bs-title="Send proposal to email client"
+                          aria-label="Info" data-bs-original-title="Send Proposal"
+                          onclick="openEmailModal({{ proposal.id }}, {{ project.id }})">
+                          <i class="bi bi-envelope-fill text-primary" style="font-size: 15px;"></i>
+                      </a>
+                    {% endif %}
+
+                    {% if proposal.status == 'approved' or proposal.status == 'sent' or proposal.status == 'pending' %}
+                      <a class="btn border border-2 btn-sm rounded-2 bg-secondary text-light" 
+                      role="button" style="cursor: not-allowed;" title="Send proposal to email client" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="You cannot send this proposal to email client because it is in Pending, Approved, or Sent status.">
+                      <i class="bi bi bi-trash" style="font-size: 15px;"></i>
+                      </a>
+                    {% else %}
+                    <a class="btn btn-danger btn-sm rounded-2 p-1 border border-2 boder-secondary" 
                       href="{% url 'delete_proposal' project.id proposal.id %}"
                       role="button" title="Delete Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-delete-action data-bs-title="Delete">
                       <i class="bi bi-trash" style="font-size: 15px;"></i>
                     </a>
+                    {% endif %}
                     {% if proposal.status == 'approved' %}
 
-                        <a class="btn btn-sm rounded-2 p-1 bg-warning" role="button" data-bs-toggle="tooltip" 
+                          <a class="btn btn-sm rounded-2 p-1 bg-warning fw-bold" role="button" data-bs-toggle="tooltip" 
                             data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
-                            data-bs-title="Change order requested by the client after approval, modifying scope, cost, or timeline."
+                            data-bs-title="<strong class='bg-warning text-dark'> Change order </strong> requested by the client after approval, modifying scope, cost, or timeline."
                             aria-label="Info" data-bs-original-title="Approved Proposal"
                             href="{% url 'new_change_order' project.id proposal.id %}">
-                            ChangeOrder
+                            C.O.
                         </a>
                       {% endif %}
                 </td>
@@ -592,7 +610,7 @@
           </div>
         </div>
         </div>
-      </div>   
+    </div>   
       {% endif %}
       <!-- Change Order Proposals -->
       {% if change_order_proposals %}
@@ -730,12 +748,12 @@
                       </a>
                       {% if proposal.status == 'approved' %}
 
-                          <a class="btn btn-sm rounded-2 p-1 bg-warning" role="button" data-bs-toggle="tooltip" 
-                              data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
-                              data-bs-title="Change order requested by the client after approval, modifying scope, cost, or timeline."
+                          <a class="btn btn-sm rounded-2 p-1 bg-warning fw-bold" role="button" data-bs-toggle="tooltip" 
+                              data-bs-placement="bottom" data-bs-custom-class="custom-tooltip"    
+                              data-bs-title="<strong class='bg-warning text-dark> Change order </strong> requested by the client after approval, modifying scope, cost, or timeline."
                               aria-label="Info" data-bs-original-title="Approved Proposal"
                               href="{% url 'new_change_order' project.id proposal.id %}">
-                              ChangeOrder
+                              C.O.
                           </a>
                         {% endif %}
                     </td>
@@ -885,6 +903,7 @@
     {% include "components/documents_projects.html" %}
     {% include "modal_delete.html" %}
     {% include "components/modals_detail_projects.html" with project=project %}
+    {% include "components/emails_sent_to_client.html" %}
 <div id="loadingOverlay"  class="containerLoading d-none" >
   <img src="{% static 'img/loading.gif' %}" alt="Cargando" class="img-fluid rounded-1" style="width: 100px; height: auto;">
 </div>

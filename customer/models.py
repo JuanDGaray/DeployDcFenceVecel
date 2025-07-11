@@ -718,3 +718,5 @@ class ProductionChangeLog(models.Model):
 
     def __str__(self):
         return f"{self.project} - {self.action} - {self.timestamp:%Y-%m-%d %H:%M}"
+
+

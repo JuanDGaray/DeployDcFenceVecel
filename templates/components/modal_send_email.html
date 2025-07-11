@@ -1,0 +1,204 @@
+    <!-- Quill.js Rich Text Editor -->
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+    
+    <style>
+        #emailBodyEditor .ql-container {
+            height: 250px !important;
+            overflow-y: auto;
+        }
+        #emailBodyEditor .ql-toolbar {
+            border-bottom: 1px solid #ccc;
+        }
+    </style>
+    
+    <!-- Email Modal -->
+    <div class="modal fade" id="emailModal" tabindex="-1" aria-labelledby="emailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" >
+            <div class="modal-content" style="width: 50vw;" >
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold bg-light border border-2 boder-secondary rounded-2 px-2 py-1" id="emailModalLabel">
+                        <i class="bi bi-envelope-fill text-success"></i> Send Proposal by Email
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="emailForm" class="d-flex flex-row gap-2">
+                        {% csrf_token %}
+                        <input type="hidden" id="projectId_form" name="project_id" value="{{ project.id }}">
+                        <input type="hidden" id="proposalId_form" name="proposal_id" value="{{ proposal.id }}">
+                        <div class="d-flex flex-column gap-2 w-25 bg-secondary bg-opacity-10 border border-2 border-secondary rounded-2 p-2">
+                            <div>
+                                <label for="recipientEmail" class=" fw-bold fs-6 text-start mb-1 w-100">Email</label>
+                                <input type="email" class="form-control" id="recipientEmail" name="recipient_email" style="font-size: 14px;" value="{{ project.customer.email|lower }}" required>
+                            </div>
+                            <div>
+                                <label for="recipientName" class=" fw-bold fs-6 text-start mb-1 w-100">Name</label>
+                                <input type="text" class="form-control" id="recipientName" name="recipient_name" style="font-size: 14px;"
+                                       value="{% if project.customer.customer_type == 'company' %}{{ project.customer.company_name }}{% else %}{{ project.customer.first_name }} {{ project.customer.last_name }}{% endif %}">
+                            </div>
+                        </div>
+                        <div class="d-flex flex-column gap-2 w-75">
+                            <div>
+                                <label for="emailSubject" class="form-label fw-bold fs-6 text-start mb-1 w-100">Subject *</label>
+                                <input type="text" class="form-control" id="emailSubject" name="subject" style="font-size: 14px;"   
+                                    value="Proposal for {{ project.project_name }} | {{ project.customer.company_name|default:project.customer.first_name }}" required>
+                            </div>
+                            <div>
+                                <label for="emailBody" class="form-label fw-bold fs-6 text-start mb-1 w-100">Message *</label>
+                                <div id="emailBodyEditor" style="border: 1px solid #ced4da; border-radius: 0.375rem; background-color: white;">
+                                    <div id="emailBody"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="sendEmailButton" onclick="sendProposalEmail()">
+                        <i class="bi bi-envelope-fill"></i> Send Email
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        
+// Quill.js Rich Text Editor
+let quill;
+
+function initializeQuill() {
+    console.log('Initializing Quill editor...'); // Debug log
+    
+    // Configure Quill toolbar - simplified version
+    const toolbarOptions = [
+        ['bold', 'italic', 'underline', 'strike'],
+        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+        [{ 'size': ['small', false, 'large', 'huge'] }],
+        [{ 'color': [] }, { 'background': [] }],
+        [{ 'align': [] }],
+    ];
+    
+    // Initialize Quill
+    quill = new Quill('#emailBody', {
+        theme: 'snow',
+        modules: {
+            toolbar: toolbarOptions
+        },
+        placeholder: 'Write your message here...'
+    });
+    
+    console.log('Quill initialized:', quill); // Debug log
+    
+    // Set initial content
+    const initialContent = `Dear {% if project.customer.customer_type == 'company' %}{{ project.customer.company_name }}{% else %}{{ project.customer.first_name }}{% endif %},
+
+Thank you for your interest in our services. Please find attached the proposal for your project "{{ project.project_name }}".
+
+This proposal includes:
+• Detailed scope of work
+• Material specifications
+• Pricing breakdown
+
+Please review the attached proposal and let us know if you have any questions or need any modifications.
+
+We look forward to working with you on this project.
+
+Best regards,
+{{ request.user.get_full_name|default:request.user.username }}
+{{ request.user.email }}
+DC Fence Team`;
+    
+    quill.setText(initialContent);
+    console.log('Initial content set in Quill'); // Debug log
+}
+
+// Modified sendProposalEmail function to handle Quill rich text
+function sendProposalEmail() {
+    
+    const form = document.getElementById('emailForm');
+    const formData = new FormData();
+    
+    // Get basic form data
+    formData.append('recipient_email', document.getElementById('recipientEmail').value);
+    formData.append('recipient_name', document.getElementById('recipientName').value);
+    formData.append('subject', document.getElementById('emailSubject').value);
+    
+    // Get rich text content from Quill
+    if (!quill) {
+        console.error('Quill editor not initialized!');
+        showAlert('Editor not initialized. Please try again.', 'danger');
+        return;
+    }
+    
+    const emailBody = quill.root.innerHTML;
+    console.log('Quill content:', emailBody); // Debug log
+    console.log('Quill content length:', emailBody.length); // Debug log
+    formData.append('body', emailBody);
+    
+    // Get project and proposal IDs
+    const project_id = document.getElementById('projectId_form').value;
+    const proposal_id = document.getElementById('proposalId_form').value;
+    formData.append('project_id', project_id);
+    formData.append('proposal_id', proposal_id);
+    
+    // Show loading state
+    const sendButton = document.getElementById('sendEmailButton');
+    const originalText = sendButton.innerHTML;
+    sendButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Sending...';
+    sendButton.disabled = true;
+    
+    // Send the email
+    fetch('/send_proposal_email/' + project_id + '/' + proposal_id + '/', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showAlert(data.message, 'success');
+            const modal = bootstrap.Modal.getInstance(document.getElementById('emailModal'));
+            modal.hide();
+        } else {
+            showAlert(data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error sending email. Please try again.');
+    })
+    .finally(() => {
+        // Restore button state
+        sendButton.innerHTML = originalText;
+        sendButton.disabled = false;
+    });
+}
+
+function openEmailModal(proposal_id=null, project_id=null) {
+    if (proposal_id) {
+        document.getElementById('proposalId_form').value = proposal_id;
+    }
+    if (project_id) {
+        document.getElementById('projectId_form').value = project_id;
+    }
+    console.log('Opening email modal...'); // Debug log
+    const modal = new bootstrap.Modal(document.getElementById('emailModal'));
+    modal.show();
+    
+    // Initialize Quill when modal opens
+    setTimeout(() => {
+        console.log('Checking if Quill needs initialization...'); // Debug log
+        if (!quill) {
+            console.log('Initializing Quill...'); // Debug log
+            initializeQuill();
+        } else {
+            console.log('Quill already initialized'); // Debug log
+        }
+    }, 100);
+}
+      
+</script>

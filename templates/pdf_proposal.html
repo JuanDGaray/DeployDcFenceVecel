@@ -5,16 +5,19 @@
 {% endblock %}
 {% block title %}Simple Invoice{% endblock %}
 {% block content %}
-<div id='main-pdf' class='p-3'>
+<div id='main-pdf' class='p-3' data-project-id="{{ project.id }}" data-proposal-id="{{ proposal.id }}">
     <a href="{% url 'detail_project' project.id %}" class="bg-light px-4 py-1 rounded-4 border border-2 border-primary"><strong><i class="bi bi-back "></i> <span id="project-container" data-project-id="{{ project.id }}">{{project.id}} </span> - {{project.project_name}}</a>
     <div class="d-flex flex-row justify-content-end col-md-9 mx-auto">
         <a id="downloadBtn"  class="px-2 m-2 rounded-2 text-danger border border-danger bg-light" onclick="generatePDF()"><i class="bi bi-file-earmark-pdf-fill text-danger"></i> Download PDF</a>
         <a href="{% url 'edit_budgetSimple' project_id=project.id budget_id=proposal.budget.id proposal_id=proposal.id %}" class="px-2 m-2 rounded-2 text-primary border border-primary bg-light"><i class="bi bi-pencil-square text-primary"></i> Edit Proposal</a>
+        <button id="emailBtn" class="px-2 m-2 rounded-2 text-success border border-success bg-light" onclick="openEmailModal()"><i class="bi bi-envelope-fill text-success"></i> Send by Email</button>
     </div>
     <section id="invoice-form" class="col-md-9 mx-auto">
         {% include 'components/proposal_print.html' with is_quick_info=False %}
     </section>    
 </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.js"></script>
-    <script src="{% static 'js/components/pdf_proposal.js' %}"></script>
+{% include 'components/modal_send_email.html' %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.js"></script>
+<script src="{% static 'js/components/pdf_proposal.js' %}"></script>
+
 {% endblock %}
