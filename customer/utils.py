@@ -704,9 +704,10 @@ from email.mime.base import MIMEBase
 from email import encoders
 import base64
 
-def send_email(subject, html_body, recipient_email, project_id=None, proposal_id=None):
+def send_email(subject, html_body, recipient_email, project_id=None, proposal_id=None, sent_by=None):
     """
     Envía un correo electrónico con contenido HTML utilizando la API de Gmail.
+    Incluye tracking de apertura mediante pixel invisible.
 
     Args:
         subject (str): Asunto del correo.
@@ -714,6 +715,7 @@ def send_email(subject, html_body, recipient_email, project_id=None, proposal_id
         recipient_email (str): Dirección de correo del destinatario.
         project_id (int, optional): ID del proyecto para seguimiento.
         proposal_id (int, optional): ID de la propuesta para seguimiento.
+        sent_by (User, optional): Usuario que envía el email.
 
     Returns:
         dict: Resultado del envío con 'status' y detalles adicionales.
@@ -721,16 +723,55 @@ def send_email(subject, html_body, recipient_email, project_id=None, proposal_id
     try:
         service = GoogleService.get_service()['gmail']
 
+        # Importar funciones de tracking
+        from .views.utils_get import create_email_tracking, add_tracking_to_email_html
+        
+        # Determinar el tipo de email basado en los parámetros
+        email_type = 'other'
+        project = None
+        proposal = None
+        invoice = None
+        
+        if proposal_id:
+            email_type = 'proposal'
+            from .models import ProposalProjects
+            try:
+                proposal = ProposalProjects.objects.get(id=proposal_id)
+                project = proposal.project
+            except ProposalProjects.DoesNotExist:
+                pass
+        
+        # Crear registro de tracking
+        tracking = create_email_tracking(
+            email_type=email_type,
+            recipient_email=recipient_email,
+            subject=subject,
+            project=project,
+            proposal=proposal,
+            invoice=invoice,
+            sent_by=sent_by,
+            metadata={
+                'project_id': project_id,
+                'proposal_id': proposal_id
+            }
+        )
+        
+        # Agregar pixel de tracking al HTML
+        html_with_tracking = add_tracking_to_email_html(html_body, tracking.tracking_id)
+
         # Crear el mensaje con HTML
-        message = MIMEText(html_body, 'html')  # Ahora el mensaje es HTML
+        message = MIMEText(html_with_tracking, 'html')
         message['to'] = recipient_email
-        message['from'] = "dcfenceapp@dcfence.org"  # Usar el correo correcto de DC Fence
+        message['from'] = "dcfenceapp@dcfence.org"
         message['subject'] = subject
+        
         # Agregar headers personalizados para seguimiento
         if project_id:
             message['X-Project-Id'] = f'P{project_id}'
         if proposal_id:
             message['X-Proposal-Id'] = f'PR{proposal_id}'
+        if tracking.tracking_id:
+            message['X-Tracking-Id'] = tracking.tracking_id
 
         # Codificar el mensaje en base64url
         raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
@@ -743,7 +784,11 @@ def send_email(subject, html_body, recipient_email, project_id=None, proposal_id
             .execute()
         )
 
-        return {'status': 'success', 'messageId': send_message['id']}
+        return {
+            'status': 'success', 
+            'messageId': send_message['id'],
+            'tracking_id': tracking.tracking_id
+        }
     
     except HttpError as error:
         return {'status': 'error', 'message': str(error)}
@@ -752,7 +797,7 @@ def send_email(subject, html_body, recipient_email, project_id=None, proposal_id
         return {'status': 'error', 'message': f"Unexpected error: {e}"}
 
 
-def send_reply_email(subject, html_body, recipient_email, original_message_id=None, project_id=None, proposal_id=None):
+def send_reply_email(subject, html_body, recipient_email, original_message_id=None, project_id=None, proposal_id=None, sent_by=None):
     """
     Envía una respuesta a un email utilizando la API de Gmail.
     Configura los headers apropiados para que se reconozca como una respuesta.
@@ -795,11 +840,48 @@ def send_reply_email(subject, html_body, recipient_email, original_message_id=No
         </div>
         """
         
+        # Importar funciones de tracking
+        from .views.utils_get import create_email_tracking, add_tracking_to_email_html
+        
+        # Determinar el tipo de email
+        email_type = 'notification'
+        project = None
+        proposal = None
+        invoice = None
+        
+        if proposal_id:
+            email_type = 'proposal'
+            from .models import ProposalProjects
+            try:
+                proposal = ProposalProjects.objects.get(id=proposal_id)
+                project = proposal.project
+            except ProposalProjects.DoesNotExist:
+                pass
+        
+        # Crear registro de tracking
+        tracking = create_email_tracking(
+            email_type=email_type,
+            recipient_email=recipient_email,
+            subject=subject,
+            project=project,
+            proposal=proposal,
+            invoice=invoice,
+            sent_by=sent_by,
+            metadata={
+                'project_id': project_id,
+                'proposal_id': proposal_id,
+                'original_message_id': original_message_id
+            }
+        )
+        
         # Combinar el contenido del email con el footer
         complete_html_body = html_body + professional_footer
+        
+        # Agregar pixel de tracking al HTML
+        html_with_tracking = add_tracking_to_email_html(complete_html_body, tracking.tracking_id)
 
         # Crear el mensaje con HTML
-        message = MIMEText(complete_html_body, 'html')
+        message = MIMEText(html_with_tracking, 'html')
         message['to'] = recipient_email
         message['from'] = "dcfenceapp@dcfence.org"
         message['subject'] = subject
@@ -836,6 +918,8 @@ def send_reply_email(subject, html_body, recipient_email, original_message_id=No
             message['X-Project-Id'] = f'P{project_id}'
         if proposal_id:
             message['X-Proposal-Id'] = f'PR{proposal_id}'
+        if tracking.tracking_id:
+            message['X-Tracking-Id'] = tracking.tracking_id
 
         # Codificar el mensaje en base64url
         raw_message = base64.urlsafe_b64encode(message.as_bytes()).decode()
@@ -848,7 +932,11 @@ def send_reply_email(subject, html_body, recipient_email, original_message_id=No
             .execute()
         )
 
-        return {'status': 'success', 'messageId': send_message['id']}
+        return {
+            'status': 'success', 
+            'messageId': send_message['id'],
+            'tracking_id': tracking.tracking_id
+        }
     
     except HttpError as error:
         return {'status': 'error', 'message': str(error)}
@@ -1411,8 +1499,6 @@ def get_emails_by_date_range(client_email, start_date=None, end_date=None):
             'message': f'Error inesperado: {str(e)}'
         }
 
-
-
 def extract_headers_from_raw(message):
     """
     Extrae los headers del mensaje raw de Gmail API.
@@ -1445,10 +1531,6 @@ def extract_headers_from_raw(message):
         return {}
 
 
-
-
-
-
 def get_email_full_content(message_id):
     """
     Obtiene el contenido completo de un email específico incluyendo archivos adjuntos.
@@ -1468,3 +1550,5 @@ def get_email_full_content(message_id):
     except Exception as e:
         print(f"Error obteniendo contenido completo del email {message_id}: {str(e)}")
         return None
+
+

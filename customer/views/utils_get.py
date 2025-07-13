@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from customer.models import Project
-from django.http import JsonResponse
-from ..models import ProposalProjects, BudgetEstimate, Project, InvoiceProjects, Customer, commentsProject, ProjectHistory, Notification, ProjectDocumentRequirement
+from django.http import JsonResponse, HttpResponse
+from ..models import ProposalProjects, BudgetEstimate, Project, InvoiceProjects, Customer, commentsProject, ProjectHistory, Notification, ProjectDocumentRequirement, EmailTracking
 from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Q, F
@@ -10,7 +10,8 @@ from django.template.loader import render_to_string
 from django.contrib.auth.models import User
 import json
 from django.shortcuts import get_object_or_404
-
+import os
+from django.conf import settings
 from django.utils.timezone import now
 
 @login_required
@@ -745,3 +746,327 @@ def send_to_production(request):
         return JsonResponse({'status': 'success', 'message': 'Project sent to production'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'error': str(e)}, status=500)
+
+
+def generate_tracking_id():
+    """
+    Genera un ID único para tracking de emails
+    """
+    import uuid
+    import hashlib
+    import time
+    
+    # Crear un ID único basado en timestamp y UUID
+    timestamp = str(int(time.time() * 1000))
+    unique_id = str(uuid.uuid4())
+    
+    # Combinar y crear hash
+    combined = f"{timestamp}_{unique_id}"
+    tracking_id = hashlib.md5(combined.encode()).hexdigest()[:16]
+    
+    return tracking_id
+
+
+def create_email_tracking(email_type, recipient_email, subject, project=None, proposal=None, invoice=None, sent_by=None, metadata=None):
+    """
+    Crea un registro de tracking para un email
+    
+    Args:
+        email_type: Tipo de email ('proposal', 'invoice', 'notification', 'other')
+        recipient_email: Email del destinatario
+        subject: Asunto del email
+        project: Proyecto relacionado (opcional)
+        proposal: Propuesta relacionada (opcional)
+        invoice: Factura relacionada (opcional)
+        sent_by: Usuario que envió el email (opcional)
+        metadata: Datos adicionales (opcional)
+    
+    Returns:
+        EmailTracking: Instancia del registro de tracking
+    """
+    tracking_id = generate_tracking_id()
+    
+    tracking = EmailTracking.objects.create(
+        tracking_id=tracking_id,
+        email_type=email_type,
+        recipient_email=recipient_email,
+        subject=subject,
+        project=project,
+        proposal=proposal,
+        invoice=invoice,
+        sent_by=sent_by,
+        metadata=metadata or {}
+    )
+    
+    return tracking
+
+
+def get_tracking_pixel_url(tracking_id):
+    """
+    Genera la URL del pixel de tracking
+    
+    Args:
+        tracking_id: ID único del tracking
+    
+    Returns:
+        str: URL completa del pixel de tracking
+    """
+    from django.urls import reverse
+    from django.conf import settings
+    
+    # Construir la URL completa
+    base_url = settings.BASE_URL if hasattr(settings, 'BASE_URL') else 'http://localhost:8000'
+    tracking_url = reverse('log_img_traking_email_view', kwargs={'tracking_id': tracking_id})
+    
+    return f"{base_url}{tracking_url}"
+
+
+def add_tracking_to_email_html(html_content, tracking_id):
+    """
+    Agrega el pixel de tracking al HTML del email
+    
+    Args:
+        html_content: Contenido HTML del email
+        tracking_id: ID único del tracking
+    
+    Returns:
+        str: HTML con el pixel de tracking agregado
+    """
+    tracking_url = get_tracking_pixel_url(tracking_id)
+    
+    # Crear el tag de imagen para tracking
+    tracking_pixel = f'<img src="{tracking_url}" alt="" width="1" height="1" style="display:none;" />'
+    
+    # Agregar antes del cierre del body
+    if '</body>' in html_content:
+        html_content = html_content.replace('</body>', f'{tracking_pixel}</body>')
+    else:
+        # Si no hay body, agregar al final
+        html_content += tracking_pixel
+    
+    return html_content
+
+
+def get_email_tracking_stats(user=None, project=None, email_type=None, days_back=30):
+    """
+    Obtiene estadísticas de tracking de emails
+    
+    Args:
+        user: Usuario para filtrar (opcional)
+        project: Proyecto para filtrar (opcional)
+        email_type: Tipo de email para filtrar (opcional)
+        days_back: Días hacia atrás para filtrar (por defecto 30)
+    
+    Returns:
+        dict: Estadísticas de tracking
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    # Filtros base
+    filters = {}
+    if user:
+        filters['sent_by'] = user
+    if project:
+        filters['project'] = project
+    if email_type:
+        filters['email_type'] = email_type
+    
+    # Filtro de fecha
+    date_filter = timezone.now() - timedelta(days=days_back)
+    filters['sent_at__gte'] = date_filter
+    
+    # Consultas
+    total_emails = EmailTracking.objects.filter(**filters).count()
+    opened_emails = EmailTracking.objects.filter(**filters, opened_count__gt=0).count()
+    
+    # Calcular tasa de apertura
+    open_rate = (opened_emails / total_emails * 100) if total_emails > 0 else 0
+    
+    # Estadísticas por tipo
+    stats_by_type = {}
+    for email_type_choice in EmailTracking.TRACKING_TYPES:
+        type_code = email_type_choice[0]
+        type_filters = filters.copy()
+        type_filters['email_type'] = type_code
+        
+        type_total = EmailTracking.objects.filter(**type_filters).count()
+        type_opened = EmailTracking.objects.filter(**type_filters, opened_count__gt=0).count()
+        type_rate = (type_opened / type_total * 100) if type_total > 0 else 0
+        
+        stats_by_type[type_code] = {
+            'total': type_total,
+            'opened': type_opened,
+            'rate': round(type_rate, 2)
+        }
+    
+    return {
+        'total_emails': total_emails,
+        'opened_emails': opened_emails,
+        'open_rate': round(open_rate, 2),
+        'stats_by_type': stats_by_type,
+        'days_back': days_back
+    }
+
+
+def log_img_traking_email_view(request, tracking_id):
+    """
+    Vista para tracking de emails mediante pixel de imagen
+    """
+    try:
+        # Obtener información del tracking
+        from ..models import EmailTracking
+        
+        # Obtener IP y User Agent
+        ip_address = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
+        user_agent = request.META.get('HTTP_USER_AGENT', '')
+        
+        # Buscar el registro de tracking
+        tracking = EmailTracking.objects.filter(tracking_id=tracking_id).first()
+        
+        if tracking:
+            # Marcar como abierto
+            tracking.mark_as_opened(ip_address=ip_address, user_agent=user_agent)
+        
+        # Servir la imagen de tracking (1x1 pixel transparente)
+        from django.http import HttpResponse
+        import base64
+        
+        # Crear un pixel transparente de 1x1
+        pixel_data = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==')
+        
+        response = HttpResponse(pixel_data, content_type='image/png')
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        
+        return response
+        
+    except Exception as e:
+        # En caso de error, servir una imagen por defecto
+        path = settings.BASE_DIR + '/customer/static/img/logoPngsm.png'
+        if os.path.exists(path):
+            return HttpResponse(open(path, 'rb').read(), content_type='image/png')
+        else:
+            # Crear un pixel transparente como fallback
+            import base64
+            pixel_data = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==')
+            return HttpResponse(pixel_data, content_type='image/png')
+
+
+def example_send_email_with_tracking(request, proposal_id):
+    """
+    Ejemplo de cómo enviar un email con tracking
+    """
+    try:
+        from django.core.mail import send_mail
+        from django.template.loader import render_to_string
+        from django.conf import settings
+        
+        # Obtener la propuesta
+        proposal = ProposalProjects.objects.get(id=proposal_id)
+        
+        # Crear el tracking
+        tracking = create_email_tracking(
+            email_type='proposal',
+            recipient_email=proposal.project.customer.email,
+            subject=f'Propuesta para {proposal.project_name}',
+            project=proposal.project,
+            proposal=proposal,
+            sent_by=request.user,
+            metadata={
+                'proposal_amount': float(proposal.total_proposal),
+                'due_date': proposal.due_date.isoformat() if proposal.due_date else None
+            }
+        )
+        
+        # Renderizar el HTML del email
+        html_content = render_to_string('emails/proposal_email.html', {
+            'proposal': proposal,
+            'project': proposal.project,
+            'customer': proposal.project.customer
+        })
+        
+        # Agregar el pixel de tracking al HTML
+        html_with_tracking = add_tracking_to_email_html(html_content, tracking.tracking_id)
+        
+        # Enviar el email
+        send_mail(
+            subject=f'Propuesta para {proposal.project_name}',
+            message='',  # Mensaje de texto plano (opcional)
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[proposal.project.customer.email],
+            html_message=html_with_tracking,
+            fail_silently=False
+        )
+        
+        # Actualizar el estado de la propuesta
+        proposal.status = 'sent'
+        proposal.save()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Email enviado con tracking',
+            'tracking_id': tracking.tracking_id
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+
+@login_required
+def get_email_tracking_data(request):
+    """
+    Obtiene datos de tracking de emails para mostrar en dashboard
+    """
+    try:
+        # Obtener estadísticas del usuario actual
+        stats = get_email_tracking_stats(
+            user=request.user,
+            days_back=30
+        )
+        
+        # Obtener emails recientes
+        recent_emails = EmailTracking.objects.filter(
+            sent_by=request.user
+        ).order_by('-sent_at')[:10]
+        
+        recent_data = []
+        for email in recent_emails:
+            recent_data.append({
+                'id': email.id,
+                'tracking_id': email.tracking_id,
+                'email_type': email.get_email_type_display(),
+                'recipient_email': email.recipient_email,
+                'subject': email.subject,
+                'sent_at': email.sent_at.strftime('%Y-%m-%d %H:%M'),
+                'is_opened': email.is_opened,
+                'opened_count': email.opened_count,
+                'opened_at': email.opened_at.strftime('%Y-%m-%d %H:%M') if email.opened_at else None,
+                'project_name': email.project.project_name if email.project else None,
+                'days_since_sent': email.days_since_sent
+            })
+        
+        return JsonResponse({
+            'status': 'success',
+            'stats': stats,
+            'recent_emails': recent_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=500)
+
+
+@login_required
+def email_tracking_dashboard(request):
+    """
+    Vista para mostrar el dashboard de tracking de emails
+    """
+    from django.shortcuts import render
+    return render(request, 'email_tracking_stats.html')

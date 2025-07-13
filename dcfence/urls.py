@@ -17,8 +17,9 @@ Including another URLconf
 from ctypes import util
 from django.urls import path, include, re_path
 from customer import views
+from customer.views.settings_views import settings as settings_view
 from django.contrib import admin
-from django.conf import settings
+from django.conf import settings as django_settings
 from django.conf.urls.static import static
 from django.conf.urls import handler404
 from customer import utils
@@ -89,7 +90,7 @@ urlpatterns = [
     path('production/<int:project_id>/save_real_cost_by_items/', views.save_real_cost_by_items, name='save_real_cost_by_items'),
     path('production/<int:project_id>/close_production/', views.close_production, name='close_production'),
     path('api/chat/', views.chat_with_groq, name='chat_with_groq'),
-    path('settings/', views.settings, name='settings'),
+    path('settings/', settings_view, name='settings'),
     path('add_user/', views.add_user_post, name='add_user'),
     path('delete_user/', views.delete_user, name='delete_user'),
     path('metrics/', views.metrics, name='metrics'),
@@ -107,5 +108,5 @@ urlpatterns = [
 ]
 
 
-if settings.DEBUG is False:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+if django_settings.DEBUG is False:
+    urlpatterns += static(django_settings.STATIC_URL, document_root=django_settings.STATIC_ROOT)

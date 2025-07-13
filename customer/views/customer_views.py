@@ -431,7 +431,8 @@ def send_proposal_email(request, project_id, proposal_id):
                     html_body=combined_html,
                     recipient_email=email,
                     project_id=project_id,
-                    proposal_id=proposal_id
+                    proposal_id=proposal_id,
+                    sent_by=request.user
                 )
                 
                 if result['status'] == 'success':
@@ -531,7 +532,8 @@ def reply_email(request):
                 subject=subject, 
                 html_body=body, 
                 recipient_email=recipient_email,
-                original_message_id=original_message_id
+                original_message_id=original_message_id,
+                sent_by=request.user
             )
             
             if result['status'] == 'success':

@@ -36,4 +36,7 @@ urlpatterns = [
     path('send_proposal_email/<int:project_id>/<int:proposal_id>/', views.send_proposal_email, name='send_proposal_email'),
     path('reply_email/', views.reply_email, name='reply_email'),
     path('mark_email_as_read/', views.mark_email_as_read, name='mark_email_as_read'),
+    path('tracking/<str:tracking_id>/', views.utils_get.log_img_traking_email_view, name='log_img_traking_email_view'),
+    path('email_tracking_stats/', views.utils_get.get_email_tracking_data, name='email_tracking_stats'),
+    path('email_tracking_dashboard/', views.utils_get.email_tracking_dashboard, name='email_tracking_dashboard'),
 ]   

@@ -720,3 +720,81 @@ class ProductionChangeLog(models.Model):
         return f"{self.project} - {self.action} - {self.timestamp:%Y-%m-%d %H:%M}"
 
 
+class EmailTracking(models.Model):
+    """
+    Modelo para tracking de emails enviados
+    """
+    TRACKING_TYPES = [
+        ('proposal', 'Proposal'),
+        ('invoice', 'Invoice'),
+        ('notification', 'Notification'),
+        ('other', 'Other'),
+    ]
+    
+    # Información del email
+    tracking_id = models.CharField(max_length=255, unique=True, verbose_name="Tracking ID")
+    email_type = models.CharField(max_length=20, choices=TRACKING_TYPES, verbose_name="Email Type")
+    recipient_email = models.EmailField(verbose_name="Recipient Email")
+    subject = models.CharField(max_length=255, verbose_name="Subject")
+    
+    # Relaciones
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, null=True, blank=True, verbose_name="Project")
+    proposal = models.ForeignKey('ProposalProjects', on_delete=models.CASCADE, null=True, blank=True, verbose_name="Proposal")
+    invoice = models.ForeignKey('InvoiceProjects', on_delete=models.CASCADE, null=True, blank=True, verbose_name="Invoice")
+    sent_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Sent By")
+    
+    # Tracking
+    sent_at = models.DateTimeField(auto_now_add=True, verbose_name="Sent At")
+    opened_at = models.DateTimeField(null=True, blank=True, verbose_name="Opened At")
+    opened_count = models.PositiveIntegerField(default=0, verbose_name="Times Opened")
+    last_opened_at = models.DateTimeField(null=True, blank=True, verbose_name="Last Opened At")
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="IP Address")
+    user_agent = models.TextField(null=True, blank=True, verbose_name="User Agent")
+    
+    # Información adicional
+    metadata = models.JSONField(default=dict, blank=True, verbose_name="Additional Data")
+    
+    class Meta:
+        verbose_name = "Email Tracking"
+        verbose_name_plural = "Email Tracking"
+        ordering = ['-sent_at']
+        indexes = [
+            models.Index(fields=['tracking_id']),
+            models.Index(fields=['email_type']),
+            models.Index(fields=['sent_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.email_type} - {self.recipient_email} ({self.tracking_id})"
+    
+    @property
+    def is_opened(self):
+        """Retorna True si el email ha sido abierto al menos una vez"""
+        return self.opened_count > 0
+    
+    @property
+    def days_since_sent(self):
+        """Retorna los días transcurridos desde que se envió el email"""
+        from django.utils import timezone
+        return (timezone.now() - self.sent_at).days
+    
+    def mark_as_opened(self, ip_address=None, user_agent=None):
+        """Marca el email como abierto y actualiza las estadísticas"""
+        from django.utils import timezone
+        now = timezone.now()
+        
+        self.opened_count += 1
+        self.last_opened_at = now
+        
+        # Solo actualizar opened_at la primera vez
+        if not self.opened_at:
+            self.opened_at = now
+        
+        if ip_address:
+            self.ip_address = ip_address
+        if user_agent:
+            self.user_agent = user_agent
+            
+        self.save()
+
+
