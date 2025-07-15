@@ -102,8 +102,26 @@ def MdcpInvoice(request,project_id, invoice_id):
     elif request.method == 'POST':
         data = json.loads(request.body)
         saleAdvisor = request.user
-        save_invoice(data, project, proposal.budget , proposal, saleAdvisor)
-        log_project_history(request, project, 'UPDATE', 'Invoice MDCP updated')
+        
+        # Check if invoice already exists for this proposal
+        existing_invoice = InvoiceProjects.objects.filter(
+            project=project,
+            proposal=proposal,
+            type_invoice='MDCPS'
+        ).first()
+        
+        if existing_invoice:
+            # Update existing invoice
+            existing_invoice.invoiceInfo = data
+            existing_invoice.total_invoice = float(data['total'])
+            existing_invoice.sales_advisor = saleAdvisor
+            existing_invoice.save()
+            log_project_history(request, project, 'UPDATE', 'Invoice MDCP updated')
+        else:
+            # Create new invoice
+            save_invoice(data, project, proposal.budget, proposal, saleAdvisor)
+            log_project_history(request, project, 'CREATE', 'Invoice MDCP created')
+            
         return HttpResponse(status=200)
     
 def BroadInvoice10(request,project_id, invoice_id):
@@ -119,7 +137,10 @@ def BroadInvoice10(request,project_id, invoice_id):
             'today': timezone.now().date(),
             'next_invoice_id': next_invoice_id,})
     elif request.method == 'POST':
-        log_project_history(request, project, 'UPDATE', 'Invoice Broad updated')
+        data = json.loads(request.body)
+        saleAdvisor = request.user
+        save_invoice(data, project, proposal.budget, proposal, saleAdvisor)
+        log_project_history(request, project, 'CREATE', 'Invoice Broad created')
         return HttpResponse(status=200)
 
 def changePaidInvoice(request,project_id, invoice_id):
@@ -777,16 +798,41 @@ def delete_proposal(request, project_id, proposal_id):
         log_project_history(request, project, 'DELETE',f'Proposal {proposal_id} deleted in project {project_id}')
     return redirect('detail_project', project_id=project_id)
 
-def pdf_invoice(request, project_id, invoice_id):
+def view_invoice(request, project_id, invoice_id):
     project = get_object_or_404(Project, pk=project_id)
     invoice = get_object_or_404(InvoiceProjects, id=invoice_id)
-
-    if request.method == 'GET':
-        return render(request, 'pdf_invoice.html', {
+    mode = 'view'
+    
+    # Get the proposal associated with the invoice
+    proposal = invoice.proposal
+    
+    if invoice.type_invoice == 'MDCPS':
+        return render(request, 'MDCPInvoice.html', {
             'project': project,
-            'invoice':invoice})
-    elif request.method == 'POST':
-        return HttpResponse(status=200)
+            'invoice': invoice,
+            'proposal': proposal,
+            'mode': mode})
+    elif invoice.type_invoice == 'AIA5':
+        return render(request, 'AIA5.html', {
+            'project': project,
+            'invoice': invoice,
+            'proposal': proposal,
+            'mode': mode})
+    elif invoice.type_invoice == 'BROWARD':
+        return render(request, 'BrodInvoice.html', {
+            'project': project,
+            'invoice': invoice,
+            'proposal': proposal,
+            'mode': mode})
+    elif invoice.type_invoice == 'AIA10':
+        return render(request, 'AIA10.html', {
+            'project': project,
+            'invoice': invoice,
+            'proposal': proposal,
+            'mode': mode})
+
+
+
     
 def pdf_proposal(request, project_id, proposal_id):
     project = get_object_or_404(Project, pk=project_id)
@@ -1504,5 +1550,30 @@ def edit_project(request, project_id):
         'status': 'error',
         'message': 'Invalid request method'
     }, status=405)
+
+
+def updateMdcpInvoice(request, project_id, invoice_id):
+    project = get_object_or_404(Project, pk=project_id)
+    invoice = get_object_or_404(InvoiceProjects, id=invoice_id)
+    
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        saleAdvisor = request.user
+        
+        print("Data received in updateMdcpInvoice:", data)
+        print("Items in data:", data.get('items', []))
+        
+        # Update existing invoice
+        invoice.invoiceInfo = data
+        invoice.total_invoice = float(data['total'])
+        invoice.sales_advisor = saleAdvisor
+        invoice.save()
+        
+        print("Invoice saved with invoiceInfo:", invoice.invoiceInfo)
+        
+        log_project_history(request, project, 'UPDATE', 'Invoice MDCP updated')
+        return HttpResponse(status=200)
+    
+    return HttpResponse(status=405)  # Method not allowed for GET
 
 

@@ -2,13 +2,23 @@
 {% load static %}
 {% block extra_head %}
     <style>
-        body {
+        /* Remover los estilos del body que causan problemas */
+        /* body {
             background-image: url("{% static 'img/logoPatron.png' %}");
             background-repeat: no-repeat;
             background-position: center;
             background-size: cover;
             backdrop-filter: grayscale(100%);
+        } */
+        
+        /* Aplicar los estilos solo al contenedor principal */
+        .invoice-container {
+            min-height: 100vh;
+            padding: 20px 0;
+            background-color: #e0dcdc;  
         }
+
+        
         .infoContainer{
           background-image: url("{% static 'img/logoPatron.png' %}");
           background-repeat: none;
@@ -79,436 +89,696 @@
 {% block title %} BRO | {{ project.project_name }}{% endblock %}
 {% block content %}
 {% load custom_filters %} 
-    <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}" data-typeInv='MDCP'>
-    
-
-    <h1 class='fs-5 bg-white border border-4 border-primary fw-bold text-primary p-2 m-2 rounded-4 w-50 d-flex flex-row justify-content-between align-items-center'>BROWARD TEMPLATE - ID{{project.id}} {{project.project_name}}
-        <div>
-            <button id="saveButton" class="btn btn-primary rounded-2" onclick="saveInvoice()">
-            <i class="bi bi-floppy text-light me-2"></i>Save
-            </button>
-            <a class="btn btn-sm rounded-2 p-1 d-none" role="button" data-bs-toggle="tooltip" id='infoSave'
-                data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
-                data-bs-title="The budget amount exceeds the available total for billing. $ {{proposal.remaining_amount}}" 
-                aria-label="Info" data-bs-original-title="Rejected Proposal">
-                <i class="bi bi-info-circle text-danger" style="font-size: 15px;"></i>
-            </a>
+    <!-- Wrapper para aplicar los estilos de fondo solo al contenido de la factura -->
+    <div class="invoice-container">
+        <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}" data-typeInv='MDCP'>
+        <input type="hidden" id="mode" value="{{ mode|default:'edit' }}" 
+               data-item-count="{% if mode == 'view' %}{{invoice.invoiceInfo.items|length|default:1}}{% else %}1{% endif %}"
+               data-total="{% if mode == 'view' %}{{invoice.total_invoice}}{% else %}{{proposal.remaining_amount}}{% endif %}"
+               data-proposal-remaining="{% if proposal %}{{proposal.remaining_amount}}{% else %}0{% endif %}"
+               data-proposal-total="{% if proposal %}{{proposal.total_proposal}}{% else %}0{% endif %}">
+        <h1 class='fs-5 bg-white border border-4 border-primary fw-bold text-primary p-2 m-2 rounded-4 w-75 d-flex flex-row justify-content-between align-items-center'>BROWARD TEMPLATE - ID{{project.id}} {{project.project_name}}
+            <div>
+                <button id="saveButton" class="btn btn-primary rounded-2" onclick="saveInvoice()" style="display: none;">
+                <i class="bi bi-floppy text-light me-2"></i>Save
+                </button>
+                <button id="editButton" class="btn bg-warning bg-opacity-10 border border-warning rounded-2 text-dark border-2" onclick="enableEdit()">
+                    <i class="bi bi-pencil text-dark me-2"></i>Edit
+                </button>
+                <button id="downloadPdfButton" class="btn bg-danger bg-opacity-10 border border-danger rounded-2 text-danger border-2" onclick="generatePDF()">
+                    <i class="bi bi-file-pdf text-danger me-2"></i>Download PDF
+                </button>
+                <button class="btn bg-success bg-opacity-10 border border-success rounded-2 text-success border-2" onclick="openEmailModal()">
+                    <i class="bi bi-envelope text-success me-2"></i>Send by email
+                </button>
+                <a class="btn btn-sm rounded-2 p-1 d-none" role="button" data-bs-toggle="tooltip" id='infoSave'
+                    data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                    data-bs-title="The budget amount exceeds the available total for billing. $ {% if proposal %}{{proposal.remaining_amount}}{% else %}0{% endif %}" 
+                    aria-label="Info" data-bs-original-title="Rejected Proposal">
+                    <i class="bi bi-info-circle text-danger" style="font-size: 15px;"></i>
+                </a>
+            </div>
+        </h1>
+        <div id="loadingOverlay"  class="containerLoading d-none" >
+            <img src="{% static 'img/loading.gif' %}" alt="Cargando" class="img-fluid rounded-1" style="width: 100px; height: auto;">
         </div>
-    </h1>
-    <div class="container-sm mx-5 my-4 rounded-4 mx-auto col-md-10 position-relative" id='containerInvoice'>
-        <div class="d-flex flex-row mb-4">
+        <div class="container-sm rounded-4 mx-auto col-md-10 position-relative" id='containerInvoice'>
+            <div class="d-flex flex-row mb-4">
+                <div class="col">
+                    <span class="bg-primary text-white px-3 py-2">INVOICE :  <input id="invoiceId" type='text' class="bg-primary border-0 text-white" style="width: auto; min-width: 1ch; text-align: center;" size="8" value="{{project.id}}-{{proposal.id}}{{next_invoice_id}}"></span>
+                </div>
+                <div class="d-flex flex-row justify-content-center text-end bg position-relative">
+                    <div class="d-flex flex-column align-items-center px-4 mx-4">
+                        <img src="{% static 'img/DaylenFirma.webp' %}" alt="DC FENCE Logo" class="firma position-relative">
+                        <span class="text-center position-absolute nameSignature" style="border-top: 2px solid black; display: inline-block; padding-top: 5px; bottom:0%">
+                            Approved by Daylen Puerto
+                        </span>
+                    </div>
+                    <img src="{% static 'img/LogoCompleteWhite.webp' %}" alt="DC FENCE Logo" class="logoView mx-4">
+                </div>
+            </div>
+        
             <div class="col">
-                <span class="bg-primary text-white px-3 py-2">INVOICE :  <input id="invoiceId" type='text' class="bg-primary border-0 text-white" style="width: auto; min-width: 1ch; text-align: center;" size="8" value="{{project.id}}-{{proposal.id}}{{next_invoice_id}}"></span>
+                <strong>DADE: </strong>
+                <input id="dadeId" type="text" class="border-0" style="width: auto; min-width: 5ch; text-align: center;" value="20BS00539">
             </div>
-            <div class="d-flex flex-row justify-content-center text-end bg position-relative">
-                <div class="d-flex flex-column align-items-center px-4 mx-4">
-                    <img src="{% static 'img/DaylenFirma.webp' %}" alt="DC FENCE Logo" class="firma position-relative">
-                    <span class="text-center position-absolute nameSignature" style="border-top: 2px solid black; display: inline-block; padding-top: 5px; bottom:0%">
-                        Approved by Daylen Puerto
-                    </span>
-                </div>
-                <img src="{% static 'img/LogoCompleteWhite.webp' %}" alt="DC FENCE Logo" class="logoView mx-4">
+            <div class="col">
+                <strong>BRO: </strong>
+                <input id="broId" type="text" class="border-0" style="width: auto; min-width: 5ch; text-align: center;" value="20BS00539">
             </div>
-        </div>
-    
-        <div class="col">
-            <strong>DADE: </strong>
-            <input id="dadeId" type="text" class="border-0" style="width: auto; min-width: 5ch; text-align: center;" value="20BS00539">
-        </div>
-        <div class="col">
-            <strong>BRO: </strong>
-            <input id="broId" type="text" class="border-0" style="width: auto; min-width: 5ch; text-align: center;" value="20BS00539">
-        </div>
 
-    
-        <div class="mb-2">
-            <div class="row">
-                <div class="col-4 fw-bold border border-2 text-end">INVOICE NO.</div>
-                <div class="col-8">
-                    <input id="invoiceNumber" type="text" class="form-control border-bottom" value="{{project.id}}-{{proposal.id}}{{next_invoice_id}}">
-                </div>
-            </div>
-        </div>
-    
-        <img src="{% static 'img/DcSello.webp' %}" alt="DC FENCE Logo" class="imgSello">
-    
-        <div class="mb-2">
-            <div class="row">
-                <div class="col-4 fw-bold border border-2 text-end">JOB ADDRESS</div>
-                <div class="col-8">
-                    <input id="jobAddress" type="text" class="form-control border-bottom" value="{{project.customer.address}}">
-                </div>
-            </div>
-        </div>
-    
-        <div class="mb-2">
-            <div class="row">
-                <div class="col-4 fw-bold border border-2 text-end">DESCRIPTION</div>
-                <div class="col-8">
-                    <input id="jobDescription" type="text" class="form-control border-bottom" value="{{project.description}}">
-                </div>
-            </div>
-        </div>
-    
-        <div class="mb-2">
-            <div class="row">
-                <div class="col-4 fw-bold border border-2 text-end">BILL TO:</div>
-                <div class="col-8">
-                    <input id="billTo" type="text" class="form-control border-bottom" value="MDCPS">
-                </div>
-            </div>
-        </div>
-    
-        <div class="mb-3">
-            <div class="row">
-                <div class="col-4 fw-bold border border-2 text-end">PERIOD:</div>
-                <div class="col-8">
-                    <div class="d-flex">
-                        <input type="date" id="startDate" class="form-control border-bottom me-2" placeholder="Start Date">
-                        <input type="date" id="endDate" class="form-control border-bottom" placeholder="End Date">
-                    </div>
-                </div>
-            </div>
-        </div>
-    
-        <div class="mb-2">
-            <div class="row">
-                <div class="col-4 fw-bold border border-2 text-end">PROJECT NAME</div>
-                <div class="col-8">
-                    <input id="projectName" type="text" class="form-control border-bottom text-uppercase" value="{{project.project_name}}">
-                </div>
-            </div>
-        </div>
-    
-        <div class="mb-2">
-            <div class="row">
-                <div class="col-4 fw-bold border border-2 text-end">CONTRACT #</div>
-                <div class="col-8">
-                    <input id="contractNumber" type="text" class="form-control border-bottom" value="">
-                </div>
-            </div>
-        </div>
-    
-
-        <div>
-            <table class="table table-sm table-hover">
-                <thead>
-                    <tr>
-                        <th>Quantity</th>
-                        <th>Description</th>
-                        <th class="text-end">Amount</th>
-                    </tr>
-                </thead>
-                <tbody id="itemsBody">
-                    <tr class='itemRow'>
-                        <td style='width:40px'><input id="item1Quantity" type="number" class="form-control" value="1"></td>
-                        <td><input id="item1Description" type="text" class="form-control" value="Supply and install Chain Link Fence and Gates"></td>
-                        <td class="text-end w-25"><input id="item1Amount" type="text" class="form-control text-end" value="{{proposal.remaining_amount|floatformat:2}}" oninput="updateTotal()"></td>
-                    </tr>
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="2" class="text-end text-primary fw-bold"><strong>TOTAL :</strong></td>
-                        <td class="text-end bg-primary">
-                            <input id="totalAmount" type="text" class="form-control text-end bg-primary text-light fw-bold" value="{{proposal.remaining_amount|floatformat:2}}" readonly >
-                        </td>
-                    </tr>
-                </tfoot>
-            </table>
-            <button id="addItem" class="btn btn-primary py-1 fs-6">+ Add Item</button>
-            
-            <!-- Percentage Calculator -->
-            <div class="position-absolute bottom-0 end-0 m-3" id="calculatorContainer">
-                <!-- Calculator Icon (Always Visible) -->
-                <div class="calculator-icon bg-white border border-secondary rounded-circle p-2 shadow-sm" 
-                     style="width: 50px; height: 50px; cursor: pointer; transition: all 0.3s ease;"
-                     onclick="toggleCalculator()">
-                    <i class="bi bi-calculator text-success fs-4 d-flex justify-content-center align-items-center h-100"></i>
-                </div>
-                
-                <!-- Calculator Panel (Hidden by default) -->
-                <div class="calculator-panel bg-white border border-secondary rounded shadow-sm p-3" 
-                     id="calculatorPanel" 
-                     style="position: absolute; bottom: 60px; right: 0; width: 300px; display: none; z-index: 1000;">
-                    <div class="d-flex flex-column gap-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <input type="number" id="percentageInput" class="form-control bg-secondary bg-opacity-25" 
-                                   placeholder="%" min="0" max="100" step="0.01" style="width: 80px;">
-                            <button class="btn btn-secondary text-white btn-sm" type="button" onclick="calculatePercentage()">
-                                Calculate
-                            </button>
-                        </div>
-                        <div class="d-flex gap-1 flex-wrap">
-                            <button class="btn btn-success btn-sm" onclick="applyPercentage(10)">10%</button>
-                            <button class="btn btn-success btn-sm" onclick="applyPercentage(25)">25%</button>
-                            <button class="btn btn-success btn-sm" onclick="applyPercentage(50)">50%</button>
-                            <button class="btn btn-success btn-sm" onclick="applyPercentage(75)">75%</button>
-                        </div>
-                        <small class="text-muted">Click to calculate percentages</small>
-                    </div>
-                </div>
-            </div>
-        </div>
         
-    
-        <div class="d-flex flex-row flex-nowrap justify-content-evenly rounded-4 infoContainer p-3 px-4">
-            <div class="text-center m-2 p-2 bg-white rounded-4">
-                <p class="mb-2" id="shipTo">SHIP TO: DC FENCE SOLUTIONS/ 2498 W THIRD CT HIALEAH, FL 33010</p>
-                <p class="text-danger mb-2" id="paymentInstructions">Please make checks payable to: DC FENCE SOLUTIONS</p>
-                <p class="text-primary" id="thankYouMessage">Thank you for your trust</p>
+            <div class="mb-2">
+                <div class="row">
+                    <div class="col-4 fw-bold border border-2 text-end">INVOICE NO.</div>
+                    <div class="col-8">
+                        <input id="invoiceNumber" type="text" class="form-control border-bottom" value="{{project.id}}-{{proposal.id}}{{next_invoice_id}}">
+                    </div>
+                </div>
+            </div>
+        
+            <img src="{% static 'img/DcSello.webp' %}" alt="DC FENCE Logo" class="imgSello">
+        
+            <div class="mb-2">
+                <div class="row">
+                    <div class="col-4 fw-bold border border-2 text-end">JOB ADDRESS</div>
+                    <div class="col-8">
+                        <input id="jobAddress" type="text" class="form-control border-bottom" value="{{project.customer.address}}">
+                    </div>
+                </div>
+            </div>
+        
+            <div class="mb-2">
+                <div class="row">
+                    <div class="col-4 fw-bold border border-2 text-end">DESCRIPTION</div>
+                    <div class="col-8">
+                        <input id="jobDescription" type="text" class="form-control border-bottom" value="{{project.description}}">
+                    </div>
+                </div>
+            </div>
+        
+            <div class="mb-2">
+                <div class="row">
+                    <div class="col-4 fw-bold border border-2 text-end">BILL TO:</div>
+                    <div class="col-8">
+                        <input id="billTo" type="text" class="form-control border-bottom" value="MDCPS">
+                    </div>
+                </div>
+            </div>
+        
+            <div class="mb-3">
+                <div class="row">
+                    <div class="col-4 fw-bold border border-2 text-end">PERIOD:</div>
+                    <div class="col-8">
+                        <div class="d-flex">
+                            <input type="date" id="startDate" class="form-control border-bottom me-2" placeholder="Start Date" value="{% if mode == 'view' %}{{ invoice.invoiceInfo.startDate|default:'' }}{% else %}{{ today|date:'Y-m-d' }}{% endif %}">
+                            <input type="date" id="endDate" class="form-control border-bottom" placeholder="End Date" value="{% if mode == 'view' %}{{ invoice.invoiceInfo.endDate|default:'' }}{% else %}{{ today|date:'Y-m-d' }}{% endif %}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+            <div class="mb-2">
+                <div class="row">
+                    <div class="col-4 fw-bold border border-2 text-end">PROJECT NAME</div>
+                    <div class="col-8">
+                        <input id="projectName" type="text" class="form-control border-bottom text-uppercase" value="{{project.project_name}}">
+                    </div>
+                </div>
+            </div>
+        
+            <div class="mb-2">
+                <div class="row">
+                    <div class="col-4 fw-bold border border-2 text-end">CONTRACT #</div>
+                    <div class="col-8">
+                        <input id="contractNumber" type="text" class="form-control border-bottom" value="{% if mode == 'view' %}{{ invoice.invoiceInfo.contractNumber|default:'' }}{% else %}{% endif %}">
+                    </div>
+                </div>
+            </div>
+        
+
+            <div>
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>Quantity</th>
+                            <th>Description</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemsBody">
+                        {% if mode == 'view' %}
+                            {% for item in invoice.invoiceInfo.items %}
+                            <tr class='itemRow'>
+                                <td style='width:40px'><input id="item{{forloop.counter}}Quantity" type="number" class="form-control" value="{{item.qt}}" readonly></td>
+                                <td><input id="item{{forloop.counter}}Description" type="text" class="form-control" value="{{item.description}}" readonly></td>
+                                <td class="text-end w-25"><input id="item{{forloop.counter}}Amount" type="text" class="form-control text-end" value="{{item.value}}" readonly></td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr class='itemRow'>
+                                <td style='width:40px'><input id="item1Quantity" type="number" class="form-control" value="1"></td>
+                                <td><input id="item1Description" type="text" class="form-control" value="Supply and install Chain Link Fence and Gates"></td>
+                                <td class="text-end w-25"><input id="item1Amount" type="text" class="form-control text-end" value="{{proposal.remaining_amount|floatformat:2}}" oninput="updateTotal()"></td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="2" class="text-end text-primary fw-bold"><strong>TOTAL :</strong></td>
+                            <td class="text-end bg-primary">
+                                <input id="totalAmount" type="text" class="form-control text-end bg-primary text-light fw-bold" value="{% if mode == 'view' %}{{invoice.total_invoice|floatformat:2}}{% else %}{{proposal.remaining_amount|floatformat:2}}{% endif %}" readonly >
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <button id="addItem" class="btn btn-primary py-1 fs-6">+ Add Item</button>
+                
+                <!-- Percentage Calculator -->
+                <div class="position-absolute bottom-0 end-0 m-3" id="calculatorContainer">
+                    <!-- Calculator Icon (Always Visible) -->
+                    <div class="calculator-icon bg-white border border-secondary rounded-circle p-2 shadow-sm" 
+                         style="width: 50px; height: 50px; cursor: pointer; transition: all 0.3s ease;"
+                         onclick="toggleCalculator()">
+                        <i class="bi bi-calculator text-success fs-4 d-flex justify-content-center align-items-center h-100"></i>
+                    </div>
+                    
+                    <!-- Calculator Panel (Hidden by default) -->
+                    <div class="calculator-panel bg-white border border-secondary rounded shadow-sm p-3" 
+                         id="calculatorPanel" 
+                         style="position: absolute; bottom: 60px; right: 0; width: 300px; display: none; z-index: 1000;">
+                        <div class="d-flex flex-column gap-2">
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="number" id="percentageInput" class="form-control bg-secondary bg-opacity-25" 
+                                       placeholder="%" min="0" max="100" step="0.01" style="width: 80px;">
+                                <button class="btn btn-secondary text-white btn-sm" type="button" onclick="calculatePercentage()">
+                                    Calculate
+                                </button>
+                            </div>
+                            <div class="d-flex gap-1 flex-wrap">
+                                <button class="btn btn-success btn-sm" onclick="applyPercentage(10)">10%</button>
+                                <button class="btn btn-success btn-sm" onclick="applyPercentage(25)">25%</button>
+                                <button class="btn btn-success btn-sm" onclick="applyPercentage(50)">50%</button>
+                                <button class="btn btn-success btn-sm" onclick="applyPercentage(75)">75%</button>
+                            </div>
+                            <small class="text-muted">Click to calculate percentages</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        
+            <div class="d-flex flex-row flex-nowrap justify-content-evenly rounded-4 infoContainer p-3 px-4">
+                <div class="text-center m-2 p-2 bg-white rounded-4">
+                    <p class="mb-2" id="shipTo">SHIP TO: DC FENCE SOLUTIONS/ 2498 W THIRD CT HIALEAH, FL 33010</p>
+                    <p class="text-danger mb-2" id="paymentInstructions">Please make checks payable to: DC FENCE SOLUTIONS</p>
+                    <p class="text-primary" id="thankYouMessage">Thank you for your trust</p>
+                </div>
             </div>
         </div>
-    </div>
-    <div id="alert-container"></div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.getElementById('addItem').addEventListener('click', addItem);
-
-        let itemCount = 1;
-        let total = parseFloat('{{proposal.remaining_amount}}') || 0;
-
-        // Initialize currency formatting on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Format initial amount as USD
-            const initialAmount = document.getElementById('item1Amount');
-            if (initialAmount) {
-                const value = parseFloat(initialAmount.value) || 0;
-                initialAmount.value = value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+        <div id="alert-container"></div>
+        <!-- Modal para enviar por correo -->
+        <!-- Quill.js Rich Text Editor -->
+        <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+        <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+        <style>
+            #emailBodyEditor .ql-container {
+                height: 250px !important;
+                overflow-y: auto;
             }
-            
-            // Format total as USD
-            const totalElement = document.getElementById('totalAmount');
-            if (totalElement) {
-                const value = parseFloat(totalElement.value) || 0;
-                totalElement.value = value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+            #emailBodyEditor .ql-toolbar {
+                border-bottom: 1px solid #ccc;
             }
-            
-            // Set default dates
-            const startDate = document.getElementById('startDate');
-            const endDate = document.getElementById('endDate');
-            
-            if (startDate && endDate) {
-                // Set today's date
-                const today = new Date();
-                const todayString = today.toISOString().split('T')[0];
-                startDate.value = todayString;
-                
-                // Set date 30 days from today
-                const thirtyDaysLater = new Date();
-                thirtyDaysLater.setDate(today.getDate() + 30);
-                const thirtyDaysLaterString = thirtyDaysLater.toISOString().split('T')[0];
-                endDate.value = thirtyDaysLaterString;
-            }
-        });
-
-        function addItem() {
-            itemCount++;
-            const tbody = document.getElementById('itemsBody');
-            
-            // Create a new row
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td><input id="item${itemCount}Quantity" type="number" class="form-control" value="1" oninput="updateTotal()"></td>
-                <td><input id="item${itemCount}Description" type="text" class="form-control" value="New Item"></td>
-                <td class="text-end"><input id="item${itemCount}Amount" type="text" class="form-control text-end" value="0.00" oninput="updateTotal()"></td>
-                <td class="p-0 text-center d-flex align-items-center" style="width:0px; positionL:relative" >
-                    <button type="button" class="border-0 text-danger remove_btn p-1 rounded-4 " aria-label="remove-item" onclick="removeItem(this)">
-                        <i class="bi bi-trash3 fs-5"></i>
-                    </button>
-                </td>
-            `;
-            row.classList.add('itemRow');
-            tbody.appendChild(row);
-    total
-            updateTotal();
-        }
-        function removeItem(button) {
-            const row = button.closest('tr');
-            row.remove();
-            updateTotal();
-        }
-        function updateTotal() {
-            total = 0;
-            const amounts = document.querySelectorAll('[id^="item"][id$="Amount"]');
-            amounts.forEach(input => {
-                // Remove currency formatting and parse as number
-                const value = input.value.replace(/[$,]/g, '');
-                total += parseFloat(value) || 0;
-            });
-            const infoSaved = document.getElementById("infoSave");
-            const maxTotal = parseFloat('{{ proposal.remaining_amount }}'); 
-            const totalElement = document.getElementById('totalAmount');
-            totalElement.value = total.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-            const saveButton = document.getElementById('saveButton');
-            
-            if (total > maxTotal) {
-                if (infoSaved.classList.contains("d-none")) {
-                    infoSaved.classList.remove("d-none");
-                }
-                saveButton.disabled = true;
-                showAlert('The budget amount exceeds the available total for billing. $' + maxTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD' }), 'warning');
+        </style>
+        <!-- Email Modal -->
+        <div class="modal fade" id="emailModal" tabindex="-1" aria-labelledby="emailModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg" >
+                <div class="modal-content" style="width: 50vw;" >
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold bg-light border border-2 boder-secondary rounded-2 px-2 py-1" id="emailModalLabel">
+                            <i class="bi bi-envelope-fill text-success"></i> Send Invoice by Email
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="emailForm" class="d-flex flex-row gap-2">
+                            {% csrf_token %}
+                            <input type="hidden" id="projectId_form" name="project_id" value="{{ project.id }}">
+                            <input type="hidden" id="invoiceId_form" name="invoice_id" value="{{ invoice.id }}">
+                            <div class="d-flex flex-column gap-2 w-25 bg-secondary bg-opacity-10 border border-2 border-secondary rounded-2 p-2">
+                                <div>
+                                    <label for="recipientEmail" class=" fw-bold fs-6 text-start mb-1 w-100">Email</label>
+                                    <input type="email" class="form-control" id="recipientEmail" name="recipient_email" style="font-size: 14px;" value="{{ project.customer.email|lower }}" required>
+                                </div>
+                                <div>
+                                    <label for="recipientName" class=" fw-bold fs-6 text-start mb-1 w-100">Name</label>
+                                    <input type="text" class="form-control" id="recipientName" name="recipient_name" style="font-size: 14px;"
+                                           value="{% if project.customer.customer_type == 'company' %}{{ project.customer.company_name }}{% else %}{{ project.customer.first_name }} {{ project.customer.last_name }}{% endif %}">
+                                </div>
+                            </div>
+                            <div class="d-flex flex-column gap-2 w-75">
+                                <div>
+                                    <label for="emailSubject" class="form-label fw-bold fs-6 text-start mb-1 w-100">Subject *</label>
+                                    <input type="text" class="form-control" id="emailSubject" name="subject" style="font-size: 14px;"   
+                                        value="Invoice for {{ project.project_name }} | {{ project.customer.company_name|default:project.customer.first_name }}" required>
+                                </div>
+                                <div>
+                                    <label for="emailBody" class="form-label fw-bold fs-6 text-start mb-1 w-100">Message *</label>
+                                    <div id="emailBodyEditor" style="border: 1px solid #ced4da; border-radius: 0.375rem; background-color: white;">
+                                        <div id="emailBody"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-success" id="sendEmailButton" onclick="sendInvoiceEmail()">
+                            <i class="bi bi-envelope-fill"></i> Send Email
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+        <script>
+            // Initialize mode
+            const mode = document.getElementById('mode').value;
+            const container = document.getElementById('containerInvoice');
+            if (mode === 'view') {
+                container.classList.add('view-mode');
+                // Disable all inputs in view mode
+                const inputs = container.querySelectorAll('input');
+                inputs.forEach(input => {
+                    input.readOnly = true;
+                    input.style.backgroundColor = 'transparent';
+                    input.style.border = 'none';
+                });
+                // Hide Save button in view mode
+                document.getElementById('saveButton').style.display = 'none';
+                document.getElementById('editButton').style.display = 'inline-block';
             } else {
-                saveButton.disabled = false;
-                if (!infoSaved.classList.contains("d-none")) {
-                    infoSaved.classList.add("d-none");
-                }
+                container.classList.add('edit-mode');
+                // Show Save button in edit mode
+                document.getElementById('saveButton').style.display = 'inline-block';
+                document.getElementById('editButton').style.display = 'none';
             }
-        }
-        
-
-        function saveInvoice() {
-            const inputs = document.querySelectorAll(".container-sm input");
-            const jsonData = {};
-            const csrfToken = document.getElementById('csrf-token').dataset.csrf;
-            inputs.forEach(input => {
-                if (input.id && !input.closest('.itemRow') ) {
-                    jsonData[input.id] = input.value;
+            document.getElementById('addItem').addEventListener('click', addItem);
+            const modeElement = document.getElementById('mode');
+            let itemCount = parseInt(modeElement.dataset.itemCount) || 1;
+            let total = parseFloat(modeElement.dataset.total) || 0;
+            // Initialize currency formatting on page load
+            document.addEventListener('DOMContentLoaded', function() {
+                // Format all item amounts as USD
+                const itemAmounts = document.querySelectorAll('[id^="item"][id$="Amount"]');
+                itemAmounts.forEach(input => {
+                    let value = input.value;
+                    if (value.includes('$') || value.includes(',')) {
+                        value = value.replace(/[$,]/g, '');
+                    }
+                    const numValue = parseFloat(value) || 0;
+                    input.value = numValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+                });
+                // Format total as USD
+                const totalElement = document.getElementById('totalAmount');
+                if (totalElement) {
+                    let value = totalElement.value;
+                    if (value.includes('$') || value.includes(',')) {
+                        value = value.replace(/[$,]/g, '');
+                    }
+                    const numValue = parseFloat(value) || 0;
+                    totalElement.value = numValue.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
                 }
             });
-            const rowItems = document.querySelectorAll(".itemRow");
-            const items = [];
-            
-            rowItems.forEach(row => {
-                const rowData = {};
-                const cells = row.querySelectorAll("td");
-                
-                cells.forEach((cell, index) => {
-                    const input = cell.querySelector("input"); 
+            // Al cargar la página o cambiar de modo:
+            document.addEventListener('DOMContentLoaded', function() {
+                const mode = document.getElementById('mode').value;
+                const container = document.getElementById('containerInvoice');
+                if (mode === 'view') {
+                    // Ocultar botón add item y calculadora
+                    const addItemBtn = document.getElementById('addItem');
+                    if (addItemBtn) addItemBtn.style.display = 'none';
+                    const calculatorContainer = document.getElementById('calculatorContainer');
+                    if (calculatorContainer) calculatorContainer.style.display = 'none';
+                } else {
+                    // Mostrar en modo edición
+                    const addItemBtn = document.getElementById('addItem');
+                    if (addItemBtn) addItemBtn.style.display = 'inline-block';
+                    const calculatorContainer = document.getElementById('calculatorContainer');
+                    if (calculatorContainer) calculatorContainer.style.display = 'block';
+                }
+            });
 
-                    if (input) { 
-                        if (index === 0) {
-                            rowData.qt = input.value;
-                        } else if (index === 1) {
-                            rowData.description = input.value; 
-                        } else if (index === 2) {
-                            rowData.value = input.value;
-                        }
+            function enableEdit() {
+                container.classList.remove('view-mode');
+                container.classList.add('edit-mode');
+                // Enable all inputs
+                const inputs = container.querySelectorAll('input');
+                inputs.forEach(input => {
+                    if (input.id !== 'startDate' && input.id !== 'endDate') {
+                        input.readOnly = false;
+                        input.style.backgroundColor = '';
+                        input.style.border = '';
                     }
                 });
-                items.push(rowData);
+                document.getElementById('addItem').style.display = 'inline-block';
+                document.getElementById('calculatorContainer').style.display = 'block';
+                document.getElementById('saveButton').style.display = 'inline-block';
+                document.getElementById('editButton').style.display = 'none';
+                document.getElementById('mode').value = 'edit';
+                // Mostrar add item y calculadora
+                const addItemBtn = document.getElementById('addItem');
+                if (addItemBtn) addItemBtn.style.display = 'inline-block';
+                const calculatorContainer = document.getElementById('calculatorContainer');
+                if (calculatorContainer) calculatorContainer.style.display = 'block';
+            }
+            function generatePDF() {
+                const element = document.getElementById('containerInvoice');
+                const opt = {
+                    filename: `Invoice_${document.getElementById('invoiceId').value}_${new Date().toISOString().split('T')[0]}.pdf`,
+                    image: { type: 'jpeg', quality: 1 },
+                    html2canvas: { scale: 2, useCORS: true, logging: false, letterRendering: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', hotfixes: ['px_scaling'] },
+                    margin: [0, 0, 0, 0],
+                };
+                html2pdf().set(opt).from(element).save();
+            }
+
+            function addItem() {
+                itemCount++;
+                const tbody = document.getElementById('itemsBody');
+                
+                // Create a new row
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input id="item${itemCount}Quantity" type="number" class="form-control" value="1" oninput="updateTotal()"></td>
+                    <td><input id="item${itemCount}Description" type="text" class="form-control" value="New Item"></td>
+                    <td class="text-end"><input id="item${itemCount}Amount" type="text" class="form-control text-end" value="0.00" oninput="updateTotal()"></td>
+                    <td class="p-0 text-center d-flex align-items-center" style="width:0px; positionL:relative" >
+                        <button type="button" class="border-0 text-danger remove_btn p-1 rounded-4 " aria-label="remove-item" onclick="removeItem(this)">
+                            <i class="bi bi-trash3 fs-5"></i>
+                        </button>
+                    </td>
+                `;
+                row.classList.add('itemRow');
+                tbody.appendChild(row);
+                updateTotal();
+            }
+            function removeItem(button) {
+                const row = button.closest('tr');
+                row.remove();
+                updateTotal();
+            }
+            function updateTotal() {
+                total = 0;
+                const amounts = document.querySelectorAll('[id^="item"][id$="Amount"]');
+                amounts.forEach(input => {
+                    // Remove currency formatting and parse as number
+                    const value = input.value.replace(/[$,]/g, '');
+                    total += parseFloat(value) || 0;
                 });
-            jsonData['items'] = items;
-            jsonData['total'] = total;
-            jsonData['type'] = 'BROWARD';
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            loadingOverlay.classList.remove('d-none');
-            fetch(`/projects/{{project.id}}/mdcpInvoice/{{proposal.id}}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrfToken,
-                },
-                body: JSON.stringify(jsonData),
-            })
-            .then(data => {
-                console.log('Respuesta del servidor:', jsonData);
+                const infoSaved = document.getElementById("infoSave");
+                const maxTotal = parseFloat('{{ proposal.remaining_amount }}'); 
+                const totalElement = document.getElementById('totalAmount');
+                totalElement.value = total.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+                const saveButton = document.getElementById('saveButton');
+                
+                if (total > maxTotal) {
+                    if (infoSaved.classList.contains("d-none")) {
+                        infoSaved.classList.remove("d-none");
+                    }
+                    saveButton.disabled = true;
+                    showAlert('The budget amount exceeds the available total for billing. $' + maxTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD' }), 'warning');
+                } else {
+                    saveButton.disabled = false;
+                    if (!infoSaved.classList.contains("d-none")) {
+                        infoSaved.classList.add("d-none");
+                    }
+                }
+            }
+            
+
+            function saveInvoice() {
+                const inputs = document.querySelectorAll(".container-sm input");
+                const jsonData = {};
+                const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+                inputs.forEach(input => {
+                    if (input.id && !input.closest('.itemRow') ) {
+                        jsonData[input.id] = input.value;
+                    }
+                });
+                const rowItems = document.querySelectorAll(".itemRow");
+                const items = [];
+                
+                rowItems.forEach(row => {
+                    const rowData = {};
+                    const cells = row.querySelectorAll("td");
+                    
+                    cells.forEach((cell, index) => {
+                        const input = cell.querySelector("input"); 
+
+                        if (input) { 
+                            if (index === 0) {
+                                rowData.qt = input.value;
+                            } else if (index === 1) {
+                                rowData.description = input.value; 
+                            } else if (index === 2) {
+                                rowData.value = input.value;
+                            }
+                        }
+                    });
+                    items.push(rowData);
+                    });
+                jsonData['items'] = items;
+                jsonData['total'] = total;
+                jsonData['type'] = 'BROWARD';
                 const loadingOverlay = document.getElementById('loadingOverlay');
-                window.location.href = `/projects/{{project.id}}/`;
-                loadingOverlay.classList.add('d-none');
-            })
-            .catch(error => {
-                console.error('Error al enviar los datos:', error);
-            });
-        }
-
-        function showAlert(message, type) {
-            const alertContainer = document.getElementById("alert-container");
-            const alert = document.createElement("div");
-            alert.classList.add("alert", `alert-${type}`, "alert-dismissible", "fade", "show");
-            alert.role = "alert";
-            alert.innerHTML = `
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            `;
-            alertContainer.appendChild(alert);
-            setTimeout(() => {
-                alert.classList.remove("show");
-                alert.classList.add("fade");
-                alert.remove();
-            }, 4000); 
-            return alert;
-        }
-
-        // Percentage calculation functions
-        function calculatePercentage() {
-            const percentageInput = document.getElementById('percentageInput');
-            const percentage = parseFloat(percentageInput.value);
-            
-            if (isNaN(percentage) || percentage < 0 || percentage > 100) {
-                showAlert('Please enter a valid percentage between 0 and 100', 'warning');
-                return;
+                loadingOverlay.classList.remove('d-none');
+                fetch(`/projects/{{project.id}}/broadInvoice10/{{proposal.id}}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify(jsonData),
+                })
+                .then(data => {
+                    console.log('Respuesta del servidor:', jsonData);
+                    const loadingOverlay = document.getElementById('loadingOverlay');
+                    window.location.href = `/projects/{{project.id}}/`;
+                    loadingOverlay.classList.add('d-none');
+                })
+                .catch(error => {
+                    console.error('Error al enviar los datos:', error);
+                });
             }
-            
-            const maxTotal = parseFloat('{{ proposal.remaining_amount }}');
-            const calculatedAmount = (maxTotal * percentage) / 100;
-            
-            // Update the first item amount
-            const firstItemAmount = document.getElementById('item1Amount');
-            if (firstItemAmount) {
-                firstItemAmount.value = calculatedAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-            }
-            
-            // Update total
-            updateTotal();
-            
-            showAlert(`Applied ${percentage}% of remaining budget`, 'success');
-        }
 
-        function applyPercentage(percentage) {
-            const maxTotal = parseFloat('{{ proposal.total_proposal }}');
-            const calculatedAmount = (maxTotal * percentage) / 100;
-            
-            // Update the first item amount
-            const firstItemAmount = document.getElementById('item1Amount');
-            if (firstItemAmount) {
-                firstItemAmount.value = calculatedAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-            }
-            
-            // Update total
-            updateTotal();
-            
-            showAlert(`Applied ${percentage}% of remaining budget`, 'success');
-        }
-
-        // Calculator toggle function
-        function toggleCalculator() {
-            const panel = document.getElementById('calculatorPanel');
-            const icon = document.querySelector('.calculator-icon');
-            
-            if (panel.style.display === 'none' || panel.style.display === '') {
-                // Show calculator
-                panel.style.display = 'block';
-                panel.style.opacity = '0';
+            function showAlert(message, type) {
+                const alertContainer = document.getElementById("alert-container");
+                const alert = document.createElement("div");
+                alert.classList.add("alert", `alert-${type}`, "alert-dismissible", "fade", "show");
+                alert.role = "alert";
+                alert.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                alertContainer.appendChild(alert);
                 setTimeout(() => {
-                    panel.style.opacity = '1';
-                }, 10);
-                icon.style.backgroundColor = '#e9ecef';
-            } else {
-                // Hide calculator
-                panel.style.opacity = '0';
-                setTimeout(() => {
-                    panel.style.display = 'none';
-                }, 300);
-                icon.style.backgroundColor = 'white';
+                    alert.classList.remove("show");
+                    alert.classList.add("fade");
+                    alert.remove();
+                }, 4000); 
+                return alert;
             }
-        }
 
-        // Close calculator when clicking outside
-        document.addEventListener('click', function(event) {
-            const calculatorContainer = document.getElementById('calculatorContainer');
-            const panel = document.getElementById('calculatorPanel');
-            
-            if (panel && panel.style.display !== 'none') {
-                if (!calculatorContainer.contains(event.target)) {
+            // Percentage calculation functions
+            function calculatePercentage() {
+                const percentageInput = document.getElementById('percentageInput');
+                const percentage = parseFloat(percentageInput.value);
+                
+                if (isNaN(percentage) || percentage < 0 || percentage > 100) {
+                    showAlert('Please enter a valid percentage between 0 and 100', 'warning');
+                    return;
+                }
+                
+                const maxTotal = parseFloat('{{ proposal.remaining_amount }}');
+                const calculatedAmount = (maxTotal * percentage) / 100;
+                
+                // Update the first item amount
+                const firstItemAmount = document.getElementById('item1Amount');
+                if (firstItemAmount) {
+                    firstItemAmount.value = calculatedAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+                }
+                
+                // Update total
+                updateTotal();
+                
+                showAlert(`Applied ${percentage}% of remaining budget`, 'success');
+            }
+
+            function applyPercentage(percentage) {
+                const maxTotal = parseFloat('{{ proposal.total_proposal }}');
+                const calculatedAmount = (maxTotal * percentage) / 100;
+                
+                // Update the first item amount
+                const firstItemAmount = document.getElementById('item1Amount');
+                if (firstItemAmount) {
+                    firstItemAmount.value = calculatedAmount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+                }
+                
+                // Update total
+                updateTotal();
+                
+                showAlert(`Applied ${percentage}% of remaining budget`, 'success');
+            }
+
+            // Calculator toggle function
+            function toggleCalculator() {
+                const panel = document.getElementById('calculatorPanel');
+                const icon = document.querySelector('.calculator-icon');
+                
+                if (panel.style.display === 'none' || panel.style.display === '') {
+                    // Show calculator
+                    panel.style.display = 'block';
+                    panel.style.opacity = '0';
+                    setTimeout(() => {
+                        panel.style.opacity = '1';
+                    }, 10);
+                    icon.style.backgroundColor = '#e9ecef';
+                } else {
+                    // Hide calculator
                     panel.style.opacity = '0';
                     setTimeout(() => {
                         panel.style.display = 'none';
                     }, 300);
-                    document.querySelector('.calculator-icon').style.backgroundColor = 'white';
+                    icon.style.backgroundColor = 'white';
                 }
             }
-        });
-        
-    </script>
 
-{% endblock %}
+            // Close calculator when clicking outside
+            document.addEventListener('click', function(event) {
+                const calculatorContainer = document.getElementById('calculatorContainer');
+                const panel = document.getElementById('calculatorPanel');
+                
+                if (panel && panel.style.display !== 'none') {
+                    if (!calculatorContainer.contains(event.target)) {
+                        panel.style.opacity = '0';
+                        setTimeout(() => {
+                            panel.style.display = 'none';
+                        }, 300);
+                        document.querySelector('.calculator-icon').style.backgroundColor = 'white';
+                    }
+                }
+            });
+            
+        </script>
+        <!-- Función para abrir el modal de email (scope global) -->
+        <script>
+            // Quill.js Rich Text Editor
+            let quillInvoice;
+            function initializeQuillInvoice() {
+                const toolbarOptions = [
+                    ['bold', 'italic', 'underline', 'strike'],
+                    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                    [{ 'size': ['small', false, 'large', 'huge'] }],
+                    [{ 'color': [] }, { 'background': [] }],
+                    [{ 'align': [] }],
+                ];
+                quillInvoice = new Quill('#emailBody', {
+                    theme: 'snow',
+                    modules: { toolbar: toolbarOptions },
+                    placeholder: 'Write your message here...'
+                });
+                // Mensaje profesional/técnico por defecto
+                const initialContent = `Dear client,\n\nPlease find attached the invoice corresponding to your project: {{ project.project_name }}.\n\nIf you have any questions regarding the invoice details, payment process, or require further documentation, please do not hesitate to contact us at your earliest convenience.\n\nThank you for your trust in our services.\n\nBest regards,\nDC Fence Solutions - Accounting Department`;
+                quillInvoice.setText(initialContent);
+            }
+            window.openEmailModal = function() {
+                const emailModal = new bootstrap.Modal(document.getElementById('emailModal'));
+                emailModal.show();
+                setTimeout(() => {
+                    if (!quillInvoice) {
+                        initializeQuillInvoice();
+                    }
+                }, 100);
+            }
+            function sendInvoiceEmail() {
+                
+                const recipient = document.getElementById('recipientEmail').value;
+                const recipientName = document.getElementById('recipientName').value;
+                const subject = document.getElementById('emailSubject').value;
+                const body = quillInvoice ? quillInvoice.root.innerHTML : '';
+                const projectId = document.getElementById('projectId_form').value;
+                const invoiceId = document.getElementById('invoiceId_form').value;
+                const element = document.getElementById('containerInvoice');
+                const sendButton = document.getElementById('sendEmailButton');
+                const originalText = sendButton.innerHTML;
+                sendButton.disabled = true;
+                sendButton.innerHTML = '<i class="bi bi-paperclip"></i> Attaching file...';
+                
+                const opt = {
+                    filename: `Invoice_${invoiceId}_${new Date().toISOString().split('T')[0]}.pdf`,
+                    image: { type: 'jpeg', quality: 1 },
+                    html2canvas: { scale: 2, useCORS: true, logging: false, letterRendering: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', hotfixes: ['px_scaling'] },
+                    margin: [0, 0, 0, 0],
+                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                };
+                
+                document.getElementById('loadingOverlay').classList.remove('d-none');
+                
+                // Cambiar estado a "Generating PDF"
+                sendButton.innerHTML = '<i class="bi bi-file-pdf"></i> Generating PDF...';
+                console.log('Changed to Generating PDF state'); // Debug log
+                
+                html2pdf().set(opt).from(element).outputPdf('blob').then(function(pdfBlob) {
+                    // Cambiar estado a "Sending"
+                    sendButton.innerHTML = '<i class="bi bi-envelope"></i> Sending...';
+                    console.log('Changed to Sending state'); // Debug log
+                    
+                    const formData = new FormData();
+                    formData.append('recipient_email', recipient);
+                    formData.append('recipient_name', recipientName);
+                    formData.append('subject', subject);
+                    formData.append('body', body);
+                    formData.append('invoice_id', invoiceId);
+                    formData.append('pdf_file', pdfBlob, 'invoice.pdf');
+                    
+                    fetch(`/send_invoice_email/${projectId}/${invoiceId}/`, {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('loadingOverlay').classList.add('d-none');
+                        if (data.status === 'success') {
+                            showAlert('Email sent successfully!', 'success');
+                            bootstrap.Modal.getInstance(document.getElementById('emailModal')).hide();
+                        } else {
+                            showAlert('Error sending email: ' + data.message, 'danger');
+                        }
+                    })
+                    .catch(error => {
+                        document.getElementById('loadingOverlay').classList.add('d-none');
+                        showAlert('Error sending email. Please try again.', 'danger');
+                    })
+                    .finally(() => {
+                        // Restaurar el botón
+                        sendButton.disabled = false;
+                        sendButton.innerHTML = originalText;
+                        console.log('Button restored to original state'); // Debug log
+                    });
+                }).catch(error => {
+                    document.getElementById('loadingOverlay').classList.add('d-none');
+                    sendButton.disabled = false;
+                    sendButton.innerHTML = originalText;
+                    showAlert('Error generating PDF. Please try again.', 'danger');
+                    console.error('PDF generation error:', error); // Debug log
+                });
+            }
+        </script>
+        </div>
+    </div>
+    {% endblock %}

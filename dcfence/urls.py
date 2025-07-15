@@ -56,13 +56,14 @@ urlpatterns = [
     path('projects/<int:project_id>/view_budgetSimple/<int:budget_id>', views.view_budgetSimple, name='view_budgetSimple'),
     path('projects/<int:project_id>/edit_budgetSimple/<int:budget_id>/<int:proposal_id>', views.view_budgetSimple, name='edit_budgetSimple'),
     path('project/<int:project_id>/view_budget/<int:budget_id>/budgetPrint', views.generate_pdf, name='budget_pdf'),
-    path('projects/<int:project_id>/pdf_invoice/<int:invoice_id>', views.pdf_invoice, name='pdf_invoice'),
+    path('projects/<int:project_id>/view_invoice/<int:invoice_id>', views.view_invoice, name='view_invoice'),    
     path('projects/<int:project_id>/pdf_proposal/<int:proposal_id>', views.pdf_proposal, name='pdf_proposal'),
     path('projects/<int:project_id>/aiaInvoice5/<int:invoice_id>', views.aiaInvoice5, name='aiaInvoice5'),
     path('projects/<int:project_id>/new_aia5_xlxs_template/search/',  utils.new_aia5_xlxs_template, name='new_aia5_xlxs_template'),
     path('projects/<int:project_id>/new_aia10_xlxs_template/search/',  utils.new_aia10_xlxs_template, name='new_aia10_xlxs_template'),
     path('projects/<int:project_id>/aiaInvoice10/<int:invoice_id>', views.aiaInvoice10, name='aiaInvoice10'),
-    path('projects/<int:project_id>/mdcpInvoice/<int:invoice_id>', views.MdcpInvoice, name='mdcpInvoice'), 
+    path('projects/<int:project_id>/mdcpInvoice/<int:invoice_id>', views.MdcpInvoice, name='mdcpInvoice'),
+    path('projects/<int:project_id>/updateMdcpInvoice/<int:invoice_id>', views.updateMdcpInvoice, name='updateMdcpInvoice'), 
     path('projects/<int:project_id>/changePaidInvoice/<int:invoice_id>', views.changePaidInvoice, name='changePaidInvoice'), 
     path('projects/<int:project_id>/broadInvoice10/<int:invoice_id>', views.BroadInvoice10, name='broadInvoice10'), 
     path('customers/<int:client_id>/', views.detail_customer, name='detail_customer'),
@@ -105,6 +106,7 @@ urlpatterns = [
     path('get_users_for_mentions/', views.get_users_for_mentions, name='get_users_for_mentions'),
     path('notifications/<int:notification_id>/delete/', views.delete_notification, name='delete_notification'),
     path('notifications/delete_all/', views.delete_all_notifications, name='delete_all_notifications'),
+    path('send_invoice_email/<int:project_id>/<int:invoice_id>/', views.send_invoice_email, name='send_invoice_email'),
 ]
 
 

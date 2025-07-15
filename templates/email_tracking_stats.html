@@ -8,7 +8,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="card-title">Email Tracking Statistics</h4>
+                    <h4 class="card-title fw-bold">Email Tracking Statistics</h4>
                 </div>
                 <div class="card-body">
                     <!-- Estadísticas generales -->
@@ -16,7 +16,7 @@
                         <div class="col-md-3">
                             <div class="card bg-primary bg-opacity-10 border-primary border-4 border-opacity-10 text-primary">
                                 <div class="card-body">
-                                    <h5 class="card-title border-bottom border-primary border-4 border-opacity-10">Total Emails</h5>
+                                    <h5 class="card-title border-bottom border-primary border-4 border-opacity-10 fw-bold">Total Emails</h5>
                                     <h3 id="total-emails" class="text-end fw-bold">0</h3>
                                 </div>
                             </div>
@@ -24,7 +24,7 @@
                         <div class="col-md-3">
                             <div class="card bg-success bg-opacity-10 border-success border-4 border-opacity-10 text-success">
                                 <div class="card-body">
-                                    <h5 class="card-title border-bottom border-success border-4 border-opacity-10">Opened Emails</h5>
+                                    <h5 class="card-title border-bottom border-success border-4 border-opacity-10 fw-bold">Opened Emails</h5>
                                     <h3 id="opened-emails" class="text-end fw-bold">0</h3>
                                 </div>
                             </div>
@@ -32,7 +32,7 @@
                         <div class="col-md-3">
                             <div class="card bg-info bg-opacity-10 border-info border-4 border-opacity-10 text-info">
                                 <div class="card-body">
-                                    <h5 class="card-title border-bottom border-info border-4 border-opacity-10">Open Rate</h5>
+                                    <h5 class="card-title border-bottom border-info border-4 border-opacity-10 fw-bold">Open Rate</h5>
                                     <h3 id="open-rate" class="text-end fw-bold">0%</h3>
                                 </div>
                             </div>
@@ -40,7 +40,7 @@
                         <div class="col-md-3">
                             <div class="card bg-warning bg-opacity-10 border-warning border-4 border-opacity-10 text-dark">
                                 <div class="card-body">
-                                    <h5 class="card-title border-bottom border-warning border-4 border-opacity-10">Days Back</h5>
+                                    <h5 class="card-title border-bottom border-warning border-4 border-opacity-10 fw-bold">Days Back</h5>
                                     <h3 id="days-back" class="text-end fw-bold">30</h3>
                                 </div>
                             </div>
@@ -151,8 +151,8 @@ function updateRecentEmails(emails) {
     emails.forEach(email => {
         const row = table.insertRow();
         const statusBadge = email.is_opened ? 
-            '<span class="badge bg-success">Opened</span>' : 
-            '<span class="badge bg-secondary">Not Opened</span>';
+            '<span class="badge bg-success bg-opacity-10 text-success">Opened</span>' : 
+            '<span class="badge bg-secondary bg-opacity-10 text-secondary">Not Opened</span>';
         
         row.innerHTML = `
             <td>${email.sent_at}</td>

@@ -815,7 +815,7 @@ def get_tracking_pixel_url(tracking_id):
     from django.conf import settings
     
     # Construir la URL completa
-    base_url = settings.BASE_URL if hasattr(settings, 'BASE_URL') else 'http://localhost:8000'
+    base_url = 'https://office.dcfence.org' #settings.BASE_URL if hasattr(settings, 'BASE_URL') else 'http://localhost:8000'
     tracking_url = reverse('log_img_traking_email_view', kwargs={'tracking_id': tracking_id})
     
     return f"{base_url}{tracking_url}"
@@ -916,17 +916,58 @@ def log_img_traking_email_view(request, tracking_id):
     try:
         # Obtener información del tracking
         from ..models import EmailTracking
-        
         # Obtener IP y User Agent
         ip_address = request.META.get('HTTP_X_FORWARDED_FOR', request.META.get('REMOTE_ADDR'))
         user_agent = request.META.get('HTTP_USER_AGENT', '')
-        
         # Buscar el registro de tracking
         tracking = EmailTracking.objects.filter(tracking_id=tracking_id).first()
-        
+
         if tracking:
-            # Marcar como abierto
-            tracking.mark_as_opened(ip_address=ip_address, user_agent=user_agent)
+            # Verificar si el usuario está autenticado en la aplicación
+            is_authenticated = request.user.is_authenticated if hasattr(request, 'user') else False
+            
+            # Si está autenticado, verificar si es el mismo usuario que envió el email
+            if is_authenticated and tracking.sent_by and request.user == tracking.sent_by:
+                # No trackear si es el mismo usuario que envió el email
+                pass
+            else:
+                # Verificar si la IP no es del remitente
+                should_track = True
+                
+                # Lista de IPs del servidor/desarrollo
+                server_ips = ['127.0.0.1', 'localhost', '::1', '0.0.0.0']
+                
+                # Si la IP actual es del servidor, no trackear
+                if ip_address in server_ips:
+                    should_track = False
+                
+                # Si hay IP del remitente y coincide, no trackear
+                if tracking.sender_ip and ip_address == tracking.sender_ip:
+                    should_track = False
+                
+                # Verificar si el usuario está logueado en la aplicación
+                # Si el User-Agent contiene referencias a la aplicación, no trackear
+                app_indicators = [
+                    'dcfence', 'office.dcfence.org', 'dcfence.vercel.app',
+                    'localhost:8000', '127.0.0.1:8000'
+                ]
+                
+                for indicator in app_indicators:
+                    if indicator.lower() in user_agent.lower():
+                        should_track = False
+                        break
+                
+                # Verificar si el referer viene de la aplicación
+                referer = request.META.get('HTTP_REFERER', '')
+                if referer:
+                    for indicator in app_indicators:
+                        if indicator.lower() in referer.lower():
+                            should_track = False
+                            break
+                
+                # Solo trackear si no es del servidor, remitente o aplicación
+                if should_track:
+                    tracking.mark_as_opened(ip_address=ip_address, user_agent=user_agent)
         
         # Servir la imagen de tracking (1x1 pixel transparente)
         from django.http import HttpResponse

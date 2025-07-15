@@ -16,6 +16,7 @@ from django.http import JsonResponse, HttpResponse
 import json
 from ..utils import get_email_full_content
 import base64
+from customer.utils import send_email_with_attachment
 
 # View for listing and adding customers
 @login_required
@@ -462,6 +463,124 @@ def send_proposal_email(request, project_id, proposal_id):
                 'message': f'Unexpected error: {str(e)}'
             }, status=500)
     
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Method not allowed'
+    }, status=405)
+
+@csrf_exempt
+def send_invoice_email(request, project_id, invoice_id):
+    """
+    Vista para enviar factura por correo electrónico con PDF adjunto usando la API de Google.
+    """
+    if request.method == 'POST':
+        try:
+            import json
+            from django.core.files.base import ContentFile
+            from django.template.loader import render_to_string
+            from .utils_get import create_email_tracking, add_tracking_to_email_html
+            import tempfile
+            import os
+
+            recipient_email = request.POST.get('recipient_email')
+            recipient_name = request.POST.get('recipient_name', '')
+            subject = request.POST.get('subject')
+            body = request.POST.get('body')
+            pdf_file = request.FILES.get('pdf_file')
+            pdf_base64 = request.POST.get('pdf_base64')
+
+            if not all([recipient_email, subject, body]):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'All required fields must be provided'
+                }, status=400)
+
+            project = get_object_or_404(Project, pk=project_id)
+            invoice = get_object_or_404(InvoiceProjects, pk=invoice_id, project=project)
+
+
+            tracking = create_email_tracking(
+            email_type="invoice",
+            recipient_email=recipient_email,
+            subject=subject,
+            project=project,
+            invoice=invoice,
+            sent_by=request.user,
+            metadata={
+                'project_id': project_id,
+                'invoice_id': invoice_id
+            })
+
+            # Renderizar el template de email con la información de la factura
+            email_html_content = render_to_string('components/email_invoice.html', {
+                'invoice': invoice,
+                'project': project,
+            })
+
+            combined_html = add_tracking_to_email_html(email_html_content, tracking.tracking_id)
+
+            # Combinar el mensaje personalizado con el HTML del template
+            combined_html = f"""
+            <div style="line-height: 0; font-family: Arial, sans-serif; margin-bottom: 20px;">
+                {body}
+            </div>
+            <hr style="margin: 30px 0; border: 1px solid #ddd;">
+            <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin-top: 20px;">
+                {combined_html}
+            </div>
+            """
+
+            # Guardar el PDF en un archivo temporal
+            temp_pdf_path = None
+            temp_pdf_name = None
+            if pdf_file:
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+                    tmp.write(pdf_file.read())
+                    temp_pdf_path = tmp.name
+                    temp_pdf_name = pdf_file.name
+            elif pdf_base64:
+                import base64
+                pdf_data = base64.b64decode(pdf_base64.split(',')[-1])
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+                    tmp.write(pdf_data)
+                    temp_pdf_path = tmp.name
+                    temp_pdf_name = f"Invoice_{invoice_id}.pdf"
+
+            unique_id = f"P{project_id} I{invoice_id}"
+            subject = f"{subject} | {unique_id}"
+
+            # Enviar el correo usando la API de Google
+            result = send_email_with_attachment(
+                subject=subject,
+                html_body=combined_html,
+                recipient_email=recipient_email,
+                recipient_name=recipient_name,
+                attachment_path=temp_pdf_path,
+                attachment_name=temp_pdf_name
+            )
+
+            # Eliminar el archivo temporal
+            if temp_pdf_path and os.path.exists(temp_pdf_path):
+                os.remove(temp_pdf_path)
+
+            if result['status'] == 'success':
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Invoice email sent successfully.'
+                })
+            else:
+                print(e)
+                return JsonResponse({
+                    'status': 'error',
+                    'message': result.get('message', 'Failed to send email')
+                }, status=500)
+        except Exception as e:
+            print(e)
+            return JsonResponse({
+                'status': 'error',
+                'message': f'Unexpected error: {str(e)}'
+            }, status=500)
+
     return JsonResponse({
         'status': 'error',
         'message': 'Method not allowed'
