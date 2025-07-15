@@ -1,7 +1,4 @@
 
-// Email Modal Functions - Global scope
-let quill = null;
-
 function initializeQuill() {
     if (quill) return; // Ya inicializado
     

@@ -124,6 +124,16 @@
             {% endfor %}
         </div>
     </div>
+    {% if total_paid >= total_billed and total_billed > 0 and project.status != 'completed' and project.status != 'closed' %}
+      <div class="d-flex justify-content-end">
+        <form method="post" action="{% url 'close_project' project.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn bg-success bg-opacity-10 border border-success rounded-2 text-success border-2 fw-bold fs-5">
+            <i class="bi bi-check-circle text-success fs-5"></i> Close Project
+          </button>
+        </form>
+      </div>
+    {% endif %}
     </div>
   </div>
   

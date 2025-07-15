@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from ..models import (Customer, Project, 
                       BudgetEstimate, BudgetEstimateMaterialData, BudgetEstimateDeductsData,
                       BudgetEstimateLaborData, BudgetEstimateContractorData,
-                      BudgetEstimateMiscData, BudgetEstimateProfitData, BudgetEstimateUtil, InvoiceProjects, ProposalProjects, ProjectBudgetXLSX, PaymentsReceived)
+                      BudgetEstimateMiscData, BudgetEstimateProfitData, BudgetEstimateUtil, InvoiceProjects, ProposalProjects, ProjectBudgetXLSX, PaymentsReceived, ChangeOrderDetail, ChangeOrderItem)
 from django.db.models import Max, Sum
 from ..form import CustomerForm, ProjectsForm 
 from django.core.paginator import Paginator
@@ -17,7 +17,6 @@ from django.db.models import Sum, F
 from django.http import HttpResponse, JsonResponse, request
 from datetime import date, timedelta
 from django.utils import timezone
-import json
 import math
 from django.db import transaction
 from django.conf import settings
@@ -34,6 +33,7 @@ import re, traceback
 from typing import Optional, List
 from pydantic import BaseModel
 from customer.models import ProjectHistory
+import json
 
 
 load_dotenv()
@@ -336,7 +336,7 @@ def copy_info_item_table(exclusionList, original_object):
 @login_required
 def detail_project(request, project_id):
     if request.method == 'GET':
-        project = project = get_object_or_404(
+        project = get_object_or_404(
             Project.objects.only(
                 'id', 'project_name', 'customer', 'status', 'estimated_cost', 
                 'actual_cost', 'sales_advisor', 'project_manager', 'created_at', 
@@ -382,6 +382,10 @@ def detail_project(request, project_id):
         if proposals.filter(status=ProposalProjects.STATUS_APPROVED).exists():
             last_proposal_approved = proposals.filter(status=ProposalProjects.STATUS_APPROVED).last()
 
+        # Calcular total_paid y total_billed
+        total_paid = invoices.aggregate(total=Sum('total_paid'))['total'] or 0
+        total_billed = last_proposal_approved.total_proposal if last_proposal_approved else 0
+
         # Renderizar la plantilla
         return render(request, 'details_project.html', {
             'project': project,
@@ -398,6 +402,8 @@ def detail_project(request, project_id):
             'accounting_manager_not_available': accounting_manager_not_available,
             'last_proposal_approved': last_proposal_approved,
             'is_superuser_or_admin_or_accounting_manager': request.user.is_superuser or request.user.groups.filter(name='ADMIN').exists() or project.accounting_manager == request.user ,
+            'total_paid': total_paid,
+            'total_billed': total_billed,
         })
     
     else:
@@ -545,16 +551,61 @@ def new_budget(request, project_id):
             return JsonResponse({'status': 'error', 'message': f'Error al guardar el presupuesto: {str(e)}'}, status=500)
     
 @login_required
-def view_changeOrder(request, project_id,  budget_id):
+def view_changeOrder(request, project_id, budget_id):
     project = get_object_or_404(Project, pk=project_id)
     budget = get_object_or_404(BudgetEstimate, pk=budget_id)
     qtCHO = BudgetEstimate.objects.filter(id_related_budget=budget.id_related_budget, isChangeOrder=True)
+    
     if request.method == 'GET':
-        return render(request, 'view_changeOrder.html', {
+        # Buscar si existe un ChangeOrderDetail para este budget
+        try:
+            change_order = budget.change_order_detail
+            items = list(change_order.items.values('description', 'amount'))
+            change_order_data = {
+                "sub_contract_no": change_order.sub_contract_no,
+                "job_location": change_order.job_location,
+                "purchase_order": change_order.purchase_order,
+                "existing_contract_amount": float(change_order.existing_contract_amount) if change_order.existing_contract_amount else None,
+                "phone": change_order.phone,
+                "change_order_no": change_order.change_order_no,
+                "notes": change_order.notes,
+                "items": items,
+            }
+        except ChangeOrderDetail.DoesNotExist:
+            change_order_data = None
+
+        context = {
             'project': project,
             'budget': budget,
             'qtChangeOrder': len(qtCHO),
-        })
+            'change_order_data': json.dumps(change_order_data, default=str),
+            'project_status': project.status,
+        }
+        return render(request, 'view_changeOrder.html', context)
+
+    elif request.method == 'POST':
+        data = json.loads(request.body)
+        # Extraer campos
+        change_order, created = ChangeOrderDetail.objects.get_or_create(budget=budget)
+        change_order.sub_contract_no = data.get('sub_contract_no')
+        change_order.job_location = data.get('job_location')
+        change_order.purchase_order = data.get('purchase_order')
+        change_order.existing_contract_amount = data.get('existing_contract_amount')
+        change_order.phone = data.get('phone')
+        change_order.change_order_no = data.get('change_order_no')
+        change_order.notes = data.get('notes')
+        change_order.save()
+
+        # Limpiar ítems anteriores y guardar los nuevos
+        ChangeOrderItem.objects.filter(change_order=change_order).delete()
+        for item in data.get('items', []):
+            ChangeOrderItem.objects.create(
+                change_order=change_order,
+                description=item.get('description', ''),
+                amount=item.get('amount', 0)
+            )
+
+        return JsonResponse({'status': 'success', 'message': 'Change Order saved successfully!'})
 
 
 def view_budget(request, project_id, budget_id): 
@@ -1575,5 +1626,14 @@ def updateMdcpInvoice(request, project_id, invoice_id):
         return HttpResponse(status=200)
     
     return HttpResponse(status=405)  # Method not allowed for GET
+
+
+@login_required
+def close_project(request, project_id):
+    project = get_object_or_404(Project, id=project_id)
+    # Cambia el estado del proyecto a 'inactive' (ajusta si tienes otro status para cerrado)
+    project.status = Project.STATUS_COMPLETED
+    project.save()
+    return redirect('detail_project', project_id=project.id)
 
 

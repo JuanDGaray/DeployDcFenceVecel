@@ -308,6 +308,7 @@ class Project(models.Model):
     STATUS_CANCELLED = 'cancelled'
     STATUS_IN_PLANNING = 'planning_and_documentation'   
     STATUS_IN_ACCOUNTING = 'in_accounting'
+    STATUS_COMPLETED = 'completed'
 
     STATUS_CHOICES = [
         (STATUS_NEW, 'New'),
@@ -322,7 +323,8 @@ class Project(models.Model):
         (STATUS_PENDING_PAYMENT, 'Pending Payment'),
         (STATUS_INACTIVE, 'Inactive'),
         (STATUS_CANCELLED, 'Cancelled'),
-    ]
+        (STATUS_COMPLETED, 'Completed'),
+        ]
 
     id = models.AutoField(primary_key=True, verbose_name="Project ID")
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name="projects", verbose_name="Customer")
@@ -365,8 +367,6 @@ class Project(models.Model):
     def estimated_cost_usd(self):
         return self.estimated_cost.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) if self.estimated_cost else '0.00'
 
-
-
 class ProjectDocumentRequirement(models.Model):
     TYPE_DOCUMENT_CHOICES = [
         ('Permit', 'Permit'),
@@ -389,7 +389,6 @@ class ProjectDocumentRequirement(models.Model):
 
     def __str__(self):
         return f"{self.project.project_name} - {self.name}"
-
 
 class commentsProject(models.Model):
     project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='comments')
@@ -487,7 +486,7 @@ class ProposalProjects(models.Model):
     STATUS_CHOICES = [
         (STATUS_NEW, 'New'),               
         (STATUS_SENT, 'Sent'),             
-        (STATUS_PENDING, 'Pending'),       
+        (STATUS_PENDING, 'Pending'),      
         (STATUS_APPROVED, 'Approved'),    
         (STATUS_REJECTED, 'Rejected'),      
     ]
@@ -719,7 +718,6 @@ class ProductionChangeLog(models.Model):
     def __str__(self):
         return f"{self.project} - {self.action} - {self.timestamp:%Y-%m-%d %H:%M}"
 
-
 class EmailTracking(models.Model):
     """
     Modelo para tracking de emails enviados
@@ -798,3 +796,27 @@ class EmailTracking(models.Model):
         self.save()
 
 
+from django.db import models
+
+class ChangeOrderDetail(models.Model):
+    budget = models.OneToOneField('BudgetEstimate', on_delete=models.CASCADE, related_name='change_order_detail')
+    sub_contract_no = models.CharField(max_length=50, blank=True, null=True)
+    job_location = models.CharField(max_length=255, blank=True, null=True)
+    purchase_order = models.CharField(max_length=50, blank=True, null=True)
+    existing_contract_amount = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True)
+    phone = models.CharField(max_length=30, blank=True, null=True)
+    change_order_no = models.CharField(max_length=50, blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Change Order for Budget {self.budget.id}"
+
+class ChangeOrderItem(models.Model):
+    change_order = models.ForeignKey(ChangeOrderDetail, on_delete=models.CASCADE, related_name='items')
+    description = models.TextField()
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+
+    def __str__(self):
+        return f"Item for Change Order {self.change_order.id}: {self.description[:30]}"

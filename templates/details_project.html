@@ -901,9 +901,9 @@
       <a class="btn btn-success my-3 d-flex justify-content-end align-items-center fw-bold fs-3 px-4" style="width: fit-content; margin-left: auto;" href="/production/{{project.id }}"> Go to panel of production <i class="bi bi-arrow-right ms-2"></i></a>
     {% endif %}
     {% include "components/documents_projects.html" %}
+    {% include "components/emails_sent_to_client.html" %}
     {% include "modal_delete.html" %}
     {% include "components/modals_detail_projects.html" with project=project %}
-    {% include "components/emails_sent_to_client.html" %}
 <div id="loadingOverlay"  class="containerLoading d-none" >
   <img src="{% static 'img/loading.gif' %}" alt="Cargando" class="img-fluid rounded-1" style="width: 100px; height: auto;">
 </div>

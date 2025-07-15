@@ -4,6 +4,7 @@ from . import views
 from .views.production_views import request_cost_by_pm, assign_cost_by_accounting
 from .views.customer_views import download_email_attachment
 
+
 urlpatterns = [
     path('attachment_download/', download_email_attachment, name='attachment_download'),
     path('get_proposals/<int:page>/', views.utils_get.get_proposals, name='get_proposals'),
@@ -39,4 +40,5 @@ urlpatterns = [
     path('tracking/<str:tracking_id>/', views.utils_get.log_img_traking_email_view, name='log_img_traking_email_view'),
     path('email_tracking_stats/', views.utils_get.get_email_tracking_data, name='email_tracking_stats'),
     path('email_tracking_dashboard/', views.utils_get.email_tracking_dashboard, name='email_tracking_dashboard'),
+    path('projects/<int:project_id>/close/', views.close_project, name='close_project'),
 ]   
