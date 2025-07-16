@@ -1637,3 +1637,23 @@ def close_project(request, project_id):
     return redirect('detail_project', project_id=project.id)
 
 
+@login_required
+def view_payment_receipt(request, payment_id):
+    payment = get_object_or_404(PaymentsReceived, id=payment_id)
+    invoice = payment.invoice
+    project = invoice.project
+    amount_due = invoice.total_invoice - invoice.total_paid
+    # Total facturado y pagado del proyecto
+    from django.db.models import Sum
+    total_billed_project = project.invoices.aggregate(total=Sum('total_invoice'))['total'] or 0
+    total_paid_project = project.invoices.aggregate(total=Sum('total_paid'))['total'] or 0
+    return render(request, 'components/receipt_payment.html', {
+        'payment': payment,
+        'invoice': invoice,
+        'project': project,
+        'amount_due': amount_due,
+        'total_billed_project': total_billed_project,
+        'total_paid_project': total_paid_project,
+    })
+
+

@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_filters %}
+{% block content %}
+<div class="container py-5 bg-secondary bg-opacity-10">
+  <div class="d-flex flex-column justify-content-center">
+    <div class="col-lg-4 col-md-4 position-relative mx-auto">
+      <div class="card shadow border-0">
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-center mb-4 border-bottom border-4 border-secondary pb-3">
+            <div class="d-flex flex-column align-items-center"> 
+              <img src="{% static 'img/LogoCompleteLarge.png' %}" alt="Company Logo" style="height: 60px;">
+              <small class="text-muted">Accounting Department</small>
+            </div>
+            <div class="text-end">
+              <h2 class="fw-bold text-secondary mb-1">PAYMENT RECEIPT</h2>
+              <div class="text-muted">Receipt #: <span class="fw-semibold">{{ payment.id }}</span></div>
+              <div class="text-muted">Date: <span class="fw-semibold">{{ payment.date|date:'M/d/Y' }}</span></div>
+            </div>
+          </div>
+
+          <div class="row mb-4">
+            <div class="col-md-6 d-flex flex-row">
+              <h6 class="fw-bold text-primary">Billed To:</h6>
+              <div>{{ project.customer.company_name|default:project.customer.first_name }}
+                <div>{{ project.customer.address }}</div>
+                <div>{{ project.customer.city }}, {{ project.customer.state }} {{ project.customer.zip_code }}</div>
+              </div>
+            </div>
+            <div class="col-md-6 text-md-end mt-3 mt-md-0 d-flex flex-row">
+              <h6 class="fw-bold text-primary">Project:</h6>
+              <div>{{ project.project_name }}</div>
+              <div class="text-muted">Project ID: {{ project.id }}</div>
+            </div>
+          </div>
+
+          <div class="table-responsive mb-4">
+            <table class="table table-bordered align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th colspan="2">Invoice Summary</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="fw-bold">Invoice Number</td>
+                  <td>{{ invoice.id }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Invoice Date</td>
+                  <td>{{ invoice.date_created|date:'M/d/Y' }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Total Invoice</td>
+                  <td>{{ invoice.total_invoice|currency_usd }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Total Paid</td>
+                  <td>{{ invoice.total_paid|currency_usd }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Amount Due</td>
+                  <td class="text-danger fw-bold">{{ amount_due|currency_usd }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-responsive mb-4">
+            <table class="table table-bordered align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th colspan="2">Project Billing Summary</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="fw-bold">Total Billed (Project)</td>
+                  <td>{{ total_billed_project|currency_usd }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Total Paid (Project)</td>
+                  <td>{{ total_paid_project|currency_usd }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="table-responsive mb-4">
+            <table class="table table-bordered align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th colspan="2">Payment Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="fw-bold">Payment Date</td>
+                  <td>{{ payment.date|date:'M/d/Y H:i' }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Amount Paid</td>
+                  <td>{{ payment.amount|currency_usd }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Payment Method</td>
+                  <td>{{ payment.payment_method }}</td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">Description</td>
+                  <td>{{ payment.description|default:'-' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="text-end mt-4">
+            <h5 class="fw-bold text-success">Thank you for your payment!</h5>
+            <div class="text-muted">If you have any questions, please contact our accounting department.</div>
+          </div>
+        </div>
+      </div>
+      <div class="button-container d-flex flex-column justify-content-center gap-2 ms-3 position-absolute  top-0 end-0" style="transform: translateX(120%);">
+        <button class="btn bg-primary bg-opacity-10 border border-primary text-primary" onclick="printReceiptSection()">
+          <i class="bi bi-printer text-primary fs-5"></i>
+        </button>
+        <button class="btn bg-success bg-opacity-10 border border-success text-success d-none" onclick="downloadReceiptPDF()">
+          <i class="bi bi-file-earmark-pdf text-success fs-5"></i>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+<script>
+function printReceiptSection() {
+  const printContents = document.querySelector('.card.shadow.border-0').outerHTML;
+  const originalContents = document.body.innerHTML;
+  document.body.innerHTML = printContents;
+  window.print();
+  document.body.innerHTML = originalContents;
+  window.location.reload();
+}
+
+function downloadReceiptPDF() {
+  // Solución básica: abre el diálogo de impresión para guardar como PDF
+  printReceiptSection();
+  // Para integración real con PDF.js o html2pdf, aquí se puede agregar la lógica
+}
+</script>
+{% endblock %} 

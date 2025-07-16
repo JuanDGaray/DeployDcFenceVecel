@@ -3,6 +3,7 @@ from django.urls import path
 from . import views
 from .views.production_views import request_cost_by_pm, assign_cost_by_accounting
 from .views.customer_views import download_email_attachment
+from .views.projects_views import view_payment_receipt
 
 
 urlpatterns = [
@@ -41,4 +42,5 @@ urlpatterns = [
     path('email_tracking_stats/', views.utils_get.get_email_tracking_data, name='email_tracking_stats'),
     path('email_tracking_dashboard/', views.utils_get.email_tracking_dashboard, name='email_tracking_dashboard'),
     path('projects/<int:project_id>/close/', views.close_project, name='close_project'),
+    path('payment-receipt/<int:payment_id>/', view_payment_receipt, name='view_payment_receipt'),
 ]   

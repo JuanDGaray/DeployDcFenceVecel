@@ -858,7 +858,6 @@
                     {{ invoice.total_paid | currency_usd }} ({{ invoice.percentage_paid }}%) 
                     {% if is_superuser_or_admin_or_accounting_manager %}
                       {% if invoice.total_paid == 0 %}
-                        <!-- Icono para agregar pago si total_paid es cero -->
                         <button class="btn btn-success btn-sm" onclick="openPaymentModal('{{ invoice.id }}', '{{invoice.total_paid}}', '{{invoice.total_invoice}}')" title="Attach Payment" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Attach payment">
                           <i class="bi bi-wallet"></i>
                         </button>
@@ -867,6 +866,11 @@
                           <i class="bi bi-plus"></i>
                         </button>
                       {% endif %}
+                    {% endif %}
+                    {% if invoice.payments.all %}
+                      <button class="btn btn-link p-0 ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#payments-{{ invoice.id }}" aria-expanded="false" aria-controls="payments-{{ invoice.id }}">
+                        <i class="bi bi-chevron-down"></i> Payments
+                      </button>
                     {% endif %}
                   </td>
                   <td style='width:80px'>
@@ -877,14 +881,42 @@
                     <i class="bi bi-eye-fill" style="font-size: 15px;"></i>
                   </a>
                   {% if is_superuser_or_admin_or_accounting_manager %}
-                    <a class="btn btn-danger btn-sm rounded-2 p-1" 
+                    <a class="btn btn-sm rounded-2 p-1 bg-secondary text-white" style="cursor: not-allowed;" 
+                      role="button" title="Delete Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-delete-action data-bs-title="you cannot delete an invoice that has been paid.">
+                      <i class="bi bi-trash" style="font-size: 15px;"></i>
+                    </a>
+                  {% else %}
+                    <a class="btn btn-sm rounded-2 p-1 bg-danger text-white" 
                       href="{% url 'delete_invoice' project.id invoice.id %}"
                       role="button" title="Delete Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-delete-action data-bs-title="Delete">
                       <i class="bi bi-trash" style="font-size: 15px;"></i>
                     </a>
-                    {% endif %}
+                  {% endif %}
                 </td>
                 </tr>
+                {% if invoice.payments.all %}
+                <tr class="collapse" id="payments-{{ invoice.id }}">
+                  <td colspan="11">
+                    <div class="p-2 border rounded bg-light">
+                      <strong>Payments:</strong>
+                      <ul class="list-group list-group-flush">
+                        {% for payment in invoice.payments.all %}
+                          <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ payment.date|date:"M/d/y H:i" }} - {{ payment.amount|currency_usd }}
+                            <span>{{ payment.payment_method }}</span>
+                            {% if payment.description %}<span class="ms-2 text-muted">{{ payment.description }}</span>{% endif %}
+                            <a href="{% url 'view_payment_receipt' payment.id %}" class="btn btn-outline-primary btn-sm ms-2" target="_blank" title="View Receipt">
+                              <i class="bi bi-receipt"></i> View Receipt
+                            </a>
+                          </li>
+                        {% empty %}
+                          <li class="list-group-item">No payments registered.</li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  </td>
+                </tr>
+                {% endif %}
                 {% empty %}
                 <tr>
                   <td colspan="9">No invoices found for this project.</td>
