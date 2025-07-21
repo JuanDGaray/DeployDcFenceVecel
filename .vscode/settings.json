@@ -1,3 +1,4 @@
 {
-    "docwriter.style": "NumPy"
+    "docwriter.style": "NumPy",
+    "postman.settings.dotenv-detection-notification-visibility": false
 }

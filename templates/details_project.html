@@ -109,11 +109,18 @@
                           {% endif %}
                       <td style="width:80px">
                         <div class="d-inline-flex gap-2 align-items-center p-0">
-                          <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 {% if budget.latest_version.status == 'complete' or budget.latest_version.status == 'approved' %}disabled{% endif %}" 
-                          href="{% url 'edit_budget' project.id budget.latest_version.id %}" 
+                          {% if project.status == 'new' or project.status == 'contacted' or project.status == 'quoted_sent' %}
+                          <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 {% if budget.status == 'complete' or budget.status == 'approved' %}disabled{% endif %}" 
+                          href="{% url 'edit_budget' project.id budget.id %}" 
                           role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit">
                           <i class="bi bi-pencil-square" style="font-size: 15px;"></i>
                           </a>
+                          {% else %}
+                          <a class="btn bg-secondary text-light border border-2 btn-sm rounded-2 p-1" 
+                          role="button" style="cursor: not-allowed;" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="You cannot edit the budget because the project is not in the new, contacted, or quoted_sent status.">
+                          <i class="bi bi-pencil-square text-light" style="font-size: 15px;"></i>
+                          </a>
+                          {% endif %}
                           <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
                           href="{% url 'view_budget' project.id budget.latest_version.id %}" 
                           role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Print">
@@ -278,11 +285,18 @@
                     </td>
                     <td style="width:80px">
                       <div class="d-inline-flex gap-2 align-items-center p-0">
+                        {% if project.status == 'new' or project.status == 'contacted' or project.status == 'quoted_sent' %}
                         <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 {% if budget.status == 'complete' or budget.status == 'approved' %}disabled{% endif %}" 
                         href="{% url 'edit_budget' project.id budget.id %}" 
                         role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit">
                         <i class="bi bi-pencil-square" style="font-size: 15px;"></i>
                         </a>
+                        {% else %}
+                        <a class="btn bg-secondary text-light border border-2 btn-sm rounded-2 p-1" 
+                        role="button" style="cursor: not-allowed;" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="You cannot edit the budget because the project is not in the new, contacted, or quoted_sent status.">
+                        <i class="bi bi-pencil-square text-secondary" style="font-size: 15px;"></i>
+                        </a>
+                        {% endif %}
                         <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
                         href="{% url 'view_budget' project.id budget.id %}"
                         role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Print">
@@ -438,7 +452,7 @@
                         </a>
                     {% endif %}
                   </td>
-                  <td>{{proposal.budget.total_value | currency_usd }}</td>
+                  <td>{{proposal.total_proposal | currency_usd }}</td>
                   <td>{{ proposal.billed_proposal | currency_usd }}</td>
                   <td style='width:120px' class="p-0">
                     <div class="d-inline-flex gap-2 align-items-center p-1">
@@ -515,7 +529,7 @@
                     </a>
                     {% endif %}
                     {% if proposal.status == 'approved' %}
-
+                      {% if not changes_orders %}
                           <a class="btn btn-sm rounded-2 p-1 bg-warning fw-bold" role="button" data-bs-toggle="tooltip" 
                             data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
                             data-bs-title="<strong class='bg-warning text-dark'> Change order </strong> requested by the client after approval, modifying scope, cost, or timeline."
@@ -523,7 +537,16 @@
                             href="{% url 'new_change_order' project.id proposal.id %}">
                             C.O.
                         </a>
+                      {% else %}
+                        <a class="btn btn-sm rounded-2 p-1 bg-secondary text-light fw-bold" role="button" data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                          data-bs-title="<strong class='bg-secondary text-light'> Change order </strong> requested by the client after approval, modifying scope, cost, or timeline. You cannot create a new change order because there is already one."
+                          aria-label="Info" data-bs-original-title="Approved Proposal"
+                          style="cursor: not-allowed; font-size: 11px;">
+                          C.O.
+                        </a>
                       {% endif %}
+                    {% endif %}
                 </td>
                 </tr>
                 {% empty %}
