@@ -506,15 +506,7 @@
                       
                       {% endif %}
                     </div>
-                    {% if proposal.status == 'new' or proposal.status == 'sent' or proposal.status == 'pending' or proposal.status == 'approved' %}
-                      <a class="btn bg-light border border-2 btn-sm rounded-2" role="button" data-bs-toggle="tooltip" 
-                          data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
-                          data-bs-title="Send proposal to email client"
-                          aria-label="Info" data-bs-original-title="Send Proposal"
-                          onclick="openEmailModal({{ proposal.id }}, {{ project.id }})">
-                          <i class="bi bi-envelope-fill text-primary" style="font-size: 15px;"></i>
-                      </a>
-                    {% endif %}
+
 
                     {% if proposal.status == 'approved' or proposal.status == 'sent' or proposal.status == 'pending' %}
                       <a class="btn border border-2 btn-sm rounded-2 bg-secondary text-light" 

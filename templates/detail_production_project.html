@@ -14,7 +14,7 @@
                 <div class="d-flex justify-content-between align-items-start p-0">
                     <div class="w-100">
                         <h2 class="fw-bold bg-light m-0 p-2 text-success mb-4 text-capitalize d-flex justify-content-between align-items-center">
-                            {{ project.project_name }}
+                            <strong class="text-dark bg-secondary bg-opacity-10 rounded-2 px-2 fs-5 border border-2 border-secondary border-opacity-25 me-2">Quote. No. {{ project.get_approved_proposal.date_created|date:'ymd' }}-{{project.id}}</strong> {{ project.project_name }}
                             <a href="{% url 'detail_project' project.id %}" target="_blank" class="btn btn-sm rounded-2 py-1 px-4 ms-auto text-secondary bg-white border border-4 border-secondary border-opacity-25">   
                                 View All Details
                             </a>

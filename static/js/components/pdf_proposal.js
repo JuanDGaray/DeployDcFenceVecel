@@ -65,65 +65,78 @@ function openEmailModal() {
 function sendProposalEmail() {
     const form = document.getElementById('emailForm');
     const formData = new FormData();
-    
+
     // Get basic form data
     formData.append('recipient_email', document.getElementById('recipientEmail').value);
     formData.append('recipient_name', document.getElementById('recipientName').value);
     formData.append('subject', document.getElementById('emailSubject').value);
-    
+
     // Get rich text content from Quill
     if (!quill) {
         console.error('Quill editor not initialized!');
         alert('Editor not initialized. Please try again.');
         return;
     }
-    
+
     const emailBody = quill.root.innerHTML;
-    console.log('Quill content:', emailBody); // Debug log
-    console.log('Quill content length:', emailBody.length); // Debug log
     formData.append('body', emailBody);
-    
+
     // Get project and proposal IDs from data attributes
     const mainContainer = document.getElementById('main-pdf');
     const projectId = mainContainer.getAttribute('data-project-id');
     const proposalId = mainContainer.getAttribute('data-proposal-id');
-    
-    // Add project and proposal IDs
     formData.append('project_id', projectId);
     formData.append('proposal_id', proposalId);
-    
+
     // Show loading state
     const sendButton = document.querySelector('#emailModal .btn-success');
     const originalText = sendButton.innerHTML;
-    sendButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Sending...';
+    sendButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Generating PDF...';
     sendButton.disabled = true;
-    
-    // Send the email
-    fetch('/send_proposal_email/' + projectId + '/' + proposalId + '/', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': getCookie('csrftoken')
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            showAlert('Email sent successfully!', 'success');
-            const modal = bootstrap.Modal.getInstance(document.getElementById('emailModal'));
-            modal.hide();
-        } else {
-            showAlert('Error sending email: ' + data.message, 'danger');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showAlert('Error sending email. Please try again.', 'danger');
-    })
-    .finally(() => {
-        // Restore button state
-        sendButton.innerHTML = originalText;
-        sendButton.disabled = false;
+
+    // Generar el PDF antes de enviar
+    const element = document.getElementById('main-container');
+    const pdfOptions = {
+        margin: 0,
+        filename: 'proposal_' + projectId + '_' + proposalId + '.pdf',
+        // No incluir la opción 'image' para evitar rasterización
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['css', 'legacy'] }
+    };
+    html2pdf().set(pdfOptions).from(element).outputPdf('blob').then(function(pdfBlob) {
+        formData.append('pdf_file', pdfBlob, 'Proposal_' + projectId + '_' + proposalId + '.pdf');
+
+        // Cambiar el estado del botón a "Enviando..."
+        sendButton.innerHTML = '<i class="bi bi-hourglass-split"></i> Sending...';
+
+        // Ahora sí, enviar el email con el PDF adjunto
+        fetch('/send_proposal_email/' + projectId + '/' + proposalId + '/', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showAlert('Email sent successfully!', 'success');
+                const modal = bootstrap.Modal.getInstance(document.getElementById('emailModal'));
+                modal.hide();
+            } else {
+                showAlert('Error sending email: ' + data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error sending email. Please try again.', 'danger');
+        })
+        .finally(() => {
+            // Restore button state
+            sendButton.innerHTML = originalText;
+            sendButton.disabled = false;
+        });
     });
 }
 

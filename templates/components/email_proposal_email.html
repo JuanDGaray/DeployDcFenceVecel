@@ -289,11 +289,10 @@
                 {% if key != 'price' %}
                   <div class="scope-item">
                     <div style="margin-bottom: 15px;">
-                      <strong>Scope:</strong> 
                       {% if data.scope|type_of == "string" %}
-                        {{ data.scope }}
+                        {{ data.scope|linebreaksbr }}
                       {% else %}
-                        {{ data.scope|join:", " }}
+                        {{ data.scope|join:"<br>"|safe }}
                       {% endif %}
                     </div>
                     
@@ -301,9 +300,9 @@
                       <div class="materials-header">Materials shall be as follows:</div>
                       <div style="text-align: center; padding: 10px;">
                         {% if data.materials|type_of == "string" %}
-                          {{ data.materials }}
+                          {{ data.materials|linebreaksbr }}
                         {% else %}
-                          {{ data.materials|join:", " }}
+                          {{ data.materials|join:"<br>"|safe }}
                         {% endif %}
                       </div>
                       {% if proposal.scope_prices|get_item:key %}

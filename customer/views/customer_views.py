@@ -353,7 +353,11 @@ def send_proposal_email(request, project_id, proposal_id):
     if request.method == 'POST':
         try:
             import json
-            
+            from django.template.loader import render_to_string
+            import tempfile
+            import os
+            from ..utils import send_email_with_attachment
+
             # Obtener datos del formulario
             recipient_email = request.POST.get('recipient_email')
             recipient_name = request.POST.get('recipient_name', '')
@@ -380,35 +384,35 @@ def send_proposal_email(request, project_id, proposal_id):
             project = get_object_or_404(Project, pk=project_id)
             proposal = get_object_or_404(ProposalProjects, pk=proposal_id, project=project)
             
-            # Renderizar el template de email con la información de la propuesta
-            from django.template.loader import render_to_string
-            
             # Renderizar el template de email
             email_html_content = render_to_string('components/email_proposal_email.html', {
                 'proposal': proposal,
                 'project': project,
             })
-            
-            # Enviar email con el template renderizado
-            from ..utils import send_email
-            
+
             # Combinar el mensaje personalizado con el HTML del template
             combined_html = f"""
             <div style="line-height: 0; font-family: Arial, sans-serif; margin-bottom: 20px;">
                 {body}
             </div>
-            
             <hr style="margin: 30px 0; border: 1px solid #ddd;">
-            
             <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin-top: 20px;">
                 {email_html_content}
             </div>
             """
-            
+
+            # Obtener el PDF adjunto desde el frontend (enviado como 'pdf_file')
+            pdf_file = request.FILES.get('pdf_file')
+            temp_pdf_path = None
+            temp_pdf_name = None
+            if pdf_file:
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as tmp:
+                    tmp.write(pdf_file.read())
+                    temp_pdf_path = tmp.name
+                    temp_pdf_name = pdf_file.name
+
             # Lista de todos los destinatarios
             all_recipients = [recipient_email]
-            
-            # Agregar destinatarios adicionales
             try:
                 additional_recipients = json.loads(additional_recipients_json)
                 for recipient in additional_recipients:
@@ -416,34 +420,31 @@ def send_proposal_email(request, project_id, proposal_id):
                         all_recipients.append(recipient['email'])
             except json.JSONDecodeError:
                 pass
-            
-            # Agregar sales advisor si está marcado
             if send_copy_to_sales and request.user.email:
                 all_recipients.append(request.user.email)
-            
-            # Enviar email a todos los destinatarios
+
+            # Enviar email a todos los destinatarios con el PDF adjunto (si existe)
             success_count = 0
             error_messages = []
-            
-            
             for email in all_recipients:
-                result = send_email(
+                result = send_email_with_attachment(
                     subject=subject,
                     html_body=combined_html,
                     recipient_email=email,
-                    project_id=project_id,
-                    proposal_id=proposal_id,
-                    sent_by=request.user
+                    recipient_name=recipient_name,
+                    attachment_path=temp_pdf_path,
+                    attachment_name=temp_pdf_name
                 )
-                
                 if result['status'] == 'success':
                     success_count += 1
                 else:
                     error_msg = f"Error sending to {email}: {result['message']}"
                     error_messages.append(error_msg)
 
-            
-            
+            # Eliminar el archivo temporal
+            if temp_pdf_path and os.path.exists(temp_pdf_path):
+                os.remove(temp_pdf_path)
+
             if success_count > 0:
                 return JsonResponse({
                     'status': 'success',

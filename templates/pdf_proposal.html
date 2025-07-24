@@ -17,12 +17,19 @@
 {% endblock %}
 {% block title %}Simple Invoice{% endblock %}
 {% block content %}
-<div id='main-pdf' class='p-3' data-project-id="{{ project.id }}" data-proposal-id="{{ proposal.id }}">
-    <a href="{% url 'detail_project' project.id %}" class="bg-light px-4 py-1 rounded-4 border border-2 border-primary"><strong><i class="bi bi-back "></i> <span id="project-container" data-project-id="{{ project.id }}">{{project.id}} </span> - {{project.project_name}}</a>
-    <div class="d-flex flex-row justify-content-end col-md-9 mx-auto">
-        <a id="downloadBtn"  class="px-2 m-2 rounded-2 text-danger border border-danger bg-light" onclick="generatePDF()"><i class="bi bi-file-earmark-pdf-fill text-danger"></i> Download PDF</a>
-        <a href="{% url 'edit_budgetSimple' project_id=project.id budget_id=proposal.budget.id proposal_id=proposal.id %}" class="px-2 m-2 rounded-2 text-primary border border-primary bg-light"><i class="bi bi-pencil-square text-primary"></i> Edit Proposal</a>
-        <button id="emailBtn" class="px-2 m-2 rounded-2 text-success border border-success bg-light" onclick="openEmailModal()"><i class="bi bi-envelope-fill text-success"></i> Send by Email</button>
+<div id='main-pdf' class='p-3 position-relative' data-project-id="{{ project.id }}" data-proposal-id="{{ proposal.id }}">
+    <a href="{% url 'detail_project' project.id %}" class="bg-light px-4 py-1 rounded-4 border border-2 border-primary fs-5"><strong><i class="bi bi-back "></i> <span id="project-container" data-project-id="{{ project.id }}">{{project.id}} </span> - {{project.project_name}}</a>
+    <!-- Botones flotantes en la esquina superior derecha -->
+    <div class="position-fixed top-0 end-0 m-3 d-flex flex-row gap-2" style="z-index: 10;">
+        <button id="downloadBtn" class="btn btn-light btn-sm border border-danger shadow-sm rounded-2" onclick="generatePDF()" title="Download PDF">
+            <i class="bi bi-file-earmark-pdf-fill text-danger fs-4"></i>
+        </button>
+        <a href="{% url 'edit_budgetSimple' project_id=project.id budget_id=proposal.budget.id proposal_id=proposal.id %}" class="btn btn-light btn-sm border border-primary shadow-sm rounded-2" title="Edit Proposal">
+            <i class="bi bi-pencil-square text-primary fs-4"></i>
+        </a>
+        <button id="emailBtn" class="btn btn-light btn-sm border border-success shadow-sm rounded-2" onclick="openEmailModal()" title="Send by Email">
+            <i class="bi bi-envelope-fill text-success fs-4"></i>
+        </button>
     </div>
     <section id="invoice-form" class="col-md-9 mx-auto">
         {% include 'components/proposal_print.html' with is_quick_info=False %}

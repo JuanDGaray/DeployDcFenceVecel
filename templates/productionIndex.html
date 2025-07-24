@@ -37,7 +37,9 @@
                         <div class="card pb-3 production-card">
                             <div class="card-body p-0 rounded-2 overflow overflow-hidden">
                                 <div class="d-flex flex-column justify-content-between bg-primary m-0 py-3 px-3">
-                                    <h5 class="card-title border-0 m-0 text-white fw-bold text-truncate text-capitalize">{{ project.project_name }}</h5>
+                                    <h5 class="card-title border-0 m-0 text-white fw-bold text-truncate text-capitalize">
+                                        <strong class="text-primary bg-white bg-opacity-90 rounded-2 px-2">{{ project.get_approved_proposal.date_created|date:'ymd' }}-{{project.id}}</strong> {{ project.project_name }}
+                                    </h5>
                                         <div class="ms-auto text-decoration-none bg-light-subtle rounded-4 p-0 text-truncate" style="width: fit-content;">
                                             <span class="status title_{{ project.customer.customer_type }} fs-6 text-truncate p-2 m-0">
                                                 {% if project.customer.customer_type == 'individual' %}

@@ -2,17 +2,11 @@
 {% load custom_filters %}
 <style>
     #main-pdf{
-        background-image: url("{% static 'img/logoPatron.png' %}");
-        background-repeat: none;
-        background-position: center;
-        backdrop-filter: grayscale(100%);
-        backdrop:blur(15px)
-
+        background-color: #e0e0e0;
     }
     section{
-        border: 2px solid black;
         background:white;
-        box-shadow: 2px 0px 20px 20px #0000008f;
+        box-shadow: 2px 0px 100px 10px #0000001e;
 
     }
     #termsInput{
@@ -196,18 +190,10 @@
                 <div class="scope-container" id="scope-section">
                     {% for key, data in proposal.proposalInfo.items %}
                         {% if key != 'price' %}
-                            <ol id="scope-list" class="no-break">
-                                <div class="text-center scope-title">
-                                    <textarea 
-                                        id="scope-{{ key }}" 
-                                        name="scope-{{ key }}" 
-                                        rows="1" 
-                                        cols="30" 
-                                        style="border: none; width: 100%; resize: none; padding-top: 10px; background: #fcfcfc00;" 
-                                        readonly
-                                        class="scope-input"
-                                        placeholder="Describe the work here..."> {% if data.scope|type_of == "string" %}{{ data.scope }}{% else %}{{ data.scope | join:", " }}{% endif %}</textarea>
-                                </div>
+                            <ol id="scope-list">
+                                <p class="text-start scope-title">
+                                     {% if data.scope|type_of == "string" %}{{ data.scope|linebreaksbr }}{% else %}{{ data.scope | join:", " }}{% endif %}
+                                </p>
                             </ol>
                             <div class="materials-box bg-white no-break">
                                 <div class="materials-header">Materials shall be as follows:</div>
@@ -304,10 +290,7 @@
                 // Configuración de opciones para html2pdf
                 const opt = {
                     filename: `PS_{{ proposal.project_name }}__{{ proposal.id }}__{{now|date:"m-d-y" }}.pdf`,
-                    image: { 
-                        type: 'jpeg', 
-                        quality: 1
-                    },
+                    // No incluir la opción 'image' para evitar rasterización
                     html2canvas: { 
                         scale: 2,
                         useCORS: true,
