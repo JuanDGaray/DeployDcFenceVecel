@@ -721,6 +721,11 @@ def delete_all_notifications(request):
 def get_documents_checklist(request, project_id):
     try:
         documents = ProjectDocumentRequirement.objects.filter(project_id=project_id).only('id', 'type_document', 'name', 'description', 'file_url', 'is_completed', 'added_by', 'project__accounting_manager')
+        if not documents.exists():
+            return JsonResponse({
+                'status': 'success',
+                'documents': [],
+            }, status=200)
         request_user = request.user
         request_user_is_accounting_manager_or_admin = request_user.is_superuser or request_user.is_staff or request_user == documents.first().project.accounting_manager
         return JsonResponse({
@@ -729,6 +734,7 @@ def get_documents_checklist(request, project_id):
             'request_user_is_accounting_manager_or_admin': request_user_is_accounting_manager_or_admin
         })
     except Exception as e:
+        print(e)
         return JsonResponse({
             'status': 'error',
             'error': str(e)
