@@ -1657,3 +1657,125 @@ def view_payment_receipt(request, payment_id):
     })
 
 
+@login_required
+def cancel_proposal(request, proposal_id):
+    """
+    Cancels a proposal by setting its status to 'cancelled'.
+    
+    Args:
+        request: The HTTP request object.
+        proposal_id (int): The ID of the proposal to cancel.
+        
+    Returns:
+        JsonResponse: JSON response indicating success or failure.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+    
+    try:
+        with transaction.atomic():
+            proposal = get_object_or_404(ProposalProjects, id=proposal_id)
+            
+            # Verificar que el usuario tiene permisos para cancelar esta propuesta
+            if not (request.user == proposal.sales_advisor or request.user.groups.filter(name='ADMIN').exists()):
+                return JsonResponse({
+                    'status': 'error', 
+                    'message': 'You do not have permission to cancel this proposal'
+                }, status=403)
+            
+            # Cambiar el estado a 'cancelled'
+            proposal.status = 'cancelled'
+            proposal.save(update_fields=['status'])
+            
+            # Registrar la acción en el historial del proyecto
+            log_project_history(
+                request, 
+                proposal.project, 
+                'CANCEL', 
+                f'Proposal {proposal_id} cancelled by {request.user.get_full_name()}'
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Proposal cancelled successfully'
+            })
+            
+    except ProposalProjects.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Proposal not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Error cancelling proposal: {str(e)}'
+        }, status=500)
+
+
+@login_required
+def cancel_project(request, project_id):
+    """
+    Cancels a project by setting its status to 'cancelled' and archiving all related data.
+    
+    Args:
+        request: The HTTP request object.
+        project_id (int): The ID of the project to cancel.
+        
+    Returns:
+        JsonResponse: JSON response indicating success or failure.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+    
+    try:
+        with transaction.atomic():
+            project = get_object_or_404(Project, id=project_id)
+            
+            # Verificar que el usuario tiene permisos para cancelar este proyecto
+            if not (request.user == project.sales_advisor or 
+                   request.user == project.project_manager or 
+                   request.user.groups.filter(name='ADMIN').exists()):
+                return JsonResponse({
+                    'status': 'error', 
+                    'message': 'You do not have permission to cancel this project'
+                }, status=403)
+            
+            # Cambiar el estado del proyecto a 'cancelled'
+            project.status = 'cancelled'
+            project.save(update_fields=['status'])
+            
+            # Cancelar todas las propuestas del proyecto
+            proposals = ProposalProjects.objects.filter(project=project)
+            for proposal in proposals:
+                proposal.status = 'cancelled'
+                proposal.save(update_fields=['status'])
+            
+            # Cancelar todas las facturas del proyecto
+            invoices = InvoiceProjects.objects.filter(project=project)
+            for invoice in invoices:
+                invoice.status = 'cancelled'
+                invoice.save(update_fields=['status'])
+            
+            # Registrar la acción en el historial del proyecto
+            log_project_history(
+                request, 
+                project, 
+                'CANCEL', 
+                f'Project {project_id} cancelled by {request.user.get_full_name()}. All proposals and invoices have been cancelled.'
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Project cancelled successfully. All related proposals and invoices have been cancelled.'
+            })
+            
+    except Project.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Project not found'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Error cancelling project: {str(e)}'
+        }, status=500)

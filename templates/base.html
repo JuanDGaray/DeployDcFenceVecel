@@ -127,6 +127,46 @@
     </div>
 </body>
 {% include "bubbleIAChat.html" %} 
+
+<!-- Tasks Modal -->
+<div class="modal fade" id="tasksModal" tabindex="-1" aria-labelledby="tasksModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content w-100">
+
+            <div class="modal-body">
+                <div class="text-center">
+                    <div class="d-flex flex-row flex-nowrap justify-content-center align-items-center gap-4">
+                        <i class="bi bi-list-check text-primary" style="font-size: 3rem;"></i>
+                        <div>
+                            <h5 class="mt-3">Hi, {{ user.first_name }} {{ user.last_name }}</h5>
+                            <p class="text-muted">You have the next tasks to do today:</p>
+                        </div>
+                    </div>
+                    <div class="task_contianer d-flex flex-column gap-3">
+                        <!-- Tasks will be populated here by JavaScript -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="d-flex justify-content-between w-100">
+                    <div></div>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-secondary" onclick="setTaskReminder('later')">
+                            <i class="bi bi-clock me-1"></i> Remind Later
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setTaskReminder('tomorrow')">
+                            <i class="bi bi-calendar me-1"></i> Tomorrow
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="setTaskReminder('never')">
+                            <i class="bi bi-x-circle me-1"></i> Not Today
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     function notificationsToggle() {
@@ -193,7 +233,32 @@
                         </a>
                     `;
                     notificationContainer.appendChild(notificationElement);
+                    
+                    // También agregar la notificación al task_contianer como una tarea
+                    const taskContainer = document.querySelector('.task_contianer');
+                    if (taskContainer) {
+                        // Crear un array para ordenar las notificaciones por prioridad
+                        if (!window.notificationsForTasks) {
+                            window.notificationsForTasks = [];
+                        }
+                        
+                        // Agregar la notificación al array con su prioridad
+                        const priority = notification.type === 'danger' ? 1 : 
+                                       notification.type === 'warning' ? 2 : 
+                                       notification.type === 'primary' ? 3 : 4;
+                        
+                        window.notificationsForTasks.push({
+                            ...notification,
+                            priority: priority
+                        });
+                    }
                 }
+                
+                // Renderizar las tareas ordenadas por prioridad
+                if (window.notificationsForTasks && window.notificationsForTasks.length > 0) {
+                    renderTasksByPriority();
+                }
+                
                 document.getElementById('spinner-notifications').style.display = 'none';
             },
             function errorCallback(error) {
@@ -226,6 +291,20 @@
                     const notificationElement = linkElement.closest('.w-full');
                     if (notificationElement) {
                         notificationElement.remove();
+                    }
+                    
+                    // También eliminar la tarea correspondiente del task_contianer
+                    const taskContainer = document.querySelector('.task_contianer');
+                    if (taskContainer) {
+                        // Eliminar del array de notificaciones
+                        if (window.notificationsForTasks) {
+                            const messageToRemove = notificationElement.querySelector('p').textContent;
+                            window.notificationsForTasks = window.notificationsForTasks.filter(
+                                notification => notification.message !== messageToRemove
+                            );
+                            // Re-renderizar las tareas
+                            renderTasksByPriority();
+                        }
                     }
                     
                     // Actualizar el contador de notificaciones
@@ -275,6 +354,17 @@
                         </div>
                     `;
                     
+                    // Limpiar también el task_contianer
+                    const taskContainer = document.querySelector('.task_contianer');
+                    if (taskContainer) {
+                        taskContainer.innerHTML = '';
+                    }
+                    
+                    // Limpiar el array de notificaciones para tareas
+                    if (window.notificationsForTasks) {
+                        window.notificationsForTasks = [];
+                    }
+                    
                     // Actualizar el contador
                     document.getElementById('notification-count').textContent = '0';
                     clearAllBtn.style.display = 'none';
@@ -285,7 +375,158 @@
             });
         }
     }
+    
+    // Función para renderizar tareas ordenadas por prioridad
+    function renderTasksByPriority() {
+        const taskContainer = document.querySelector('.task_contianer');
+        if (!taskContainer || !window.notificationsForTasks) return;
+        
+        // Ordenar por prioridad (críticos primero)
+        window.notificationsForTasks.sort((a, b) => a.priority - b.priority);
+        
+        // Limpiar el contenedor
+        taskContainer.innerHTML = '';
+        
+        // Crear las tareas como steps horizontales
+        const timelineContainer = document.createElement('div');
+        timelineContainer.classList.add('d-flex', 'flex-column', 'gap-3');
+        
+        window.notificationsForTasks.forEach((notification, index) => {
+            const taskElement = document.createElement('div');
+            taskElement.classList.add(
+                'd-flex',
+                'align-items-center',
+                'gap-3',
+                'p-3',
+                'bg-light',
+                'rounded-3',
+                'border',
+                'border-2',
+                `border-${notification.type}`,
+                'shadow-sm'
+            );
+            
+            // Número de step
+            const stepNumber = document.createElement('div');
+            stepNumber.classList.add(
+                'rounded-circle',
+                'd-flex',
+                'align-items-center',
+                'justify-content-center',
+                'fw-bold',
+                'text-white',
+                'border',
+                'border-2',
+                'shadow-sm',
+                'flex-shrink-0'
+            );
+            stepNumber.style.width = '40px';
+            stepNumber.style.height = '40px';
+            stepNumber.style.fontSize = '1rem';
+            
+            // Color del step según prioridad
+            if (notification.type === 'danger') {
+                stepNumber.classList.add('bg-danger', 'border-danger');
+            } else if (notification.type === 'warning') {
+                stepNumber.classList.add('bg-warning', 'border-warning');
+            } else if (notification.type === 'primary') {
+                stepNumber.classList.add('bg-primary', 'border-primary');
+            } else {
+                stepNumber.classList.add('bg-secondary', 'border-secondary');
+            }
+            
+            stepNumber.textContent = index + 1;
+            taskElement.appendChild(stepNumber);
+            
+            // Contenido del step
+            const stepContent = document.createElement('div');
+            stepContent.classList.add('flex-grow-1');
+            stepContent.innerHTML = `
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="bi bi-exclamation-circle-fill fs-4 text-${notification.type}"></i>
+                        <div>
+                            <h6 class="mb-1 fw-bold">${notification.message}</h6>
+                        </div>
+                    </div>
+                    <a href="${notification.link}" class="btn btn-sm btn-${notification.type}">
+                        <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
+            `;
+            
+            taskElement.appendChild(stepContent);
+            timelineContainer.appendChild(taskElement);
+        });
+        
+        taskContainer.appendChild(timelineContainer);
+    }
+</script>
+
+<!-- Tasks Modal JavaScript -->
+<script>
+    // Check and show tasks modal on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if modal should be shown today using localStorage
+        const today = new Date().toDateString();
+        const lastShown = localStorage.getItem('tasksModalLastShown');
+        const reminderType = localStorage.getItem('tasksModalReminderType');
+        
+        if (lastShown !== today) {
+            // Check if there's a reminder set
+            if (reminderType === 'later') {
+                const reminderTime = localStorage.getItem('tasksModalReminderTime');
+                if (reminderTime && new Date().getTime() < parseInt(reminderTime)) {
+                    return; // Don't show yet
+                }
+            } else if (reminderType === 'tomorrow') {
+                const reminderDate = localStorage.getItem('tasksModalReminderDate');
+                if (reminderDate && new Date().toDateString() === reminderDate) {
+                    return; // Don't show today
+                }
+            } else if (reminderType === 'never') {
+                return; // Don't show today
+            }
+            
+            // Show modal after a short delay
+            setTimeout(() => {
+                const tasksModal = new bootstrap.Modal(document.getElementById('tasksModal'));
+                tasksModal.show();
+            }, 2000); // Show after 2 seconds
+        }
+    });
+
+    function setTaskReminder(reminderType) {
+        const today = new Date().toDateString();
+        
+        if (reminderType === 'later') {
+            // Set reminder for 2 hours from now
+            const reminderTime = new Date().getTime() + (2 * 60 * 60 * 1000);
+            localStorage.setItem('tasksModalReminderType', 'later');
+            localStorage.setItem('tasksModalReminderTime', reminderTime.toString());
+            showAlert('Reminder set for 2 hours from now', 'info');
+        } else if (reminderType === 'tomorrow') {
+            // Set reminder for tomorrow
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            localStorage.setItem('tasksModalReminderType', 'tomorrow');
+            localStorage.setItem('tasksModalReminderDate', tomorrow.toDateString());
+            showAlert('Reminder set for tomorrow', 'info');
+        } else if (reminderType === 'never') {
+            // Don't show again today
+            localStorage.setItem('tasksModalReminderType', 'never');
+            localStorage.setItem('tasksModalLastShown', today);
+            showAlert('No more reminders for today', 'info');
+        }
+        
+        // Close the modal
+        const tasksModal = bootstrap.Modal.getInstance(document.getElementById('tasksModal'));
+        if (tasksModal) {
+            tasksModal.hide();
+        }
+    }
 </script>
 {% block extra_js %}
 {% endblock %}
 </html>
+

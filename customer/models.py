@@ -14,6 +14,7 @@ from django.contrib.contenttypes.models import ContentType
 import json
 from datetime import datetime
 from django.contrib.auth import get_user_model
+from datetime import timedelta
 
 User = get_user_model()
 
@@ -522,11 +523,11 @@ class ProposalProjects(models.Model):
 
     @property
     def is_overdue(self):
-        return self.due_date and self.due_date.date() < date.today()
+        return self.due_date and self.due_date.date() < date.today() and self.status not in ['approved', 'rejected']
 
     @property
     def is_today(self):
-        return self.due_date and self.due_date.date() == date.today()
+        return self.due_date and self.due_date.date() == date.today() and self.status not in ['approved', 'rejected']
 
 
     @property
@@ -820,3 +821,43 @@ class ChangeOrderItem(models.Model):
 
     def __str__(self):
         return f"Item for Change Order {self.change_order.id}: {self.description[:30]}"
+
+class UserTask(models.Model):
+    PRIORITY_CHOICES = [
+        ('low', 'Low'),
+        ('medium', 'Medium'),
+        ('high', 'High'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
+    status = models.CharField(max_length=15, choices=STATUS_CHOICES, default='pending')
+    due_date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['-priority', 'due_date']
+        verbose_name = 'User Task'
+        verbose_name_plural = 'User Tasks'
+    
+    def __str__(self):
+        return f"{self.title} - {self.user.get_full_name()}"
+    
+    @property
+    def is_overdue(self):
+        return self.due_date < timezone.now().date() and self.status != 'completed'
+    
+    @property
+    def is_due_soon(self):
+        return self.due_date <= timezone.now().date() + timedelta(days=2) and self.status != 'completed'

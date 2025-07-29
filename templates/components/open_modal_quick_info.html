@@ -10,6 +10,45 @@
         </div>
     </div>
 </div>
+
+<!-- Modal de Confirmación para Cancelar Proyecto -->
+<div class="modal fade" id="cancelProjectModal" tabindex="-1" aria-labelledby="cancelProjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white" style="background-image: none;">
+                <h5 class="modal-title" id="cancelProjectModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    Cancel Project
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="bi bi-x-circle-fill text-danger" style="font-size: 3rem;"></i>
+                </div>
+                <h6 class="text-center mb-3">Are you sure you want to cancel this entire project?</h6>
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Critical Warning:</strong> This action will cancel the entire project including all proposals, budgets, invoices, and production data. This action cannot be undone. All data will be archived but can be restored by an administrator if needed.
+                </div>
+                <div class="text-center">
+                    <p class="mb-2"><strong>Project:</strong> <span id="cancelProjectName" class="text-primary"></span></p>
+                    <p class="mb-0"><strong>Project ID:</strong> <span id="cancelProjectId" class="text-secondary"></span></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-arrow-left me-1"></i>
+                    Keep Project
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmCancelProject" onclick="confirmCancelProject()">
+                    <i class="bi bi-x-circle-fill me-1"></i>
+                    Cancel Project
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 <script>
     function toggleButtons(className) {
         document.querySelectorAll(className).forEach(function(button) {
@@ -89,5 +128,103 @@
                 toggleButtons('.button-show_project');
             }
         });
+    }
+    
+    function cancelProject(event, projectId, projectName) {
+        event.preventDefault();
+        
+        // Mostrar el modal de confirmación
+        const modal = document.getElementById('cancelProjectModal');
+        const projectNameSpan = document.getElementById('cancelProjectName');
+        const projectIdSpan = document.getElementById('cancelProjectId');
+        const confirmButton = document.getElementById('confirmCancelProject');
+        
+        // Llenar la información en el modal
+        projectNameSpan.textContent = projectName;
+        projectIdSpan.textContent = projectId;
+        
+        // Guardar referencia al botón original usando un atributo data
+        const originalButton = event.currentTarget;
+        originalButton.setAttribute('data-cancel-project-id', projectId);
+        originalButton.setAttribute('data-cancel-project-name', projectName);
+        
+        // Mostrar el modal
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+    }
+    
+    // Función para confirmar la cancelación del proyecto
+    function confirmCancelProject() {
+        const confirmButton = document.getElementById('confirmCancelProject');
+        
+        // Encontrar el botón original usando el atributo data
+        const projectId = confirmButton.getAttribute('data-project-id') || 
+                         document.querySelector('[data-cancel-project-id]')?.getAttribute('data-cancel-project-id');
+        
+        if (!projectId) {
+            showAlert('Error: Project ID not found.', 'danger');
+            return;
+        }
+        
+        // Encontrar el botón original
+        const originalButton = document.querySelector(`[data-cancel-project-id="${projectId}"]`);
+        if (!originalButton) {
+            showAlert('Error: Original button not found.', 'danger');
+            return;
+        }
+        
+        // Cerrar el modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('cancelProjectModal'));
+        modal.hide();
+        
+        // Mostrar loading en el botón original
+        const originalContent = originalButton.innerHTML;
+        originalButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+        originalButton.disabled = true;
+
+        // Hacer la petición AJAX
+        fetch(`/cancel_project/${projectId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showAlert('Project cancelled successfully.', 'success');
+                loadProposals(1, filter = '' );
+
+            } else {
+                showAlert(data.message || 'Error cancelling project.', 'danger');
+                originalButton.innerHTML = originalContent;
+                originalButton.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error cancelling project. Please try again.', 'danger');
+            originalButton.innerHTML = originalContent;
+            originalButton.disabled = false;
+        });
+    }
+    
+    function updateProjectCounters() {
+        // Actualizar contadores de proyectos si existen
+        const projectRows = document.querySelectorAll('tr[data-project-id]');
+        const totalProjects = projectRows.length;
+        
+        // Actualizar contador en el header si existe
+        const projectCounter = document.getElementById('project-counter');
+        if (projectCounter) {
+            projectCounter.textContent = totalProjects;
+        }
+        
+        // Actualizar contador en el sidebar si existe
+        const sidebarCounter = document.getElementById('sidebar-project-counter');
+        if (sidebarCounter) {
+            sidebarCounter.textContent = totalProjects;
+        }
     }
 </script>

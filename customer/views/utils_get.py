@@ -18,7 +18,7 @@ from django.utils.timezone import now
 def get_proposals(request, page=1):
     try:
         # Obtén todas las propuestas
-        proposals = ProposalProjects.objects.all().filter(sales_advisor=request.user, status__in=['new', 'sent', 'pending', 'approved']).order_by('-date_created')
+        proposals = ProposalProjects.objects.all().filter(sales_advisor=request.user, status__in=['new', 'sent', 'pending', 'approved',]).order_by('-date_created')
         # Si hay un filtro proporcionado
         if request.GET.get('searchInputProjectName') or request.GET.get('searchInputStatus') or request.GET.get('searchInputDueDate') or request.GET.get('quoteYear') or request.GET.get('quoteMonth') or request.GET.get('quoteDay') or request.GET.get('quoteProjectId'):
             project_name = request.GET.get('searchInputProjectName', '')
@@ -47,11 +47,14 @@ def get_proposals(request, page=1):
             # Aplica todos los filtros en una sola consulta
             proposals = proposals.filter(filters)
         if request.GET.get('onlyOverdue') == 'true' and request.GET.get('onlySoonDue') == 'false':
-            proposals = proposals.filter(due_date__lt=timezone.now().date())
+            print('onlyOverdue')
+            proposals = proposals.filter(due_date__lt=timezone.now().date(), status__in=['new', 'sent', 'pending'])
         elif request.GET.get('onlySoonDue') == 'true' and request.GET.get('onlyOverdue') == 'false':
-            proposals = proposals.filter(due_date__lt=timezone.now().date() + timezone.timedelta(days=2))
+            print('onlySoonDue')
+            proposals = proposals.filter(due_date__lt=timezone.now().date() + timezone.timedelta(days=2), status__in=['new', 'sent', 'pending'])
         elif request.GET.get('onlyOverdue') == 'true' and request.GET.get('onlySoonDue') == 'true':
-            proposals = proposals.filter(due_date__lt=timezone.now().date() + timezone.timedelta(days=2))
+            print('both')
+            proposals = proposals.filter(is_overdue=True)
 
 
         # Paginación
@@ -263,7 +266,7 @@ def get_notifications(request):
         today = now().date()
         soon_due_date = today + timedelta(days=2)
         
-        proposal_counts = ProposalProjects.objects.filter(sales_advisor=request.user, status__in=['new', 'sent', 'pending', 'approved']).aggregate(
+        proposal_counts = ProposalProjects.objects.filter(sales_advisor=request.user, status__in=['new', 'sent', 'pending']).aggregate(
             overdue=Count(Case(When(due_date__lt=today, then=1))),
             soon_due=Count(Case(When(due_date__gte=today, due_date__lt=soon_due_date, then=1)))
         )

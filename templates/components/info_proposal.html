@@ -23,7 +23,16 @@
   <td class="text-center">{{ proposal.sales_advisor }}</td>
   <td class="text-center">{{ proposal.total_proposal|currency_usd }}</td>
   <td class="text-center">{{ proposal.billing_progress|currency_usd }}</td>
-  <td class="text-center"><button class="btn btn-primary btn-sm rounded-2 p-1 modal-open button-show_proposal" id='button-show_proposal' onclick="openModal(event, project_id='{{ project.id }}', proposal_id={{proposal.id}}, object='proposal')"><i class="bi bi-eye-fill"></i></button></td>
+  <td class="text-center">
+    <button class="btn btn-primary btn-sm rounded-2 p-1 modal-open button-show_proposal" id='button-show_proposal' onclick="openModal(event, project_id='{{ project.id }}', proposal_id={{proposal.id}}, object='proposal')" title="View Proposal" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-custom-class="custom-tooltip" data-bs-title="View Proposal Details">
+      <i class="bi bi-eye-fill"></i>
+    </button>
+    {% if proposal.is_overdue %}
+      <button class="btn btn-danger btn-sm rounded-2 p-1 ms-1" id='button-cancel_project_{{proposal.project.id}}' onclick="cancelProject(event, {{proposal.project.id}}, '{{proposal.project_name|escapejs}}')" title="Cancel Project" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-custom-class="custom-tooltip" data-bs-title="Cancel this entire project permanently">
+        <i class="bi  bi-x-circle-fill"></i>
+      </button>
+    {% endif %}
+  </td>
 </tr>
 {% endfor %}
 {% else %}

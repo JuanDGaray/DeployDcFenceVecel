@@ -107,6 +107,8 @@ urlpatterns = [
     path('notifications/<int:notification_id>/delete/', views.delete_notification, name='delete_notification'),
     path('notifications/delete_all/', views.delete_all_notifications, name='delete_all_notifications'),
     path('send_invoice_email/<int:project_id>/<int:invoice_id>/', views.send_invoice_email, name='send_invoice_email'),
+    path('cancel_proposal/<int:proposal_id>/', views.cancel_proposal, name='cancel_proposal'),
+    path('cancel_project/<int:project_id>/', views.cancel_project, name='cancel_project'),
 ]
 
 
