@@ -1413,25 +1413,41 @@ function sendBudgetDuplicate(budgetId ) {
     showAlert('Please select a project before duplicating the budget.', 'danger');
     return;
   }
-  const container = document.getElementById('selectProject');ta
+  
+  const container = document.getElementById('selectProject');
   const cancelBudgetDuplicate = document.getElementById('cancelBudgetDuplicateButton');
+  const duplicateProjectButton = document.getElementById('duplicateBudgetButton');
+  
+  // Prevent double submission
+  if (duplicateProjectButton.disabled) {
+    return;
+  }
+  
+  // Disable button and show spinner
   duplicateProjectButton.disabled = true;
   duplicateProjectButton.classList.add('bg-secondary');
-  duplicateProjectButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Duplicating... ';
+  duplicateProjectButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Duplicating...';
   cancelBudgetDuplicate.disabled = true;
+  
   ajaxPostRequest(`/create_copy_budget/${budgetId}/${projectId}/`, {
   }, '{{ csrf_token }}', function(data) {
     if (data.status === 'success') {
+      // Reset button state
       duplicateProjectButton.disabled = false;
       duplicateProjectButton.classList.remove('bg-secondary');
       duplicateProjectButton.innerHTML = 'Duplicate';
       cancelBudgetDuplicate.disabled = false;
+      
+      // Clear form and hide container
       selectProject.value = '';
       container.classList.add('d-none');
+      
       showAlert('Budget duplicated successfully.', 'success');
       window.open(data.redirect, '_blank');
     } else {
       showAlert('Error duplicating budget.', 'danger');
+      
+      // Reset button state on error
       duplicateProjectButton.disabled = false;
       cancelBudgetDuplicate.disabled = false;
       duplicateProjectButton.classList.remove('bg-secondary');
@@ -1440,9 +1456,12 @@ function sendBudgetDuplicate(budgetId ) {
   }, function(error) {
     container.classList.add('d-none');
     showAlert('Error duplicating budget.', 'danger');
+    
+    // Reset button state on network error
     duplicateProjectButton.disabled = false;
     duplicateProjectButton.classList.remove('bg-secondary');
     duplicateProjectButton.innerHTML = 'Duplicate';
+    cancelBudgetDuplicate.disabled = false;
   });
 }
 
