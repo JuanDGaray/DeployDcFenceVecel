@@ -58,6 +58,7 @@ urlpatterns = [
     path('project/<int:project_id>/view_budget/<int:budget_id>/budgetPrint', views.generate_pdf, name='budget_pdf'),
     path('projects/<int:project_id>/view_invoice/<int:invoice_id>', views.view_invoice, name='view_invoice'),    
     path('projects/<int:project_id>/pdf_proposal/<int:proposal_id>', views.pdf_proposal, name='pdf_proposal'),
+    path('projects/<int:project_id>/cost_breakdown/<int:proposal_id>', views.cost_breakdown, name='cost_breakdown'),
     path('projects/<int:project_id>/aiaInvoice5/<int:invoice_id>', views.aiaInvoice5, name='aiaInvoice5'),
     path('projects/<int:project_id>/new_aia5_xlxs_template/search/',  utils.new_aia5_xlxs_template, name='new_aia5_xlxs_template'),
     path('projects/<int:project_id>/new_aia10_xlxs_template/search/',  utils.new_aia10_xlxs_template, name='new_aia10_xlxs_template'),

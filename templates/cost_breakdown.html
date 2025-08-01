@@ -1,0 +1,1221 @@
+{% extends "base.html" %}
+{% load static %}
+{% load custom_filters %}
+{% block extra_head %}
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        #main-pdf{
+            background-color: #e0e0e0;
+
+        }
+        section{
+            background:white;
+            box-shadow: 2px 0px 100px 10px #0000001e;
+            max-width: 8.5in;
+            width: 8.5in;
+        }
+        #main-container{
+            background: white;
+            padding: 30px 30px;
+            page-break-inside: avoid;
+            page-break-after: auto;
+            page-break-before: auto;
+            max-width: 8.5in;
+            width: 8.5in;
+        }
+        
+        .no-break, tr, .chart-container {
+            page-break-inside: avoid;
+        }
+        .header-blue {
+            background-color: #9b9c9c4d;
+            color: #00265a;
+            padding: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .logoView{
+            background-color: #1a4784;
+            width: 200px;
+            padding: 4px;
+            height: 140px;
+        }
+        .infoContainer{
+            background-image: url("{% static 'img/logoPatron.png' %}");
+            background-repeat: none;
+            background-position: center;
+            background-size: 480px 480px
+        }
+        .bgTrans{
+            background-color:white;
+            font-size: 12px
+        }
+        .cost-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .cost-table th,
+        .cost-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .cost-table th {
+            background-color: #1a4784;
+            color: white;
+            font-weight: bold;
+        }
+        .cost-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .cost-table tr:hover {
+            background-color: #ddd;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .text-center {
+            text-align: center;
+        }
+        .chart-container {
+            width: 100%;
+            height: 400px;
+            margin: 20px 0;
+        }
+        .summary-box {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 5px 0;
+        }
+        
+        /* Estilos para edición de descripciones */
+        .item-description {
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .item-description:hover .edit-btn {
+            opacity: 1;
+        }
+        
+        .edit-btn {
+            position: absolute;
+            right: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-size: 10px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .edit-btn:hover {
+            background: #0056b3;
+        }
+        
+        .edit-input {
+            width: 100%;
+            padding: 4px 8px;
+            border: 1px solid #007bff;
+            border-radius: 3px;
+            font-size: inherit;
+        }
+        
+        .save-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-size: 10px;
+            margin-left: 5px;
+            cursor: pointer;
+        }
+        
+        .save-btn:hover {
+            background: #1e7e34;
+        }
+        
+        .cancel-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-size: 10px;
+            margin-left: 2px;
+            cursor: pointer;
+        }
+        
+        .cancel-btn:hover {
+            background: #c82333;
+        }
+        
+        .timeline-item {
+            border-left: 3px solid #1a4784;
+            padding-left: 15px;
+            margin: 10px 0;
+            position: relative;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            background: #1a4784;
+            border-radius: 50%;
+        }
+        
+        .professional-summary {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Estilos para el chart con fondo amarillo claro */
+        .chart-container {
+            background: linear-gradient(135deg, #55555518 0%, #9c9c9c25 100%);
+            padding: 25px;
+            margin-top: 0px auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* Estilos para las columnas del chart con opacidad */
+        .chart-column {
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+        
+        .chart-column:hover {
+            opacity: 1;
+        }
+        
+        /* Estilos para el análisis de costos */
+        .cost-summary-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            height: 100%;
+        }
+        
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+        
+        .summary-item .label {
+            font-weight: 500;
+            color: #495057;
+        }
+        
+        .summary-item .value {
+            font-weight: 600;
+            color: #212529;
+        }
+        
+        .cost-analysis-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .analysis-item {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 3px solid #1a4784;
+        }
+        
+        .analysis-item h6 {
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #212529;
+        }
+        
+        .analysis-item p {
+            margin-bottom: 0;
+            line-height: 1.4;
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .alert-light {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+        }
+        
+        .alert-heading {
+            color: #495057;
+            font-weight: 600;
+        }
+    </style>
+{% endblock %}
+{% block title %}Cost Breakdown{% endblock %}
+{% block content %}
+<div id='main-pdf' class='p-3 position-relative' data-project-id="{{ project.id }}" data-proposal-id="{{ proposal.id }}">
+    <a href="{% url 'detail_project' project.id %}" class="bg-light px-4 py-1 rounded-4 border border-2 border-primary fs-5"><strong><i class="bi bi-back "></i> <span id="project-container" data-project-id="{{ project.id }}">{{project.id}} </span> - {{project.project_name}}</a>
+    <!-- Botones flotantes en la esquina superior derecha -->
+    <div class="position-fixed top-0 end-0 m-3 d-flex flex-row gap-2" style="z-index: 10;">
+        <button id="downloadBtn" class="btn btn-light btn-sm border border-danger shadow-sm rounded-2" onclick="generatePDF()" title="Download PDF">
+            <i class="bi bi-file-earmark-pdf-fill text-danger fs-4"></i>
+        </button>
+        <a href="{% url 'edit_budgetSimple' project_id=project.id budget_id=proposal.budget.id proposal_id=proposal.id %}" class="btn btn-light btn-sm border border-primary shadow-sm rounded-2" title="Edit Proposal">
+            <i class="bi bi-pencil-square text-primary fs-4"></i>
+        </a>
+        <button id="emailBtn" class="btn btn-light btn-sm border border-success shadow-sm rounded-2" onclick="openEmailModal()" title="Send by Email">
+            <i class="bi bi-envelope-fill text-success fs-4"></i>
+        </button>
+    </div>
+    <section id="invoice-form" class="col-md-9 mx-auto">
+        <div class="container px-4 py-1 overflow-hidden select-none" id='main-container'>
+
+            <!-- Cost Breakdown Header -->
+            <div class="header-blue text-center">
+                <h4 class="m-0 fw-bold">COST BREAKDOWN - {{proposal.project.project_name}}</h4>
+            </div>
+            <!-- Header with Logo -->
+            <div class="row align-items-center pb-2 border-bottom border-2">
+                <div class="d-flex flex-row flex-nowrap justify-content-between gap-2 infoContainer p-3 px-4">
+                    <img src="{% static 'img/LogoCompleteWhite.webp' %}" alt="DC FENCE Logo" class="logoView rounded-2">
+                    <div class='d-flex flex-row justify-content-between'>
+                        <div class="d-flex flex-column justify-content-center align-items-center text-center bgTrans px-2">
+                            <h6>Lic: 20BS00539/21-F22501-R <br> SBE-CON/SBE-G&S/LDB CAGE:8ZKA7 Duns:117970612</h6>
+                            <a href="https://www.dcfence.org" target="_blank" class="text-decoration-none text-dark">
+                            <p class="m-0"><i class="bi bi-globe"></i> www.dcfence.org</p>
+                            </a>
+                        </div>
+                        <div class="d-flex flex-column ms-5 justify-content-center bgTrans p-1">
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="bi bi-telephone-fill bg-primary p-1 text-light me-1"></i>
+                                <span>786-747-4766</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="bi bi-house-door-fill bg-primary p-1 text-light me-1"></i>
+                                <span>2498 W Third CT,</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-1">
+                                <i class="bi bi-house-door-fill bg-primary p-1 text-light me-1"></i>
+                                <span>Hialeah FL 33010</span>
+                            </div>
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-envelope-fill bg-primary p-1 text-light me-1"></i>
+                                <a href="mailto:dcfence01@gmail.com" class="text-decoration-none text-dark">dcfence01@gmail.com</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Customer Information -->
+            <div class="header-blue bg-opacity-25">Customer Information</div>
+            <table class="table table-bordered">
+                <tr>
+                    <td><strong>Company/Project:</strong></td>
+                    <td>{{ proposal.project_name }}</td>
+                    <td><strong>Project Number:</strong></td>
+                    <td>MDCPS-{{ proposal.date_created|date:'ymd' }}-{{proposal.project.id}}</td>
+                </tr>
+                <tr>
+                    <td><strong>Customer:</strong></td>
+                    <td>
+                        {% if proposal.project.customer.customer_type == "individual" %}
+                            {{ proposal.project.customer.first_name }} {{ proposal.project.customer.last_name }}
+                        {% else %}
+                            {{ proposal.project.customer.company_name }}
+                        {% endif %}
+                    </td>
+                    <td><strong>Quote Date:</strong></td>
+                    <td>{{ proposal.date_created|date:'m/d/Y' }}</td>
+                </tr>
+            </table>
+            
+            <!-- Contact Information -->
+            <div class="header-blue">Contact Information</div>
+            <table class="table table-bordered">
+                <tr>
+                    <td><strong>Name:</strong></td>
+                    <td>
+                        {% if proposal.project.customer.customer_type == "individual" %}
+                            {{ proposal.project.customer.first_name }} {{ proposal.project.customer.last_name }}
+                        {% else %}
+                            {{ proposal.project.customer.company_name }}
+                        {% endif %}
+                    </td>
+                    <td><strong>Phone:</strong></td>
+                    <td>{{ proposal.project.customer.phone }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Address:</strong></td>
+                    <td colspan="3">{{ proposal.project.customer.address }}, {{ proposal.project.customer.city }}, {{ proposal.project.customer.state }} {{ proposal.project.customer.zip_code }}</td>
+                </tr>
+                <tr>
+                    <td><strong>Email:</strong></td>
+                    <td colspan="3">{{ proposal.project.customer.email }}</td>
+                </tr>
+            </table>
+            
+            <div class="header-blue" style="margin-top: 30px;">Cost Breakdown Summary</div>
+            <table class="cost-table professional-table">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Description</th>
+                        <th>Cost Code</th>
+                        <th class="text-right">Cost Value</th>
+                        <th class="text-right">%</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for category_name, category_items in categorized_data.items %}
+                        {% if category_items %}
+                        <tr>
+                            <td class="fw-bold">
+                                {{ category_name|title }}
+                            </td>
+                            <td>{{ category_descriptions|get_item:category_name.lower|default:category_name|title }}</td>
+                            <td>CC-{{ forloop.counter|stringformat:"03d" }}</td>
+                            <td class="text-right">${{ category_totals|get_item:category_name|floatformat:2 }}</td>
+                            <td class="text-right">{{  category_percentage|get_item:category_name|floatformat:2 }}%</td>
+                        </tr>
+                        {% endif %}
+                    {% endfor %}
+                    <!-- Total Row -->
+                    <tr class="table-dar fw-bold text-dark border-top-2 border-dark">
+                        <td colspan="3"><strong>TOTAL</strong></td>
+                        <td class="text-right">${{ totals.total_cost|floatformat:2 }}</td>
+                        <td class="text-right">100%</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Detailed Category Tables -->
+            
+            <!-- Materials Section -->
+            <div class="header-blue">Materials</div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm">
+                    <thead class="table-dar">
+                        <tr>
+                            <th>#</th>
+                            <th>Description</th>
+                            <th>Quantity</th>
+                            <th>Unit Cost</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in categorized_data.materials %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td class="item-description" data-category="materials" data-original-name="{{ item.original_name }}" data-custom-name="{{ item.name }}">
+                                {{ item.name }}
+                                <button class="edit-btn" onclick="editItemDescription(this)">✏️</button>
+                            </td>
+                            <td class="quantity-cell">{{ item.content.quantity }}</td>
+                            <td class="text-right">${{ item.content.unit_cost|floatformat:2 }}</td>
+                            <td class="text-right cost-cell">${{ item.total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No materials data available</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="table-secondary fw-bold">
+                            <td colspan="4" class="text-end"><strong>Materials Subtotal:</strong></td>
+                            <td class="text-right">${{ totals.materials|floatformat:2 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Labor Section -->
+            <div class="header-blue">Labor</div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm">
+                    <thead class="table-dar">
+                        <tr>
+                            <th>#</th>
+                            <th>Description</th>
+                            <th>Days</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in categorized_data.labor %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td class="item-description" data-category="labor" data-original-name="{{ item.original_name }}" data-custom-name="{{ item.name }}">
+                                {{ item.name }}
+                                <button class="edit-btn" onclick="editItemDescription(this)">✏️</button>
+                            </td>
+                            <td class="quantity-cell">{{ item.content.days }}</td>
+                            <td class="text-right cost-cell">${{ item.total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">No labor data available</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="table-secondary fw-bold">
+                            <td colspan="3" class="text-end"><strong>Labor Subtotal:</strong></td>
+                            <td class="text-right">${{ totals.labor|floatformat:2 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Contractors Section -->
+            <div class="header-blue">Contractors</div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm">
+                    <thead class="table-dar">
+                        <tr>
+                            <th>#</th>
+                            <th>Description</th>
+                            <th>Lead Time</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in categorized_data.contractors %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td class="item-description" data-category="contractors" data-original-name="{{ item.original_name }}" data-custom-name="{{ item.name }}">
+                                {{ item.name }}
+                                <button class="edit-btn" onclick="editItemDescription(this)">✏️</button>
+                            </td>
+                            <td>{{ item.content.lead_time }}</td>
+                            <td class="text-right cost-cell">${{ item.total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">No contractors data available</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="table-secondary fw-bold">
+                            <td colspan="3" class="text-end"><strong>Contractors Subtotal:</strong></td>
+                            <td class="text-right">${{ totals.contractors|floatformat:2 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Utilities Section -->
+            <div class="header-blue">Utilities</div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm">
+                    <thead class="table-dar">
+                        <tr>
+                            <th>#</th>
+                            <th>Description</th>
+                            <th>Cost per Hole</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in categorized_data.utilities %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td class="item-description" data-category="utilities" data-original-name="{{ item.original_name }}" data-custom-name="{{ item.name }}">
+                                {{ item.name }}
+                                <button class="edit-btn" onclick="editItemDescription(this)">✏️</button>
+                            </td>
+                            <td class="text-right">${{ item.content.cost_per_hole|floatformat:2 }}</td>
+                            <td class="text-right cost-cell">${{ item.total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">No utilities data available</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="table-secondary fw-bold">
+                            <td colspan="3" class="text-end"><strong>Utilities Subtotal:</strong></td>
+                            <td class="text-right">${{ totals.utilities|floatformat:2 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Miscellaneous Section -->
+            <div class="header-blue">Miscellaneous</div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm">
+                    <thead class="table-dar">
+                        <tr>
+                            <th>#</th>
+                            <th>Description</th>
+                            <th>Lead Time</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in categorized_data.miscellaneous %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td class="item-description" data-category="miscellaneous" data-original-name="{{ item.original_name }}" data-custom-name="{{ item.name }}">
+                                {{ item.name }}
+                                <button class="edit-btn" onclick="editItemDescription(this)">✏️</button>
+                            </td>
+                            <td>{{ item.content.lead_time }}</td>
+                            <td class="text-right cost-cell">${{ item.total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">No miscellaneous data available</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="table-secondary fw-bold">
+                            <td colspan="3" class="text-end"><strong>Miscellaneous Subtotal:</strong></td>
+                            <td class="text-right">${{ totals.miscellaneous|floatformat:2 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Deducts Section -->
+            <div class="header-blue">Deducts</div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm">
+                    <thead class="table-dar">
+                        <tr>
+                            <th>#</th>
+                            <th>Description</th>
+                            <th>Lead Time</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in categorized_data.deducts %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td class="item-description" data-category="deducts" data-original-name="{{ item.original_name }}" data-custom-name="{{ item.name }}">
+                                {{ item.name }}
+                                <button class="edit-btn" onclick="editItemDescription(this)">✏️</button>
+                            </td>
+                            <td>{{ item.content.lead_time }}</td>
+                            <td class="text-right cost-cell">${{ item.total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">No deducts data available</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="table-secondary fw-bold">
+                            <td colspan="3" class="text-end"><strong>Deducts Subtotal:</strong></td>
+                            <td class="text-right">${{ totals.deducts|floatformat:2 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Profit Section -->
+            <div class="header-blue">Profit</div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm">
+                    <thead class="table-dar">
+                        <tr>
+                            <th>#</th>
+                            <th>Description</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in categorized_data.profit %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td class="item-description" data-category="profit" data-original-name="{{ item.original_name }}" data-custom-name="{{ item.name }}">
+                                {{ item.name }}
+                                <button class="edit-btn" onclick="editItemDescription(this)">✏️</button>
+                            </td>
+                            <td class="text-right cost-cell">${{ item.total|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted">No profit data available</td>
+                        </tr>
+                        {% endfor %}
+                        <tr class="table-secondary fw-bold">
+                            <td colspan="2" class="text-end"><strong>Profit Subtotal:</strong></td>
+                            <td class="text-right">${{ totals.profit|floatformat:2 }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+             <!-- Margin Error Summary -->
+             {% if totals.margin_error > 0 %}
+             <div class="header-blue" style="margin-top: 30px;">F. Margin Error Summary</div>
+             <div class="table-responsive">
+                 <table class="table table-bordered table-sm">
+                     <thead class="table-warning">
+                         <tr>
+                             <th>#</th>
+                             <th>Description</th>
+                             <th>Percentage</th>
+                             <th class="text-right">Amount</th>
+                         </tr>
+                     </thead>
+                     <tbody>
+                         <tr>
+                             <td><strong>1</strong></td>
+                             <td>Margin Error</td>
+                             <td class="text-center">5%</td>
+                             <td class="text-right text-warning fw-bold">${{ totals.margin_error|floatformat:2 }}</td>
+                         </tr>
+                         <tr class="table-warning fw-bold">
+                             <td colspan="3" class="text-end"><strong>Margin Error Total:</strong></td>
+                             <td class="text-right">${{ totals.margin_error|floatformat:2 }}</td>
+                         </tr>
+                     </tbody>
+                 </table>
+             </div>
+             {% endif %}
+
+             <!-- Final Summary -->
+            <div class="header-blue" style="margin-top: 30px;">Cost Summary</div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm">
+                    <tbody>
+                        <tr>
+                            <td><strong>A. Materials Subtotal:</strong></td>
+                            <td class="text-right">${{ totals.materials|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>B. Labor Subtotal:</strong></td>
+                            <td class="text-right">${{ totals.labor|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>C. Contractor Owned Equipment:</strong></td>
+                            <td class="text-right">${{ totals.contractors|floatformat:2 }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>D. Utilities:</strong></td>
+                            <td class="text-right">${{ totals.utilities|floatformat:2 }}</td>
+                        </tr>
+                                                 <tr>
+                             <td><strong>E. Misc & Deducts/Credits:</strong></td>
+                             <td class="text-right">${{ totals.overhead|floatformat:2 }}</td>
+                         </tr>
+                         {% if totals.margin_error > 0 %}
+                         <tr class="table-warning fw-bold">
+                             <td><strong>F. Margin Error:</strong></td>
+                             <td class="text-right">${{ totals.margin_error|default:0|floatformat:2 }}</td>
+                         </tr>
+                         {% endif %}
+                         <tr class="table-secondary fw-bold">
+                            <td><strong>TOTAL COST:</strong></td>
+                            <td class="text-right"><strong>${{ totals.total_cost_with_profit|floatformat:2 }}</strong></td>
+                        </tr>
+                        <tr class="table-success fw-bold">
+                            <td><strong>OVERHEAD & PROFIT:</strong></td>
+                            <td class="text-right"><strong>${{ totals.total_profit|floatformat:2 }}</strong></td>
+                        </tr>
+                        <tr class="table-primary fw-bold fs-5">
+                            <td><strong>GRAND TOTAL:</strong></td>
+                            <td class="text-right"><strong>${{ totals.total_cost|floatformat:2 }}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Chart -->
+            <div class="header-blue">Cost Distribution Chart</div>
+            <div class="chart-container">
+                <canvas id="costChart"></canvas>
+            </div>
+            
+            <!-- Doughnut Chart and Cost Distribution Analysis -->
+            <div class="header-blue" style="margin-top: 30px;">Cost Distribution Analysis</div>
+            <div class="row">
+                <div class="w-100">
+                    <div class="chart-container">
+                        <canvas id="doughnutChart"></canvas>
+                    </div>
+                </div>
+
+            </div>
+            
+            <!-- Cost Breakdown Analysis -->
+            <div class="cost-analysis-section">
+                <h5 class="text-dark mb-4">Cost Breakdown Analysis</h5>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="analysis-item">
+                            <h6 class="text-dark">Materials  {{ totals.materials|floatformat:2|currency_usd }}</h6>
+                            <p class="text-muted">{{ category_descriptions.materials.description|default:"Physical materials and technical components including fence materials, gates, hardware, and specialized equipment." }}</p>
+                        </div>
+                        
+                        <div class="analysis-item">
+                            <h6 class="text-dark">Labor  {{ totals.labor|floatformat:2|currency_usd }}</h6>
+                            <p class="text-muted">{{ category_descriptions.labor.description|default:"Direct labor costs including installation, assembly, and specialized technical work required for project completion." }}</p>
+                        </div>
+                        
+                        <div class="analysis-item">
+                            <h6 class="text-dark">Contractors  {{ totals.contractors|floatformat:2|currency_usd }}</h6>
+                            <p class="text-muted">{{ category_descriptions.contractors.description|default:"Subcontractor services and specialized contractor work including electrical, concrete, and other specialized installations." }}</p>
+                        </div>
+                        
+                        <div class="analysis-item">
+                            <h6 class="text-dark">Utilities  {{ totals.utilities|floatformat:2|currency_usd }}</h6>
+                            <p class="text-muted">{{ category_descriptions.utilities.description|default:"Utility-related costs including electrical work, power requirements, and infrastructure connections." }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="analysis-item">
+                            <h6 class="text-dark">Overhead  {{ totals.overhead|floatformat:2|currency_usd }}</h6>
+                            <p class="text-muted">{{ category_descriptions.overhead.description|default:"Administrative costs, project management, permits, and general overhead expenses." }}</p>
+                        </div>
+                        
+                        <div class="analysis-item">
+                            <h6 class="text-dark">Miscellaneous  {{ totals.miscellaneous|floatformat:2|currency_usd  }}</h6>
+                            <p class="text-muted">{{ category_descriptions.miscellaneous.description|default:"Additional costs including special equipment, temporary structures, and other project-specific expenses." }}</p>
+                        </div>
+                        
+                        {% if totals.deducts > 0 %}
+                        <div class="analysis-item">
+                            <h6 class="text-dark">Deducts  {{ totals.deducts|floatformat:2|currency_usd }}</h6>
+                            <p class="text-muted">{{ category_descriptions.deducts.description|default:"Cost reductions and deductions applied to the project total." }}</p>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="analysis-item">
+                            <h6 class="text-dark">Profit  {{ totals.profit|floatformat:2|currency_usd }}</h6>
+                            <p class="text-muted">{{ category_descriptions.profit.description|default:"Project profit margin and business overhead included in the total project cost." }}</p>
+                        </div>
+                        
+                        {% if totals.margin_error > 0 %}
+                        <div class="analysis-item">
+                            <h6 class="text-dark">Margin Error  {{ totals.margin_error|floatformat:2|currency_usd }}</h6>
+                            <p class="text-muted">{{ category_descriptions.margin_error.description|default:"Additional margin error applied to account for potential cost variations and project uncertainties." }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="alert alert-light mt-4">
+                    <h6 class="alert-heading">Cost Distribution Summary</h6>
+                    <p class="mb-2">This project shows a balanced cost distribution with direct costs (materials, labor, contractors) representing the core expenses, while indirect costs (overhead, utilities, miscellaneous) cover operational expenses.</p>
+                </div>
+            </div> 
+        </div>
+    </section>    
+</div>
+{% include 'components/modal_send_email.html' %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.js"></script>
+<script src="{% static 'js/components/pdf_proposal.js' %}"></script>
+
+<!-- Chart data from Django -->
+{{ chart_data|json_script:"chart-data" }}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get chart data from JSON script tag
+    const chartDataElement = document.getElementById('chart-data');
+    const chartData = JSON.parse(chartDataElement.textContent);
+    
+    // Calcular porcentajes
+    const total = chartData.values.reduce((sum, value) => sum + value, 0);
+    const percentages = chartData.values.map(value => ((value / total) * 100).toFixed(1));
+    
+    // Create the chart
+    const ctx = document.getElementById('costChart').getContext('2d');
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                label: 'Cost ($)',
+                data: chartData.values,
+                backgroundColor: chartData.colors.map(color => color + '80'), // Agregar opacidad
+                borderColor: chartData.colors,
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value.toLocaleString();
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(251, 192, 45, 0.2)',
+                        drawBorder: false
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(251, 192, 45, 0.2)',
+                        drawBorder: false
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    enabled: false
+                }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeInOutQuart'
+            }
+        },
+        plugins: [{
+            id: 'customLabels',
+            afterDraw: function(chart) {
+                const ctx = chart.ctx;
+                const meta = chart.getDatasetMeta(0);
+                
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.font = 'bold 12px Arial';
+                
+                meta.data.forEach(function(bar, index) {
+                    const value = chartData.values[index];
+                    const percentage = percentages[index];
+                    
+                    // Mostrar valor arriba de la columna
+                    ctx.fillStyle = '#333';
+                    ctx.fillText('$' + value.toLocaleString(), bar.x, bar.y - 10);
+                    
+                    // Mostrar porcentaje dentro de la columna
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 10px Arial';
+                    ctx.fillText(percentage + '%', bar.x, bar.y - bar.height/2);
+                });
+            }
+        }]
+    });
+    
+    // Create Doughnut Chart
+    const doughnutCtx = document.getElementById('doughnutChart').getContext('2d');
+    const doughnutChart = new Chart(doughnutCtx, {
+        type: 'doughnut',
+        data: {
+            labels: chartData.labels,
+            datasets: [{
+                data: chartData.values,
+                backgroundColor: chartData.colors,
+                borderColor: '#fff',
+                borderWidth: 2,
+                cutout: '60%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true,
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                tooltip: {
+                    enabled: false
+                },
+                hover: {
+                    mode: null
+                }
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeInOutQuart'
+            },
+            interaction: {
+                intersect: false,
+                mode: null
+            }
+        }
+    });
+    
+    // Función simple para dibujar porcentajes
+    function addDoughnutLabels() {
+        const ctx = doughnutCtx;
+        const meta = doughnutChart.getDatasetMeta(0);
+        
+        if (!meta || !meta.data) {
+            console.log('No meta data available');
+            return;
+        }
+        
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = 'bold 16px Arial';
+        
+        meta.data.forEach(function(arc, index) {
+            if (!arc || typeof arc.x === 'undefined' || typeof arc.y === 'undefined') {
+                console.log('Invalid arc data for index:', index);
+                return;
+            }
+            
+            const value = chartData.values[index];
+            const percentage = percentages[index];
+            
+            // Calcular el centro de cada sección de la dona
+            const centerX = arc.x;
+            const centerY = arc.y;
+            
+            // Calcular el ángulo medio de cada sección
+            const startAngle = arc.startAngle;
+            const endAngle = arc.endAngle;
+            const midAngle = (startAngle + endAngle) / 2;
+            
+            // Calcular la posición en el radio medio de la dona
+            const radius = (arc.outerRadius + arc.innerRadius) / 2;
+            const labelX = centerX + Math.cos(midAngle) * radius;
+            const labelY = centerY + Math.sin(midAngle) * radius;
+            
+            console.log(`Drawing label for ${chartData.labels[index]}: ${percentage}% at (${labelX}, ${labelY})`);
+            
+            // Mostrar porcentaje en el centro de cada sección
+            ctx.fillStyle = '#000';
+            ctx.fillText(percentage + '%', labelX, labelY);
+        });
+    }
+    
+    // Intentar dibujar después de diferentes delays
+    setTimeout(addDoughnutLabels, 1500);
+    setTimeout(addDoughnutLabels, 2500);
+    setTimeout(addDoughnutLabels, 3500);
+    
+    // También intentar cuando el chart esté listo
+    doughnutChart.options.plugins.afterDraw = function(chart) {
+        addDoughnutLabels();
+    };
+    
+    // Forzar redibujado
+    doughnutChart.update();
+    
+    // Redibujar cuando cambie el tamaño de la ventana
+    window.addEventListener('resize', function() {
+        doughnutChart.update();
+    });
+});
+
+function generatePDF() {
+    const element = document.getElementById('main-container');
+    
+    // Agregar estilos CSS para controlar saltos de página sin elementos visibles
+    const style = document.createElement('style');
+    style.textContent = `
+        @media print {
+            canvas { page-break-before: always; }
+            table { page-break-before: always; page-break-inside: avoid; }
+            .header-blue { page-break-before: always; }
+            .cost-analysis-section { page-break-before: always; }
+            tr { page-break-inside: avoid; break-inside: avoid; }
+            .no-break { page-break-inside: avoid; break-inside: avoid; }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    const opt = {
+        margin: 0,
+        filename: 'cost_breakdown_{{ proposal.project.id }}_{{ proposal.id }}.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { 
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            logging: false
+        },
+        jsPDF: { 
+            unit: 'in', 
+            format: 'letter', 
+            orientation: 'portrait',
+            compress: true
+        }
+    };
+    
+    html2pdf().set(opt).from(element).save().then(() => {
+        // Remover el estilo CSS después de generar el PDF
+        document.head.removeChild(style);
+    });
+}
+
+function openEmailModal() {
+    // Implementation for email modal
+    console.log('Email modal functionality to be implemented');
+}
+
+// Funciones para editar descripciones de elementos
+function editItemDescription(button) {
+    const td = button.parentElement;
+    const currentText = td.textContent.trim().replace('✏️', '').trim();
+    const category = td.dataset.category;
+    const originalName = td.dataset.originalName;
+    
+    // Crear input y botones
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'edit-input';
+    input.value = currentText;
+    
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'save-btn';
+    saveBtn.textContent = '💾';
+    saveBtn.onclick = () => saveItemDescription(td, input, category, originalName);
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'cancel-btn';
+    cancelBtn.textContent = '❌';
+    cancelBtn.onclick = () => cancelEdit(td, currentText);
+    
+    // Limpiar contenido y agregar elementos de edición
+    td.innerHTML = '';
+    td.appendChild(input);
+    td.appendChild(saveBtn);
+    td.appendChild(cancelBtn);
+    
+    // Enfocar el input
+    input.focus();
+    input.select();
+}
+
+function saveItemDescription(td, input, category, originalName) {
+    const newDescription = input.value.trim();
+    
+    if (newDescription === '') {
+        alert('La descripción no puede estar vacía');
+        return;
+    }
+    
+    // Enviar al servidor
+    fetch('{% url "edit_cost_item_descriptions" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            category: category,
+            original_description: originalName,
+            custom_description: newDescription
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Actualizar la celda
+            td.innerHTML = newDescription + '<button class="edit-btn" onclick="editItemDescription(this)">✏️</button>';
+            td.dataset.customName = newDescription;
+            
+            // Mostrar mensaje de éxito
+            showNotification('Descripción actualizada correctamente', 'success');
+        } else {
+            alert('Error al guardar: ' + (data.error || 'Error desconocido'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error al guardar la descripción');
+    });
+}
+
+function cancelEdit(td, originalText) {
+    // Restaurar el contenido original
+    td.innerHTML = originalText + '<button class="edit-btn" onclick="editItemDescription(this)">✏️</button>';
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function showNotification(message, type) {
+    // Crear notificación temporal
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 10px 20px;
+        border-radius: 5px;
+        color: white;
+        font-weight: bold;
+        z-index: 1000;
+        background-color: ${type === 'success' ? '#28a745' : '#dc3545'};
+    `;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    // Remover después de 3 segundos
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 3000);
+}
+</script>
+
+{% endblock %} 

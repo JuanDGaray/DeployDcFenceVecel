@@ -28,8 +28,31 @@ function renderTable(data) {
             day: "numeric",
             month: "numeric",
             year: "numeric",
-
         });
+        
+        // Determinar si aplicar blur a los costos
+        const blurClass = project.sales_advisor__username == data.current_user.username || data.current_user.is_admin  ? '' : 'blur-costs';
+        const canViewCosts = project.sales_advisor__username == data.current_user.username || data.current_user.is_admin;
+        
+        // Mostrar valores reales o "$0" según permisos
+        const estimatedCostDisplay = canViewCosts 
+            ? parseInt(project.estimated_cost).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+            : '$0000';
+        const actualCostDisplay = canViewCosts 
+            ? parseInt(project.actual_cost).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+            : '$0000';
+
+        // Función para truncar texto a 30 caracteres
+        const truncateText = (text, maxLength = 30) => {
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength) + '...';
+        };
+
+        // Obtener el nombre del cliente y truncarlo
+        const customerName = project.customer__customer_type === 'individual' 
+            ? `${project.customer__first_name} ${project.customer__last_name}`
+            : project.customer__company_name;
+        const truncatedCustomerName = truncateText(customerName);
 
         row.innerHTML = `
         <td class="position-relative text-center">
@@ -48,10 +71,10 @@ function renderTable(data) {
         </td>
         <td>
             <a href="/customers/${project.customer}">
-                <span class="status title_${project.customer__customer_type} fs-6 text-truncate">
+                <span class="status title_${project.customer__customer_type} fs-6 text-truncate" title="${customerName}">
                     ${project.customer__customer_type === 'individual' ?
-                `${project.customer__first_name} ${project.customer__last_name}<i class="bi bi-person-arms-up"></i>` :
-                `${project.customer__company_name}<i class="bi bi-buildings-fill"></i>`}
+                `${truncatedCustomerName}<i class="bi bi-person-arms-up"></i>` :
+                `${truncatedCustomerName}<i class="bi bi-buildings-fill"></i>`}
                 </span>
             </a>
         </td>
@@ -65,11 +88,19 @@ function renderTable(data) {
                 ${project.sales_advisor__first_name.split(' ')[0]} ${project.sales_advisor__last_name.split(' ')[0]}
             </a>
         </td>
-        <td class="text-truncate"> ${parseInt(project.estimated_cost).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</td>
+        <td class="text-truncate ${blurClass}"> ${estimatedCostDisplay}</td>
         ${project.estimated_cost > project.actual_cost || project.actual_cost === 0
-                ? `<td><span class="status title_budgetUp text-truncate"><i class="bi bi-graph-up-arrow fs-6"></i> ${parseInt(project.actual_cost).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span></td>`
-                : `<td><span class="status title_budgetDown text-truncate"><i class="bi bi-graph-down-arrow fs-6"></i> ${parseInt(project.actual_cost).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</span></td>`}           
-        <td class="text-center"><button class="btn btn-primary btn-sm rounded-2 p-1 modal-open button-show_project" id='button-show_project' onclick="openModal(event, project_id='${project.id}',proposal_id='None', object='project')"><i class="bi bi-eye-fill"></i></button></td>`
+                ? `<td class="${blurClass}"><span class="status title_budgetUp text-truncate"><i class="bi bi-graph-up-arrow fs-6"></i> ${actualCostDisplay}</span></td>`
+                : `<td class="${blurClass}"><span class="status title_budgetDown text-truncate"><i class="bi bi-graph-down-arrow fs-6"></i> ${actualCostDisplay}</span></td>`}           
+        <td class="text-center">
+            <button class="btn btn-primary btn-sm rounded-2 p-1 modal-open button-show_project" 
+                    id='button-show_project' 
+                    onclick="openModal(event, project_id='${project.id}',proposal_id='None', object='project')"
+                    ${!canViewCosts ? 'disabled' : ''}
+                    ${!canViewCosts ? 'style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                <i class="bi bi-eye-fill"></i>
+            </button>
+        </td>`;
         projectsTableBody.appendChild(row);
     });
 }
@@ -81,7 +112,8 @@ async function loadProjects(page, filters = '', sort = '') {
     document.getElementById('projects-count').innerHTML = '0';
     document.getElementById('paginationProjects').innerHTML = '';
     const all = document.getElementById('view-all-projects').checked
-    const url = `/get_projects/${page}/?${filters}&${filters ? '&' : ''}${view}&all=${all}&sort=${sort}`;
+    const onlyMe = document.getElementById('view-only-me').checked
+    const url = `/get_projects/${page}/?${filters}&${filters ? '&' : ''}${view}&all=${all}&only-me=${onlyMe}&sort=${sort}`;
     const data = await fetchData(url);
     if (data) {
         renderTable(data);
@@ -170,4 +202,19 @@ function updatePaginationControls(currentPage, hasMore, totalPages, type = 'prop
 
 document.addEventListener('DOMContentLoaded', function () {
     loadProjects(1);
+    
+    // Event listeners para checkboxes mutuamente excluyentes
+    document.getElementById('view-all-projects').addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('view-only-me').checked = false;
+        }
+        loadProjects(1);
+    });
+    
+    document.getElementById('view-only-me').addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('view-all-projects').checked = false;
+        }
+        loadProjects(1);
+    });
 });

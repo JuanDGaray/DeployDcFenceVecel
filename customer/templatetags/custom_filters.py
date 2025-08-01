@@ -191,3 +191,47 @@ def sum_values(value):
             return 0
     
     return 0
+
+@register.filter(name='multiply')
+def multiply(value, arg):
+    """
+    Multiplica un valor por otro.
+    """
+    try:
+        value = float(value)
+        arg = float(arg)
+        return value * arg
+    except (ValueError, TypeError):
+        return 0
+
+@register.filter(name='get_nested_item')
+def get_nested_item(dictionary, key_path):
+    """
+    Obtiene un valor anidado de un diccionario usando una ruta de claves separada por puntos.
+    Ejemplo: get_nested_item:category_name.percentage
+    """
+    if not dictionary or not key_path:
+        return None
+    
+    keys = key_path.split('.')
+    current = dictionary
+    
+    for key in keys:
+        if isinstance(current, dict) and key in current:
+            current = current[key]
+        else:
+            return None
+    
+    return current
+
+@register.filter(name='add')
+def add(value, arg):
+    """
+    Suma dos valores numéricos.
+    """
+    try:
+        value = float(value)
+        arg = float(arg)
+        return value + arg
+    except (ValueError, TypeError):
+        return 0

@@ -91,26 +91,42 @@ def get_projects(request, page=1):
         timeInitial = timezone.now()
         view = request.GET.get('view')
         allProjects = request.GET.get('all')
+        onlyMe = request.GET.get('only-me')
         sort = request.GET.get('sort')
 
         if (sort == '' or sort == None):
             sort = '-id'
 
+        # Obtener información del usuario actual y sus permisos
+        current_user = request.user
+        is_admin = current_user.is_superuser or current_user.groups.filter(name='ADMIN').exists()
 
+        # Determinar qué proyectos mostrar basado en los filtros
         if view == 'view_project':
-            projects = Project.objects.order_by(sort).values(
-                'id', 'project_name', 'status', 
-                'sales_advisor__username', 'estimated_cost', 'actual_cost', 'created_at', 'customer',
-                'customer__customer_type', 'customer__first_name', 'customer__last_name', 'customer__company_name',
-                'sales_advisor__first_name', 'sales_advisor__last_name',
-            )
+            if onlyMe == 'true':
+                # Solo proyectos del usuario actual
+                projects = Project.objects.filter(sales_advisor=request.user).order_by(sort).values(
+                    'id', 'project_name', 'status', 
+                    'sales_advisor__username', 'estimated_cost', 'actual_cost', 'created_at', 'customer',
+                    'customer__customer_type', 'customer__first_name', 'customer__last_name', 'customer__company_name',
+                    'sales_advisor__first_name', 'sales_advisor__last_name', 'collaborators'
+                )
+            else:
+                # Todos los proyectos (vista por defecto)
+                projects = Project.objects.order_by(sort).values(
+                    'id', 'project_name', 'status', 
+                    'sales_advisor__username', 'estimated_cost', 'actual_cost', 'created_at', 'customer',
+                    'customer__customer_type', 'customer__first_name', 'customer__last_name', 'customer__company_name',
+                    'sales_advisor__first_name', 'sales_advisor__last_name', 'collaborators'
+                )
             numberProjects = 15
         else:
+            # Vista "My Projects" - siempre solo proyectos del usuario
             projects = Project.objects.filter(sales_advisor=request.user).order_by(sort).values(
                 'id', 'project_name', 'status', 
                 'sales_advisor__username', 'estimated_cost', 'actual_cost', 'created_at', 'customer',
                 'customer__customer_type', 'customer__first_name', 'customer__last_name', 'customer__company_name',
-                'sales_advisor__first_name', 'sales_advisor__last_name', 
+                'sales_advisor__first_name', 'sales_advisor__last_name', 'collaborators'
             )
             numberProjects = 10
 
@@ -137,11 +153,20 @@ def get_projects(request, page=1):
             numberProjects = 1000
         paginator = Paginator(projects, numberProjects)
         page_obj = paginator.get_page(page)
+        
+        # Agregar información del usuario actual para permisos
+        projects_list = list(page_obj.object_list)
+
+
         return JsonResponse({
-            'projects': list(page_obj.object_list),
+            'projects': projects_list,
             'has_more': page_obj.has_next(),
             'total_pages': paginator.num_pages,
-            'total_projects': paginator.count
+            'total_projects': paginator.count,
+            'current_user': {
+                'username': current_user.username,
+                'is_admin': is_admin
+            }
         })
 
 

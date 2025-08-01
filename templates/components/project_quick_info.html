@@ -464,6 +464,11 @@
                   <i class="bi bi-eye-fill" style="font-size: 15px;"></i>
                   </a>
                   <a class="btn bg-light border border-2 btn-sm rounded-2" 
+                  href="{% url 'cost_breakdown' project_id=project.id proposal_id=proposal.id %}" target='_blank'
+                  role="button" title="Cost Breakdown" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Cost Breakdown">
+                  <i class="bi bi-pie-chart" style="font-size: 15px;"></i>
+                  </a>
+                  <a class="btn bg-light border border-2 btn-sm rounded-2" 
                   href="{% url 'edit_budgetSimple' project_id=project.id budget_id=proposal.budget.id proposal_id=proposal.id %}" target='_blank'
                   role="button" title="Edit Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit">
                   <i class="bi bi-pencil-square" style="font-size: 15px;"></i>

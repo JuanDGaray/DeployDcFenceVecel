@@ -6,7 +6,9 @@
         style="font-size: 0.8rem; font-weight: bold; width: 25px; height: 25px;">
         {{ project.sales_advisor.first_name|first }} {{ project.sales_advisor.last_name|first }}
         </span>
-        {{ project.sales_advisor }}
+        <span class="text-truncate" style="max-width: 100px;">
+          {{ project.sales_advisor.first_name }} {{ project.sales_advisor.last_name }}
+        </span>
       </span></p>
     <p class="bg-success bg-opacity-25 text-dark p-2 m-0 d-flex flex-row gap-2 position-relative"><strong style="width: 50%;">Accounting Manager:</strong>
       <span style="width: 50%;" class="d-flex flex-row gap-2 flex-nowrap bg-light rounded-2 p-1">
@@ -27,7 +29,9 @@
             style="font-size: 0.8rem; font-weight: bold; width: 25px; height: 25px;">
             {{ project.accounting_manager.first_name|first }} {{ project.accounting_manager.last_name|first }}
           </span>
-          {{ project.accounting_manager }}
+          <span class="text-truncate" style="max-width: 100px;">
+            {{ project.accounting_manager.first_name }} {{ project.accounting_manager.last_name }}
+          </span>
         {% endif %}
       </span>
       {% if accounting_manager_not_available and project.accounting_manager == None %}
@@ -53,7 +57,9 @@
           style="font-size: 0.8rem; font-weight: bold; width: 25px; height: 25px;">
           {{ project.project_manager.first_name|first }} {{ project.project_manager.last_name|first }}
           </span>
-          {{ project.project_manager }}
+          <span class="text-truncate" style="max-width: 100px;">
+            {{ project.project_manager.first_name }} {{ project.project_manager.last_name }}
+          </span>
         {% endif %}
       </span>
       {% if project_manager_not_available and project.project_manager == None %}

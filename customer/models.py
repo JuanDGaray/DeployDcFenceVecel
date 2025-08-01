@@ -351,9 +351,10 @@ class Project(models.Model):
     evidence_required = models.BooleanField(default=False, null=True, blank=True)
     production_closed = models.BooleanField(default=False, null=True, blank=True)
     production_closed_date = models.DateTimeField(null=True, blank=True, verbose_name="Production Closed Date")
-    
+    collaborators = models.ManyToManyField(User, related_name='collaborating_projects', blank=True, verbose_name="Collaborators")
+
     def __str__(self):
-        return self.project_name
+        return f"{self.project_name} - {self.customer.get_full_name()}"
     
     
     def get_approved_proposal(self):
@@ -363,10 +364,10 @@ class Project(models.Model):
         return self.proposals.filter(status=ProposalProjects.STATUS_APPROVED).first()
 
     def actual_cost_usd(self):
-        return self.actual_cost.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) if self.actual_cost else '0.00'
+        return f"${self.actual_cost:,.2f}" if self.actual_cost else "$0.00"
     
     def estimated_cost_usd(self):
-        return self.estimated_cost.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) if self.estimated_cost else '0.00'
+        return f"${self.estimated_cost:,.2f}" if self.estimated_cost else "$0.00"
 
 class ProjectDocumentRequirement(models.Model):
     TYPE_DOCUMENT_CHOICES = [
@@ -861,3 +862,112 @@ class UserTask(models.Model):
     @property
     def is_due_soon(self):
         return self.due_date <= timezone.now().date() + timedelta(days=2) and self.status != 'completed'
+
+class CostItemDescription(models.Model):
+    """
+    Modelo para almacenar descripciones editables de elementos individuales de costos.
+    Permite que los usuarios modifiquen las descripciones de elementos específicos
+    (como "Fabrication" en Labor, "Steel Posts" en Materials) sin afectar el presupuesto.
+    """
+    CATEGORY_CHOICES = [
+        ('materials', 'Materials'),
+        ('labor', 'Labor'),
+        ('contractors', 'Contractors'),
+        ('utilities', 'Utilities'),
+        ('overhead', 'Overhead'),
+        ('miscellaneous', 'Miscellaneous'),
+        ('deducts', 'Deducts'),
+        ('profit', 'Profit'),
+    ]
+    
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
+    original_description = models.CharField(max_length=255, help_text="Descripción original del elemento")
+    custom_description = models.CharField(max_length=255, help_text="Descripción personalizada del elemento")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "Cost Item Description"
+        verbose_name_plural = "Cost Item Descriptions"
+        ordering = ['category', 'original_description']
+        unique_together = ['category', 'original_description']
+    
+    def __str__(self):
+        return f"{self.get_category_display()} - {self.original_description}"
+    
+    @classmethod
+    def get_custom_description(cls, category, original_description):
+        """Retorna la descripción personalizada para un elemento específico"""
+        try:
+            item = cls.objects.get(
+                category=category,
+                original_description=original_description,
+                is_active=True
+            )
+            return item.custom_description
+        except cls.DoesNotExist:
+            return original_description
+    
+    @classmethod
+    def set_custom_description(cls, category, original_description, custom_description, user=None):
+        """
+        Establece una descripción personalizada para un elemento de costo.
+        """
+        obj, created = cls.objects.get_or_create(
+            category=category,
+            original_description=original_description,
+            defaults={'custom_description': custom_description, 'updated_by': user}
+        )
+        if not created:
+            obj.custom_description = custom_description
+            obj.updated_by = user
+            obj.save()
+        return obj
+
+
+class ProjectCollaborationRequest(models.Model):
+    """
+    Modelo para manejar las solicitudes de colaboración en proyectos.
+    Permite a usuarios solicitar acceso a proyectos de otros usuarios.
+    """
+    STATUS_PENDING = 'pending'
+    STATUS_APPROVED = 'approved'
+    STATUS_REJECTED = 'rejected'
+    
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_APPROVED, 'Approved'),
+        (STATUS_REJECTED, 'Rejected'),
+    ]
+    
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='collaboration_requests')
+    requester = models.ForeignKey(User, on_delete=models.CASCADE, related_name='collaboration_requests_sent')
+    requested_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='collaboration_requests_received')
+    message = models.TextField("Message", blank=True, help_text="Optional message explaining why you want to collaborate")
+    status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    date_created = models.DateTimeField("Date Created", auto_now_add=True)
+    date_updated = models.DateTimeField("Date Updated", auto_now=True)
+    response_message = models.TextField("Response Message", blank=True, help_text="Optional response message from project owner")
+    
+    class Meta:
+        verbose_name = "Project Collaboration Request"
+        verbose_name_plural = "Project Collaboration Requests"
+        ordering = ['-date_created']
+        unique_together = ['project', 'requester']
+    
+    def __str__(self):
+        return f"Collaboration request from {self.requester.get_full_name()} for {self.project.project_name}"
+    
+    @property
+    def is_pending(self):
+        return self.status == self.STATUS_PENDING
+    
+    @property
+    def is_approved(self):
+        return self.status == self.STATUS_APPROVED
+    
+    @property
+    def is_rejected(self):
+        return self.status == self.STATUS_REJECTED

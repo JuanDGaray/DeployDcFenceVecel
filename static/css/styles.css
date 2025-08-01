@@ -1162,3 +1162,36 @@ div.gantt_task_progress.gantt-progress-in-progress {
 .title_company {
     color: #0dcaf0;
 }
+
+/* Blur effect for costs when user doesn't have permission to view them */
+.blur-costs {
+    filter: blur(3px);
+    transition: filter 0.3s ease;
+    cursor: not-allowed;
+    position: relative;
+}
+
+/* Project filter checkboxes styling */
+.card-header label {
+    margin-bottom: 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #495057;
+    transition: color 0.2s ease;
+}
+
+.card-header label:hover {
+    color: #007bff;
+}
+
+.card-header input[type="checkbox"] {
+    margin-right: 0.3rem;
+    cursor: pointer;
+}
+
+.card-header input[type="checkbox"]:checked + span {
+    color: #007bff;
+    font-weight: 600;
+}
+
+

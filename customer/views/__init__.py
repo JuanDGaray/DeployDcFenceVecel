@@ -9,7 +9,7 @@ from .projects_views  import (  delete_budget, delete_invoice, duplicate_project
                                 delete_proposal, delete_project, projects, aiaInvoice10, aiaInvoice5, MdcpInvoice, 
                                 updateMdcpInvoice, BroadInvoice10, view_invoice,  detail_project, new_budget, view_budget, generate_pdf,       
                                 view_budgetSimple, delete_budget,  edit_budget, delete_invoice, create_project, edit_project,
-                                project_history, close_project, cancel_proposal, cancel_project)
+                                project_history, close_project, cancel_proposal, cancel_project, cost_breakdown)
 
 from .production_views import production, production_project, setDateInProduction, save_gantt_data, save_real_cost_by_items, update_project_production, close_production
 from .settings_views import settings, add_user_post, delete_user

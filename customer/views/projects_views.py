@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from ..models import (Customer, Project, 
                       BudgetEstimate, BudgetEstimateMaterialData, BudgetEstimateDeductsData,
                       BudgetEstimateLaborData, BudgetEstimateContractorData,
-                      BudgetEstimateMiscData, BudgetEstimateProfitData, BudgetEstimateUtil, InvoiceProjects, ProposalProjects, ProjectBudgetXLSX, PaymentsReceived, ChangeOrderDetail, ChangeOrderItem)
+                      BudgetEstimateMiscData, BudgetEstimateProfitData, BudgetEstimateUtil, InvoiceProjects, ProposalProjects, ProjectBudgetXLSX, PaymentsReceived, ChangeOrderDetail, ChangeOrderItem, CostItemDescription, ProjectCollaborationRequest)
 from django.db.models import Max, Sum
 from ..form import CustomerForm, ProjectsForm 
 from django.core.paginator import Paginator
@@ -344,6 +344,30 @@ def detail_project(request, project_id):
             ), 
             pk=project_id
         )
+        
+        # Verificar permisos de acceso al proyecto
+        can_access = can_access_project(request.user, project)
+        is_owner = project.sales_advisor == request.user
+        is_admin = request.user.is_superuser or request.user.groups.filter(name='ADMIN').exists()
+        is_collaborator = project.collaborators.filter(id=request.user.id).exists()
+        
+        # Si no puede acceder, mostrar página de acceso restringido
+        if not can_access:
+            # Verificar si ya tiene una solicitud PENDIENTE
+            pending_request = ProjectCollaborationRequest.objects.filter(
+                project=project,
+                requester=request.user,
+                status=ProjectCollaborationRequest.STATUS_PENDING
+            ).first()
+            
+            return render(request, 'project_access_restricted.html', {
+                'project': project,
+                'pending_request': pending_request,
+                'is_owner': is_owner,
+                'is_admin': is_admin,
+                'is_collaborator': is_collaborator
+            })
+        
         budgets = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=True, isChangeOrder=False).only('id', 'projected_cost', 'status', 'sales_advisor', 'date_created', 'id_related_budget', 'isChangeOrder')
         invoices = InvoiceProjects.objects.filter(project_id=project_id).only('id', 'date_created', 'due_date', 'total_invoice', 'total_paid', 'status', 'proposal', 'sales_advisor')
         proposals = ProposalProjects.objects.filter(project_id=project_id).only('id', 'date_created', 'due_date', 'status', 'sales_advisor', 'total_proposal', 'sales_advisor', 'billed_proposal')
@@ -386,6 +410,17 @@ def detail_project(request, project_id):
         total_paid = invoices.aggregate(total=Sum('total_paid'))['total'] or 0
         total_billed = last_proposal_approved.total_proposal if last_proposal_approved else 0
 
+        # Obtener colaboradores del proyecto
+        collaborators = project.collaborators.all()
+        
+        # Obtener solicitudes de colaboración pendientes (solo si es el propietario)
+        collaboration_requests = []
+        if is_owner:
+            collaboration_requests = ProjectCollaborationRequest.objects.filter(
+                project=project,
+                status=ProjectCollaborationRequest.STATUS_PENDING
+            ).select_related('requester')
+
         # Renderizar la plantilla
         return render(request, 'details_project.html', {
             'project': project,
@@ -404,6 +439,12 @@ def detail_project(request, project_id):
             'is_superuser_or_admin_or_accounting_manager': request.user.is_superuser or request.user.groups.filter(name='ADMIN').exists() or project.accounting_manager == request.user ,
             'total_paid': total_paid,
             'total_billed': total_billed,
+            'can_access': can_access,
+            'is_owner': is_owner,
+            'is_admin': is_admin,
+            'is_collaborator': is_collaborator,
+            'collaborators': collaborators,
+            'collaboration_requests': collaboration_requests,
         })
     
     else:
@@ -895,6 +936,243 @@ def pdf_proposal(request, project_id, proposal_id):
             'proposal':proposal})
     elif request.method == 'POST':
         return HttpResponse(status=200)
+
+def clean_currency_string(value):
+    """
+    Clean a currency string by removing dollar signs, commas, and other non-numeric characters
+    except for the decimal point.
+    """
+    if isinstance(value, (int, float)):
+        return float(value)
+    
+    if not isinstance(value, str):
+        return 0.0
+    
+    # Remove dollar signs, commas, and spaces
+    cleaned = value.replace('$', '').replace(',', '').replace(' ', '')
+    
+    try:
+        return float(cleaned)
+    except (ValueError, TypeError):
+        return 0.0
+
+@login_required
+def cost_breakdown(request, project_id, proposal_id):
+    project = get_object_or_404(Project, pk=project_id)
+    proposal = get_object_or_404(ProposalProjects, id=proposal_id)
+    
+    # Get budget data for cost breakdown
+    budget = proposal.budget
+    
+    # Initialize categorized data structure
+    categorized_data = {
+        'materials': [],
+        'labor': [],
+        'contractors': [],
+        'utilities': [],
+        'overhead': [],
+        'miscellaneous': [],
+        'deducts': [],
+        'margin_error': [],
+        'profit': []
+    }
+    category_description = {
+        'materials': 'This category include all materials fisical and technical used in the project example: fence, gates, etc.',
+        'labor': 'This category include all labor used in the project example: labor, installation, etc.',
+        'contractors': 'This category include all contractors used in the project example: contractors, subcontractors, etc.',
+        'utilities': 'This category include all utilities used in the project example: utilities, electric, etc.',
+        'overhead': 'This category include all overhead used in the project.',
+        'miscellaneous': 'This category include all miscellaneous used in the project.',
+        'deducts': 'This category include all deducts used in the project.',
+        'margin_error': 'This category include all margin error used in the project.',
+        'profit': 'This category include all profit used in the project.',
+    }
+    
+    margin_error_value = 0
+    margin_error_percentage = 0
+    if budget:
+        materials = budget.materials.all()
+        for material in materials:
+            original_name = material.material_description or 'Material'
+            custom_name = CostItemDescription.get_custom_description('materials', original_name)
+            
+            categorized_data['materials'].append({
+                'name': custom_name,
+                'original_name': original_name,
+                'total': float(material.cost),
+                'content': {
+                    'quantity': material.quantity,
+                    'unit_cost': material.unit_cost,
+                    'lead_time': material.lead_time
+                }
+            })
+        
+        # Get labor data directly from the model
+        labors = budget.labors.all()
+        for labor in labors:
+            original_name = labor.labor_description or 'Labor'
+            custom_name = CostItemDescription.get_custom_description('labor', original_name)
+            
+            categorized_data['labor'].append({
+                'name': custom_name,
+                'original_name': original_name,
+                'total': float(labor.labor_cost),
+                'content': {
+                    'cost_by_day': labor.cost_by_day,
+                    'days': labor.days,
+                    'lead_time': labor.lead_time
+                }
+            })
+        
+        # Get contractors data directly from the model
+        contractors = budget.contractors.all()
+        for contractor in contractors:
+            if contractor.contractor_cost and contractor.contractor_cost > 0:
+                original_name = contractor.contractor_description or 'Contractor'
+                custom_name = CostItemDescription.get_custom_description('contractors', original_name)
+                
+                categorized_data['contractors'].append({
+                    'name': custom_name,
+                    'original_name': original_name,
+                    'total': float(contractor.contractor_cost),
+                    'content': {
+                        'lead_time': contractor.lead_time
+                    }
+                })
+        
+        # Get utilities data from util_data model
+        util_data = budget.util_data.all()
+
+        # --- MARGIN ERROR ---
+        # Tomar solo el primer util_data (ajusta si necesitas otro criterio)
+        util = util_data.first() if hasattr(util_data, 'first') else (util_data[0] if util_data else None)
+        if util and util.margin_error_check:
+            margin_error_percentage = util.percentage_margin_error or 0
+            base_cost = sum(item['total'] for item in categorized_data['materials'])
+            margin_error_value = base_cost * (margin_error_percentage / 100)
+            
+            # Solo agregar si el valor es mayor a 0.0
+            if margin_error_value > 0.0 and margin_error_percentage > 0:
+                categorized_data['margin_error'].append({
+                    'name': 'Margin Error',
+                    'total': margin_error_value,
+                    'percentage': margin_error_percentage,
+                })
+        
+        # Get miscellaneous data - separate from overhead
+        misc_data = budget.misc_data.all()
+        for misc in misc_data:
+            if misc.misc_value and misc.misc_value > 0:
+                original_name = misc.misc_description or 'Miscellaneous'
+                custom_name = CostItemDescription.get_custom_description('miscellaneous', original_name)
+                
+                categorized_data['miscellaneous'].append({
+                    'name': custom_name,
+                    'original_name': original_name,
+                    'total': float(misc.misc_value),
+                    'content': {
+                        'lead_time': misc.lead_time
+                    }
+                })
+        
+        # Add deducts - separate from overhead (negative values)
+        deducts = budget.deducts.all()
+        for deduct in deducts:
+            if deduct.deduct_value and deduct.deduct_value != 0:
+                original_name = deduct.deduct_description or 'Deduct'
+                custom_name = CostItemDescription.get_custom_description('deducts', original_name)
+                
+                categorized_data['deducts'].append({
+                    'name': custom_name,
+                    'original_name': original_name,
+                    'total': float(deduct.deduct_value),
+                    'content': {
+                        'lead_time': deduct.lead_time
+                    }
+                })
+
+        profit_data = budget.profits.all()
+        for profit in profit_data:
+            if profit.profit_value and profit.profit_value != 0:
+                original_name = profit.profit_description or 'Profit'
+                custom_name = CostItemDescription.get_custom_description('profit', original_name)
+                
+                categorized_data['profit'].append({
+                    'name': custom_name,
+                    'original_name': original_name,
+                    'total': float(profit.profit_value),
+                })
+    
+    # Recalculate category totals after profit adjustment
+    category_totals = {}
+    for category, items in categorized_data.items():
+        category_totals[category] = sum(item['total'] for item in items)
+    
+    # Calculate final totals
+    total_cost = sum(category_totals.values())
+    total_profit = sum(profit['total'] for profit in categorized_data['profit'])
+
+    
+    category_percentage = {}
+    for category, items in categorized_data.items():
+        category_percentage[category] = sum(item['total'] for item in items) / total_cost
+    
+    # Prepare chart data - incluir todas las categorías siempre
+    chart_labels = []
+    chart_values = []
+    chart_colors = []
+    
+    # Definir todas las categorías y sus colores
+    all_categories = [
+        ('materials', 'Materials', '#007bff'),
+        ('labor', 'Labor', '#28a745'),
+        ('contractors', 'Contractors', '#fd7e14'),
+        ('utilities', 'Utilities', '#ffc107'),
+        ('overhead', 'Overhead', '#6c757d'),
+        ('miscellaneous', 'Miscellaneous', '#17a2b8'),
+        ('deducts', 'Deducts', '#dc3545'),
+        ('margin_error', 'Margin Error', '#6f42c1'),
+        ('profit', 'Profit', '#6f42c1'),
+    ]
+    
+    # Incluir todas las categorías siempre
+    for category_key, category_name, color in all_categories:
+        category_total = category_totals.get(category_key, 0)
+        chart_labels.append(category_name)
+        chart_values.append(category_total)
+        chart_colors.append(color)
+    
+    chart_data = {
+        'labels': chart_labels,
+        'values': chart_values,
+        'colors': chart_colors
+    }
+    
+    return render(request, 'cost_breakdown.html', {
+        'project': project,
+        'proposal': proposal,
+        'categorized_data': categorized_data,
+        'category_totals': category_totals,
+        'category_profits': categorized_data['profit'],
+        'chart_data': chart_data,
+        'category_percentage': category_percentage,
+        'category_description': category_description,
+        'totals': {
+            'materials': category_totals.get('materials', 0),
+            'labor': category_totals.get('labor', 0),
+            'contractors': category_totals.get('contractors', 0),
+            'utilities': category_totals.get('utilities', 0),
+            'overhead': category_totals.get('overhead', 0),
+            'miscellaneous': category_totals.get('miscellaneous', 0),
+            'deducts': category_totals.get('deducts', 0),
+            'margin_error': category_totals.get('margin_error', 0),
+            'total_cost': total_cost,
+            'total_profit': total_profit,
+            'total_cost_with_profit': total_cost - total_profit
+        },
+        'margin_error_value': margin_error_value,
+        'margin_error_percentage': margin_error_percentage,
+    })
     
 @transaction.atomic
 def save_budget_data_from_dict(dataBudget,data):
@@ -1779,3 +2057,199 @@ def cancel_project(request, project_id):
             'status': 'error',
             'message': f'Error cancelling project: {str(e)}'
         }, status=500)
+
+# Funciones para verificar permisos de acceso a proyectos
+
+# Funciones para verificar permisos de acceso a proyectos
+def can_access_project(user, project):
+    """
+    Verifica si un usuario puede acceder a un proyecto.
+    Retorna True si el usuario es admin, es el sales_advisor del proyecto,
+    o es un colaborador aprobado.
+    """
+    # Si es admin, puede acceder a todo
+    if user.is_superuser or user.groups.filter(name='ADMIN').exists():
+        return True
+    
+    # Si es el sales_advisor del proyecto
+    if project.sales_advisor == user:
+        return True
+    
+    # Si es un colaborador aprobado
+    if project.collaborators.filter(id=user.id).exists():
+        return True
+    
+    return False
+
+@login_required
+def send_collaboration_request(request, project_id):
+    """
+    Vista para enviar una solicitud de colaboración a un proyecto.
+    """
+    if request.method == 'POST':
+        project = get_object_or_404(Project, id=project_id)
+        
+        # Verificar que el usuario no sea el propietario del proyecto
+        if project.sales_advisor == request.user:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'You cannot request collaboration on your own project.'
+            }, status=400)
+        
+        # Eliminar cualquier solicitud existente del usuario para este proyecto
+        existing_requests = ProjectCollaborationRequest.objects.filter(
+            project=project,
+            requester=request.user
+        )
+        
+        if existing_requests.exists():
+            existing_requests.delete()
+        
+        # Crear la nueva solicitud
+        message = request.POST.get('message', '')
+        
+        collaboration_request = ProjectCollaborationRequest.objects.create(
+            project=project,
+            requester=request.user,
+            requested_by=project.sales_advisor,
+            message=message
+        )
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Collaboration request sent successfully.'
+        })
+    
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method.'
+    }, status=405)
+
+@login_required
+def respond_collaboration_request(request, request_id):
+    """
+    Vista para responder a una solicitud de colaboración (aprobar/rechazar).
+    """
+    if request.method == 'POST':
+        collaboration_request = get_object_or_404(ProjectCollaborationRequest, id=request_id)
+        
+        # Verificar que el usuario sea el propietario del proyecto
+        if collaboration_request.project.sales_advisor != request.user:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'You are not authorized to respond to this request.'
+            }, status=403)
+        
+        action = request.POST.get('action')
+        response_message = request.POST.get('response_message', '')
+        
+        if action == 'approve':
+            collaboration_request.status = ProjectCollaborationRequest.STATUS_APPROVED
+            collaboration_request.response_message = response_message
+            collaboration_request.save()
+            
+            # Agregar al usuario como colaborador
+            collaboration_request.project.collaborators.add(collaboration_request.requester)
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Collaboration request approved.'
+            })
+        
+        elif action == 'reject':
+            collaboration_request.status = ProjectCollaborationRequest.STATUS_REJECTED
+            collaboration_request.response_message = response_message
+            collaboration_request.save()
+            
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Collaboration request rejected.'
+            })
+        
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Invalid action.'
+            }, status=400)
+    
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method.'
+    }, status=405)
+
+@login_required
+def get_collaboration_requests(request, project_id):
+    """
+    Vista para obtener las solicitudes de colaboración de un proyecto.
+    """
+    project = get_object_or_404(Project, id=project_id)
+    
+    # Verificar que el usuario sea el propietario del proyecto
+    if project.sales_advisor != request.user:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'You are not authorized to view collaboration requests for this project.'
+        }, status=403)
+    
+    requests = ProjectCollaborationRequest.objects.filter(project=project).select_related('requester')
+    
+    requests_data = []
+    for req in requests:
+        requests_data.append({
+            'id': req.id,
+            'requester_name': req.requester.get_full_name(),
+            'requester_email': req.requester.email,
+            'message': req.message,
+            'status': req.status,
+            'date_created': req.date_created.strftime('%Y-%m-%d %H:%M'),
+            'response_message': req.response_message
+        })
+    
+    return JsonResponse({
+        'status': 'success',
+        'requests': requests_data
+    })
+
+@login_required
+def remove_collaborator(request, project_id, user_id):
+    """
+    Vista para remover un colaborador de un proyecto.
+    """
+    if request.method == 'POST':
+        project = get_object_or_404(Project, id=project_id)
+        
+        # Verificar que el usuario sea el propietario del proyecto
+        if project.sales_advisor != request.user:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'You are not authorized to remove collaborators from this project.'
+            }, status=403)
+        
+        user = get_object_or_404(User, id=user_id)
+        
+        # Remover al usuario como colaborador
+        project.collaborators.remove(user)
+        
+        # Marcar la solicitud de colaboración como rechazada
+        collaboration_request = ProjectCollaborationRequest.objects.filter(
+            project=project,
+            requester=user,
+            status=ProjectCollaborationRequest.STATUS_APPROVED
+        ).first()
+        
+        if collaboration_request:
+            collaboration_request.status = ProjectCollaborationRequest.STATUS_REJECTED
+            collaboration_request.response_message = "Collaborator removed by project owner"
+            collaboration_request.save()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Collaborator removed successfully.'
+        })
+    
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Invalid request method.'
+    }, status=405)
+
+

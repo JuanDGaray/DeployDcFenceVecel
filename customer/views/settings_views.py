@@ -5,7 +5,11 @@ from django.contrib.auth.models import User
 from django.http import JsonResponse
 from django.core.validators import EmailValidator, ValidationError
 from django.contrib.auth.password_validation import validate_password
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+import json
 import traceback
+from ..models import CostItemDescription
 
 @login_required
 def settings(request):
@@ -111,3 +115,57 @@ def delete_user(request):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
     return JsonResponse({"error": "Invalid request method"}, status=405)
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def edit_cost_item_descriptions(request):
+    try:
+        # Parse JSON data
+        data = json.loads(request.body)
+        category = data.get('category')
+        original_description = data.get('original_description')
+        custom_description = data.get('custom_description')
+        
+        # Validate required fields
+        if not all([category, original_description, custom_description]):
+            return JsonResponse({
+                'success': False,
+                'error': 'Missing required fields'
+            }, status=400)
+        
+        # Validate category
+        valid_categories = ['materials', 'labor', 'contractors', 'utilities', 'overhead', 'miscellaneous', 'deducts', 'profit']
+        if category not in valid_categories:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid category'
+            }, status=400)
+        
+        # Save or update the custom description
+        cost_item_desc, created = CostItemDescription.objects.update_or_create(
+            category=category,
+            original_description=original_description,
+            defaults={
+                'custom_description': custom_description,
+                'updated_by': request.user
+            }
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Description updated successfully'
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        print(f"Error in edit_cost_item_descriptions: {str(e)}")
+        print(traceback.format_exc())
+        return JsonResponse({
+            'success': False,
+            'error': 'Internal server error'
+        }, status=500)

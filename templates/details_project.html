@@ -116,9 +116,9 @@
                           <i class="bi bi-pencil-square" style="font-size: 15px;"></i>
                           </a>
                           {% else %}
-                          <a class="btn bg-secondary text-light border border-2 btn-sm rounded-2 p-1" 
+                          <a class="btn bg-secondary text-white border border-2 btn-sm rounded-2 p-1" 
                           role="button" style="cursor: not-allowed;" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="You cannot edit the budget because the project is not in the new, contacted, or quoted_sent status.">
-                          <i class="bi bi-pencil-square text-light" style="font-size: 15px;"></i>
+                          <i class="bi bi-pencil-square text-white" style="font-size: 15px;"></i>
                           </a>
                           {% endif %}
                           <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
@@ -294,7 +294,7 @@
                         {% else %}
                         <a class="btn bg-secondary text-light border border-2 btn-sm rounded-2 p-1" 
                         role="button" style="cursor: not-allowed;" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="You cannot edit the budget because the project is not in the new, contacted, or quoted_sent status.">
-                        <i class="bi bi-pencil-square text-secondary" style="font-size: 15px;"></i>
+                        <i class="bi bi-pencil-square text-white" style="font-size: 15px;"></i>
                         </a>
                         {% endif %}
                         <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
@@ -347,6 +347,7 @@
             </table>
           </div>
         </div>
+      </div>
       <!-- Project proposal -->
       <div class="col-md-12 mt-4">
         <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
@@ -460,6 +461,11 @@
                     href="{% url 'pdf_proposal' project_id=project.id proposal_id=proposal.id %}" target='_blank'
                     role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="View">
                     <i class="bi bi-eye-fill" style="font-size: 15px;"></i>
+                    </a>
+                    <a class="btn bg-light border border-2 btn-sm rounded-2" 
+                    href="{% url 'cost_breakdown' project_id=project.id proposal_id=proposal.id %}" target='_blank'
+                    role="button" title="Cost Breakdown" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Cost Breakdown">
+                    <i class="bi bi-pie-chart" style="font-size: 15px;"></i>
                     </a>
                     {% if proposal.status == 'new' or proposal.status == 'sent' or proposal.status == 'pending' or proposal.status == 'rejected' %}
                       <a class="btn bg-light border border-2 btn-sm rounded-2" 
@@ -717,6 +723,11 @@
                       role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="View">
                       <i class="bi bi-eye-fill" style="font-size: 15px;"></i>
                       </a>
+                      <a class="btn bg-light border border-2 btn-sm rounded-2" 
+                      href="{% url 'cost_breakdown' project_id=project.id proposal_id=proposal.id %}" target='_blank'
+                      role="button" title="Cost Breakdown" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Cost Breakdown">
+                      <i class="bi bi-pie-chart" style="font-size: 15px;"></i>
+                      </a>
                       <div class="dropdown d-flex">
                         <button 
                           class="btn bg-light border border-2 btn-sm rounded-2 px-1 py-0 dropdown-toggle  {% if proposal.status == 'new' or proposal.status == 'sent' or proposal.status == 'pending'  or proposal.status == 'rejected' or  proposal.total_proposal <=  proposal.billed_proposal %}disabled{% endif %}" 
@@ -785,9 +796,110 @@
         </div>
       {% endif %}
 
+      <!-- Collaborators Section -->
+      {% if is_owner or is_admin  %}
+      {% if collaborators.count > 0 %}
+      <div class="col-md-12 mt-4">
+        <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
+          <div class="card-header d-flex justify-content-between p-3 border-bottom bg-info bg-opacity-25">
+            <h1 class="card-header fs-4 rounded-4 px-2">Collaborators</h1>
+            <span class="badge bg-light text-dark">{{ collaborators.count }} Collaborator{{ collaborators.count|pluralize }}</span>
+          </div>
+          <div class="card-body p-4">
+            {% if collaborators %}
+              <div class="row">
+                {% for collaborator in collaborators %}
+                <div class="col-md-6 col-lg-4 mb-3">
+                  <div class="card border-info">
+                    <div class="card-body">
+                      <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0">
+                          <div class="bg-info text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                            <span class="fw-bold">{{ collaborator.first_name|first }}{{ collaborator.last_name|first }}</span>
+                          </div>
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                          <h6 class="mb-1">{{ collaborator.get_full_name }}</h6>
+                          <small class="text-muted">{{ collaborator.email }}</small>
+                        </div>
+                        {% if is_owner %}
+                        <div class="flex-shrink-0">
+                          <button class="btn btn-danger btn-sm" 
+                                  onclick="removeCollaborator({{ collaborator.id }})"
+                                  title="Remove Collaborator">
+                            <i class="bi bi-person-x"></i>
+                          </button>
+                        </div>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <div class="text-center text-muted py-4">
+                <i class="bi bi-people fs-1"></i>
+                <p class="mt-2">No collaborators yet</p>
+                <small>Collaboration requests will appear here when approved.</small>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Collaboration Requests Section -->
+      {% if collaboration_requests %}
+      <div class="col-md-12 mt-4">
+        <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
+          <div class="card-header d-flex justify-content-between p-3 border-bottom bg-opacity-25">
+            <h1 class="card-header fs-4 rounded-4 px-2">Pending Collaboration Requests</h1>
+            <span class="badge bg-light text-dark">{{ collaboration_requests.count }} Request{{ collaboration_requests.count|pluralize }}</span>
+          </div>
+          <div class="card-body">
+            {% for request in collaboration_requests %}
+            <div class="card border-warning mb-3">
+              <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                  <div class="d-flex align-items-center">
+                    <div class="bg-warning text-dark rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                      <span class="fw-bold">{{ request.requester.first_name|first }}{{ request.requester.last_name|first }}</span>
+                    </div>
+                    <div>
+                      <h6 class="mb-1">{{ request.requester.get_full_name }}</h6>
+                      <small class="text-muted">{{ request.requester.email }}</small>
+                      <br>
+                      <small class="text-muted">Requested on: {{ request.date_created|date:"M d, Y H:i" }}</small>
+                    </div>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button class="btn btn-success btn-sm" onclick="respondToRequest({{ request.id }}, 'approve')">
+                      <i class="bi bi-check-lg"></i> Approve
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="respondToRequest({{ request.id }}, 'reject')">
+                      <i class="bi bi-x-lg"></i> Reject
+                    </button>
+                  </div>
+                </div>
+                {% if request.message %}
+                <div class="mt-3">
+                  <strong>Message:</strong>
+                  <p class="mb-0 text-muted">{{ request.message }}</p>
+                </div>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      {% endif %}
+      {% endif %}
+
       </div>
   </div>
-
+  {% if user.groups.first.name == 'ADMIN' %}
   <div class="col-md-12 border border-success border-opacity-25 border-4 rounded-4 p-3 position-relative mt-5">
     {% if not project.accounting_manager %}
       {% include "components/block_panel.html" %}
@@ -947,6 +1059,7 @@
     {% if project.status == 'in_production' %}
       <a class="btn btn-success my-3 d-flex justify-content-end align-items-center fw-bold fs-3 px-4" style="width: fit-content; margin-left: auto;" href="/production/{{project.id }}"> Go to panel of production <i class="bi bi-arrow-right ms-2"></i></a>
     {% endif %}
+  {% endif %}
     {% include "components/documents_projects.html" %}
     {% include "components/emails_sent_to_client.html" %}
     {% include "modal_delete.html" %}
@@ -1300,8 +1413,7 @@ function sendBudgetDuplicate(budgetId ) {
     showAlert('Please select a project before duplicating the budget.', 'danger');
     return;
   }
-  const container = document.getElementById('selectProject');
-  const duplicateProjectButton = document.getElementById('duplicateBudgetButton');
+  const container = document.getElementById('selectProject');ta
   const cancelBudgetDuplicate = document.getElementById('cancelBudgetDuplicateButton');
   duplicateProjectButton.disabled = true;
   duplicateProjectButton.classList.add('bg-secondary');
@@ -2113,5 +2225,62 @@ function openProjectManagerModal(managerId, managerName) {
   }
 }
 
+// Funciones para manejar colaboración
+function respondToRequest(requestId, action) {
+  const responseMessage = prompt(`Enter a response message for ${action}ing this request (optional):`);
+  
+  const formData = new FormData();
+  formData.append('action', action);
+  formData.append('response_message', responseMessage || '');
+  
+  fetch(`/collaboration_requests/${requestId}/respond/`, {
+    method: 'POST',
+    body: formData,
+    headers: {
+      'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.status === 'success') {
+      showAlert(data.message, 'success');
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } else {
+      showAlert(data.message, 'danger');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    showAlert('Error responding to request. Please try again.', 'danger');
+  });
+}
+
+function removeCollaborator(userId) {
+  if (confirm('Are you sure you want to remove this collaborator?')) {
+    fetch(`/projects/{{ project.id }}/remove_collaborator/${userId}/`, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === 'success') {
+        showAlert(data.message, 'success');
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      } else {
+        showAlert(data.message, 'danger');
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      showAlert('Error removing collaborator. Please try again.', 'danger');
+    });
+  }
+}
 </script>
 {% endblock %}

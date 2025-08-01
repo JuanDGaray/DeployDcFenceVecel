@@ -3,7 +3,8 @@ from django.urls import path
 from . import views
 from .views.production_views import request_cost_by_pm, assign_cost_by_accounting
 from .views.customer_views import download_email_attachment
-from .views.projects_views import view_payment_receipt
+from .views.projects_views import view_payment_receipt, send_collaboration_request, get_collaboration_requests, respond_collaboration_request, remove_collaborator
+from .views.settings_views import edit_cost_item_descriptions
 
 
 urlpatterns = [
@@ -43,4 +44,11 @@ urlpatterns = [
     path('email_tracking_dashboard/', views.utils_get.email_tracking_dashboard, name='email_tracking_dashboard'),
     path('projects/<int:project_id>/close/', views.close_project, name='close_project'),
     path('payment-receipt/<int:payment_id>/', view_payment_receipt, name='view_payment_receipt'),
+    path('edit_cost_item_descriptions/', edit_cost_item_descriptions, name='edit_cost_item_descriptions'),
+    
+    # URLs para colaboración en proyectos
+    path('projects/<int:project_id>/send_collaboration_request/', views.projects_views.send_collaboration_request, name='send_collaboration_request'),
+    path('projects/<int:project_id>/collaboration_requests/', views.projects_views.get_collaboration_requests, name='get_collaboration_requests'),
+    path('collaboration_requests/<int:request_id>/respond/', views.projects_views.respond_collaboration_request, name='respond_collaboration_request'),
+    path('projects/<int:project_id>/remove_collaborator/<int:user_id>/', views.projects_views.remove_collaborator, name='remove_collaborator'),
 ]   
