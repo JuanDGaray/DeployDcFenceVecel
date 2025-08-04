@@ -180,7 +180,7 @@
                                 <tr>
                                   <td  class='p-1'></td>
                                   <td  class='p-1'><a href="{% url 'view_budget' project.id budgetVersion.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budgetVersion.id}}</a>
-                                    {% include 'components/duplicate_button.html' %}
+                                    {% include 'components/duplicate_button.html' with budget_id=budgetVersion.id %}
                                   </td>
                                   <td  class='p-1'>{{ budgetVersion.date_created }}</td>
                                   <td  class='p-1'>{{ budgetVersion.sales_advisor }}</td>
@@ -1366,9 +1366,11 @@ function submitPaymentData(paymentData, invoiceId, csrfToken, loadingOverlay) {
 }
 
 
-function showSelectProject() {
+function showSelectProject(id_budget) {
   const selectProject = document.getElementById('selectProject');
   selectProject.classList.toggle('d-none');
+  const duplicate_budget_id = document.getElementById('duplicate_budget_id');
+  duplicate_budget_id.value = id_budget;
   ajaxGetRequest(`/get_array_projects/`, function (data) {
 
     const projectSelect = document.getElementById('projectSelect');
