@@ -13,7 +13,7 @@ role="button" title="Duplicate Project" data-bs-toggle="tooltip" data-bs-placeme
 
             <select name="projectSelect" id="projectSelect" class="rounded-2 border border-2 border-secondary">
             </select>
-            <button class="btn bg-success border border-2 btn-sm rounded-2 p-1 text-light d-flex flex-row align-items-center" id="duplicateBudgetButton" onclick="sendBudgetDuplicate({{ budget.id }} )">
+            <button class="btn bg-success border border-2 btn-sm rounded-2 p-1 text-light d-flex flex-row align-items-center" id="duplicateBudgetButton" onclick="sendBudgetDuplicate({{ budget_id }} )">
                 <i class="bi bi-check-all" style="font-size: 15px;"></i> Send
             </button>
             <button class="btn bg-danger border border-2 btn-sm rounded-2 p-1 text-light d-flex flex-row align-items-center" id="cancelBudgetDuplicateButton" onclick="cancelBudgetDuplicate()">

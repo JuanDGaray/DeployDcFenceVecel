@@ -68,7 +68,7 @@
                         aria-controls="collapse-{{ budget.latest_version.id }}"
                         id="drownIcon icon-{{ budget.latest_version.id }}"></i>
                         <a href="{% url 'view_budget' project.id budget.latest_version.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budget.latest_version.id }}
-                          {% include 'components/duplicate_button.html' %}
+                          {% include 'components/duplicate_button.html' with budget_id=budget.latest_version.id %}
                         </a>
                       
                       </td>
@@ -209,7 +209,7 @@
                               <tr>
                                 <td  class='p-1'></td>
                                 <td  class='p-1'><a href="{% url 'view_budget' project.id budget.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budget.id }}
-                                  {% include 'components/duplicate_button.html' %}
+                                  {% include 'components/duplicate_button.html' with budget_id=budget.id %}
                                 </a></td>
                                 <td  class='p-1'>{{ budget.date_created }}</td>
                                 <td  class='p-1'>{{ budget.sales_advisor }}</td>
@@ -244,7 +244,7 @@
                   {% else %}
                   <tr style="vertical-align: middle;"">
                     <td class='align-items-center'><a href="{% url 'view_budget' project.id budget.id %}">{{ project.customer.id }}.{{ project.id }}.{{ budget.id }}
-                      {% include 'components/duplicate_button.html' %}
+                      {% include 'components/duplicate_button.html' with budget_id=budget.id %}
                     </a></td>
                     <td>{{ budget.date_created }}</td>
                     <td>{{ budget.sales_advisor }}</td>
@@ -1406,7 +1406,7 @@ function showSelectCustomerProject() {
   selectCustomerProject.classList.toggle('d-none');
 }
 
-function sendBudgetDuplicate(budgetId ) {
+function sendBudgetDuplicate(budgetId) {
   const selectProject = document.getElementById('projectSelect');
   const projectId = selectProject.value;
   if (projectId === null || projectId === '') {
