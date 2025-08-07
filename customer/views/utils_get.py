@@ -109,7 +109,7 @@ def get_projects(request, page=1):
                     'id', 'project_name', 'status', 
                     'sales_advisor__username', 'estimated_cost', 'actual_cost', 'created_at', 'customer',
                     'customer__customer_type', 'customer__first_name', 'customer__last_name', 'customer__company_name',
-                    'sales_advisor__first_name', 'sales_advisor__last_name', 'collaborators'
+                    'sales_advisor__first_name', 'sales_advisor__last_name', 'sales_advisor__id', 'collaborators'
                 )
             else:
                 # Todos los proyectos (vista por defecto)
@@ -117,7 +117,7 @@ def get_projects(request, page=1):
                     'id', 'project_name', 'status', 
                     'sales_advisor__username', 'estimated_cost', 'actual_cost', 'created_at', 'customer',
                     'customer__customer_type', 'customer__first_name', 'customer__last_name', 'customer__company_name',
-                    'sales_advisor__first_name', 'sales_advisor__last_name', 'collaborators'
+                    'sales_advisor__first_name', 'sales_advisor__last_name', 'sales_advisor__id', 'collaborators'
                 )
             numberProjects = 15
         else:
@@ -126,7 +126,7 @@ def get_projects(request, page=1):
                 'id', 'project_name', 'status', 
                 'sales_advisor__username', 'estimated_cost', 'actual_cost', 'created_at', 'customer',
                 'customer__customer_type', 'customer__first_name', 'customer__last_name', 'customer__company_name',
-                'sales_advisor__first_name', 'sales_advisor__last_name', 'collaborators'
+                'sales_advisor__first_name', 'sales_advisor__last_name', 'sales_advisor__id', 'collaborators'
             )
             numberProjects = 10
 

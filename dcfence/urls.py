@@ -103,6 +103,7 @@ urlpatterns = [
     path('metrics/proposals_donut_chart/', views.proposals_donut_chart, name='proposals_donut_chart'),
     path('project/<int:project_id>/history/', project_history, name='project_history'), 
     path('active_users/', views.active_users_view, name='active_users'),
+    path('users/<int:user_id>/', views.user_detail_view, name='user_detail'),
     path('projects/<int:project_id>/get_activity_and_comments/', views.get_activity_project_and_comments, name='get_activity_project_and_comments'),
     path('get_users_for_mentions/', views.get_users_for_mentions, name='get_users_for_mentions'),
     path('notifications/<int:notification_id>/delete/', views.delete_notification, name='delete_notification'),

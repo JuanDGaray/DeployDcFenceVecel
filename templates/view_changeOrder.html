@@ -41,22 +41,27 @@
                 padding:0px;
                 margin:0px;
             }
-            .logoView{
-                background-color: #1a4784;
-                width: 100%;
-                padding: 4px;
-                margin:8px
-            }
-            #add-row{
-                position: relative;
-                top: -46px;
-                opacity: 0.2;
-            }
-            #add-row:hover{
-                position: relative;
-                top: -46px;
-                opacity: 1;
-            }
+                         .logoView{
+                 background-color: #1a4784;
+                 width: 100%;
+                 padding: 4px;
+                 margin:8px
+             }
+             
+             /* Estilos específicos para impresión */
+             @media print {
+                 #changeOrderPrintArea {
+                     width: 8.5in !important;
+                     max-width: 8.5in !important;
+                     margin: 0 auto !important;
+                     padding: 0.5in !important;
+                 }
+                 
+                 .container {
+                     max-width: 8.5in !important;
+                     width: 8.5in !important;
+                 }
+             }
     </style>
 {% endblock %}
 {% block content %}
@@ -77,8 +82,8 @@
             </button>
         </div>
     </h1>
-    <div  class="container col-md-7 col-sm-12 my-4 bg-white p-1 border border-2 border-secondary">
-        <div class="border-black p-3 w-100 w-100" id="changeOrderPrintArea">
+         <div  class="container col-md-8 col-sm-12 my-4 p-1">
+         <div class="p-4 w-100 bg-white" id="changeOrderPrintArea" style="max-width: 8.5in; margin: 0 auto;">
             <!-- Header Section -->
             <div class="d-flex flex-row justify-content-between mb-4">
                 <div class="col-md-4">
@@ -88,11 +93,11 @@
                         <div>BROWARD: 21-F-22501-R</div>
                         <div>786-747-4766</div>
                         <div>2498 W 3CT Hialeah FL 33010</div>
-                        <div>dpuerto@dcfence.org</div>
+                        <div>{{user.email}}</div>
                     </div>
                 </div>
                 <div class="w-50 d-flex flex-row justify-content-center text-end bg position-relative">
-                    <div class="w-50 d-flex flex-column align-items-center">
+                    <div class="w-50 d-flex flex-column align-items-center opacity-0">
                         <img src="{% static 'img/DaylenFirma.webp' %}" alt="DC FENCE Logo" class="firma position-relative">
                         <span class="text-center position-absolute nameSignature p-0 m-0" style="border-top: 2px solid black; display: inline-block; padding-top: 5px; bottom:0%">
                             Approved by Daylen Puerto
@@ -173,15 +178,15 @@
                     </thead>
                     <tbody id="table-body">
                       <!-- Fila predeterminada -->
-                      <tr>
-                        <td class="border-black p-2">
-                            <input type="text" class="form-control border-0 p-0 m-0" placeholder="Enter the change order description"  />
-                          </td>
-                          <td class="border-black border-1 p-2 text-end d-flex flex-end">
-                            $ 
-                            <input type="number" class="form-control border-0 p-0 m-0 text-end totalRow" placeholder="Amount" value='{{ budget.total_change_order }}' readonly>
-                        </td>
-                      </tr>
+                    <tr class="border-black">
+                         <td class="border-black p-2">
+                            <textarea class="form-control border-0 p-0 m-0" placeholder="Enter the change order description" rows="2" style="resize: none;" oninput="autoResize(this)"></textarea>
+                           </td>
+                           <td class="p-2 text-end d-flex flex-end">
+                             $ 
+                             <input type="number" class="form-control border-0 p-0 m-0 text-end totalRow" placeholder="Amount" value='{{ budget.total_change_order }}' readonly>
+                         </td>
+                       </tr>
                     </tbody>
                     <tfoot>
                         <tr>
@@ -192,7 +197,6 @@
                   </table>
                   
                   <!-- Botón para agregar nueva fila -->
-                  <button id="add-row" class="btn btn-primary py-0 px-1">+ Add Row</button>
                 </div>                  
             <!-- Footer Section -->
             <div class="mt-3">
@@ -229,53 +233,32 @@
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
-    const addRowButton = document.getElementById('add-row');
     const tableBody = document.getElementById('table-body');
     const saveButton = document.getElementById('saveButton');
     const maxTotal = {{budget.total_change_order}};
 
-    // Función para agregar una nueva fila
-    addRowButton.addEventListener('click', function() {
-        const newRowHTML = `
-            <tr>
-                <td class="border-black p-2">New change description</td>
-                <td class="border-black p-2 d-flex flex-row">
-                    $ 
-                    <input type="number" class="form-control border-0 p-0 text-end totalRow" placeholder="Amount">
-                </td>
-                <td class='p-0 m-0' style="width:0px">
-                    <button class="btn btn-danger btn-sm border-0 text-danger remove_btn p-1 rounded-4 bi bi-trash3 text-light" style="position: relative; top: 5px; right: 0px;">
-                    </button>
-                </td>
-            </tr>
-        `;
-
-        // Crear un elemento de fila a partir del HTML como string
-        const newRow = document.createElement('tr');
-        newRow.innerHTML = newRowHTML;
-
-        // Obtener el botón de eliminar y agregar un evento de click
-        const deleteButton = newRow.querySelector('.remove_btn');
-        deleteButton.addEventListener('click', function() {
-            tableBody.removeChild(newRow);
-            checkTotal(); // Verifica el total después de eliminar la fila
-        });
-
-        // Añadir la fila al cuerpo de la tabla
-        tableBody.appendChild(newRow);
-
-        // Agregar evento al campo totalRow para recalcular el total al cambiar el valor
-        const totalRowInput = newRow.querySelector('.totalRow');
-        totalRowInput.addEventListener('input', checkTotal); // Se dispara cada vez que el usuario ingresa un valor
-    });
 
     // Función para verificar si el total de los campos "totalRow" supera el máximo
     function checkTotal() {
         
     }
 
-    // Verificar el total al cargar la página
-    checkTotal();
+         // Verificar el total al cargar la página
+     checkTotal();
+     
+     // Auto-resize function for textareas
+     function autoResize(textarea) {
+         textarea.style.height = 'auto';
+         textarea.style.height = textarea.scrollHeight + 'px';
+     }
+     
+     // Apply auto-resize to all textareas on page load
+     document.addEventListener('DOMContentLoaded', function() {
+         const textareas = document.querySelectorAll('textarea');
+         textareas.forEach(textarea => {
+             autoResize(textarea);
+         });
+     });
 
     // --- Poblar campos si hay datos del backend ---
     document.addEventListener('DOMContentLoaded', function() {
@@ -296,27 +279,27 @@
             tableBody.innerHTML = '';
             (changeOrderData.items || []).forEach(item => {
                 const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td class="border-black p-2">
-                        <input type="text" class="form-control border-0 p-0 m-0" value="${item.description}" placeholder="Enter the change order description" />
-                    </td>
-                    <td class="border-black border-1 p-2 text-end d-flex flex-end">
-                        $ <input type="number" class="form-control border-0 p-0 m-0 text-end totalRow" value="${parseFloat(item.amount)}" placeholder="Amount">
-                    </td>
-                    <td class='p-0 m-0' style="width:0px">
-                        <button class="btn btn-danger btn-sm border-0 text-danger remove_btn p-1 rounded-4 bi bi-trash3 text-light" style="position: relative; top: 5px; right: 0px;"></button>
-                    </td>
-                `;
-                // Agregar evento para eliminar fila
-                row.querySelector('.remove_btn').addEventListener('click', function() {
-                    tableBody.removeChild(row);
-                    checkTotal();
-                });
-                // Evento para recalcular total
+                                 row.innerHTML = `
+                     <td class="border-black p-2">
+                                                   <textarea class="form-control border-0 p-0 m-0" placeholder="Enter the change order description" rows="2" style="resize: none;" oninput="autoResize(this)">${item.description}</textarea>
+                     </td>
+                     <td class=" p-2 text-end d-flex flex-end">
+                         $ <input type="number" class="form-control border-0 p-0 m-0 text-end totalRow" value="${parseFloat(item.amount)}" placeholder="Amount">
+                     </td>
+                 `;
                 row.querySelector('.totalRow').addEventListener('input', checkTotal);
-                tableBody.appendChild(row);
-            });
-            checkTotal();
+                row.classList.add('border-black');
+                 tableBody.appendChild(row);
+             });
+             checkTotal();
+             
+             // Apply auto-resize to textareas after populating data
+             setTimeout(() => {
+                 const textareas = document.querySelectorAll('textarea');
+                 textareas.forEach(textarea => {
+                     autoResize(textarea);
+                 });
+             }, 100);
         }
 
         // --- Deshabilitar botones si el proyecto está completado o inactivo ---
@@ -356,11 +339,11 @@
         const csrfToken = document.getElementById('csrf-token').dataset.csrf;
         const rows = document.querySelectorAll('#table-body tr');
         let items = [];
-        rows.forEach(row => {
-            const description = row.querySelector('input[type="text"]').value;
-            const amount = parseFloat(row.querySelector('input[type="number"]').value) || 0;
-            items.push({ description, amount });
-        });
+                 rows.forEach(row => {
+             const description = row.querySelector('textarea').value;
+             const amount = parseFloat(row.querySelector('input[type="number"]').value) || 0;
+             items.push({ description, amount });
+         });
         const data = {
             sub_contract_no: document.getElementById('SubContractNo').value,
             job_location: document.getElementById('JobLocation').value,
@@ -392,17 +375,16 @@
         });
     }
 
-    document.getElementById('printButton').addEventListener('click', function() {
-        const element = document.getElementById('changeOrderPrintArea');
-        const opt = {
-            margin:       0.01,
-            filename:     'ChangeOrder.pdf',
-            image:        { type: 'jpeg', quality: 1 },
-            html2canvas:  { scale: 1 },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-        };
-        html2pdf().set(opt).from(element).save();
-    });
+                   document.getElementById('printButton').addEventListener('click', function() {
+          const element = document.getElementById('changeOrderPrintArea');
+          const opt = {
+              margin:       0,
+              filename:     'CHO - {{project.project_name}} - {{budget.id}}',
+              html2canvas:  { scale: 2, useCORS: true, allowTaint: true },
+              jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+          };
+          html2pdf().set(opt).from(element).save();
+      });
 
 </script>
 

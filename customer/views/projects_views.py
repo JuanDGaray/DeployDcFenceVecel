@@ -371,7 +371,7 @@ def detail_project(request, project_id):
         budgets = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=True, isChangeOrder=False).only('id', 'projected_cost', 'status', 'sales_advisor', 'date_created', 'id_related_budget', 'isChangeOrder')
         invoices = InvoiceProjects.objects.filter(project_id=project_id).only('id', 'date_created', 'due_date', 'total_invoice', 'total_paid', 'status', 'proposal', 'sales_advisor')
         proposals = ProposalProjects.objects.filter(project_id=project_id).only('id', 'date_created', 'due_date', 'status', 'sales_advisor', 'total_proposal', 'sales_advisor', 'billed_proposal')
-        changes_orders = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True).only('id', 'projected_cost', 'status', 'sales_advisor', 'date_created', 'id_related_budget', 'isChangeOrder')
+        changes_orders = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True).select_related('change_order_detail')
         customers = Customer.objects.only('id', 'first_name', 'last_name', 'email', 'company_name', 'customer_type')
         if (len(invoices) <= 0 and len(budgets) <= 0) and project.status not in ['new', 'cancelled', 'inactive', 'pending_payment', 'not_approved']:
             project.status = 'new'
@@ -970,7 +970,6 @@ def cost_breakdown(request, project_id, proposal_id):
         'labor': [],
         'contractors': [],
         'utilities': [],
-        'overhead': [],
         'miscellaneous': [],
         'deducts': [],
         'margin_error': [],
@@ -981,11 +980,10 @@ def cost_breakdown(request, project_id, proposal_id):
         'labor': 'This category include all labor used in the project example: labor, installation, etc.',
         'contractors': 'This category include all contractors used in the project example: contractors, subcontractors, etc.',
         'utilities': 'This category include all utilities used in the project example: utilities, electric, etc.',
-        'overhead': 'This category include all overhead used in the project.',
         'miscellaneous': 'This category include all miscellaneous used in the project.',
         'deducts': 'This category include all deducts used in the project.',
         'margin_error': 'This category include all margin error used in the project.',
-        'profit': 'This category include all profit used in the project.',
+        'profit': 'This category include all overhead used in the project.',
     }
     
     margin_error_value = 0
@@ -1115,7 +1113,7 @@ def cost_breakdown(request, project_id, proposal_id):
     
     category_percentage = {}
     for category, items in categorized_data.items():
-        category_percentage[category] = sum(item['total'] for item in items) / total_cost
+        category_percentage[category] = (sum(item['total'] for item in items) / total_cost) * 100
     
     # Prepare chart data - incluir todas las categorías siempre
     chart_labels = []
@@ -1128,11 +1126,10 @@ def cost_breakdown(request, project_id, proposal_id):
         ('labor', 'Labor', '#28a745'),
         ('contractors', 'Contractors', '#fd7e14'),
         ('utilities', 'Utilities', '#ffc107'),
-        ('overhead', 'Overhead', '#6c757d'),
-        ('miscellaneous', 'Miscellaneous', '#17a2b8'),
+        ('miscellaneous', 'Misc', '#17a2b8'),
         ('deducts', 'Deducts', '#dc3545'),
         ('margin_error', 'Margin Error', '#6f42c1'),
-        ('profit', 'Profit', '#6f42c1'),
+        ('profit', 'Overhead', '#6f42c1'),
     ]
     
     # Incluir todas las categorías siempre
@@ -1162,7 +1159,6 @@ def cost_breakdown(request, project_id, proposal_id):
             'labor': category_totals.get('labor', 0),
             'contractors': category_totals.get('contractors', 0),
             'utilities': category_totals.get('utilities', 0),
-            'overhead': category_totals.get('overhead', 0),
             'miscellaneous': category_totals.get('miscellaneous', 0),
             'deducts': category_totals.get('deducts', 0),
             'margin_error': category_totals.get('margin_error', 0),
@@ -2251,5 +2247,47 @@ def remove_collaborator(request, project_id, user_id):
         'status': 'error',
         'message': 'Invalid request method.'
     }, status=405)
+
+@login_required
+def update_change_order_status(request, project_id, budget_id):
+    if request.method == 'POST':
+        try:
+            project = get_object_or_404(Project, pk=project_id)
+            budget = get_object_or_404(BudgetEstimate, pk=budget_id, isChangeOrder=True)
+            
+            # Verificar permisos
+            if not (request.user.is_superuser or project.sales_advisor == request.user):
+                return JsonResponse({'status': 'error', 'message': 'You do not have permission to update this Change Order.'}, status=403)
+            
+            # Parsear datos JSON
+            data = json.loads(request.body)
+            new_status = data.get('status')
+            
+            # Validar status
+            valid_statuses = ['draft', 'pending', 'approved', 'rejected']
+            if new_status not in valid_statuses:
+                return JsonResponse({'status': 'error', 'message': 'Invalid status value.'}, status=400)
+            
+            # Obtener o crear ChangeOrderDetail
+            change_order, created = ChangeOrderDetail.objects.get_or_create(budget=budget)
+            old_status = change_order.status
+            change_order.status = new_status
+            change_order.save()
+            
+            # Log del cambio
+            log_project_history(request, project, 'UPDATE', f'Change Order status updated from {old_status} to {new_status}')
+            
+            return JsonResponse({
+                'status': 'success', 
+                'message': f'Change Order status updated to {new_status}',
+                'new_status': new_status
+            })
+            
+        except BudgetEstimate.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Change Order not found.'}, status=404)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': f'Error updating Change Order status: {str(e)}'}, status=500)
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=405)
 
 

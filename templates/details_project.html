@@ -22,6 +22,20 @@
   background-color: rgba(0, 123, 255, 0.2);
   color: #007bff;
 }
+
+/* Status badge styles for Change Orders */
+.status-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-draft { background-color: #f3f4f6; color: #374151; }
+.status-pending { background-color: #fef3c7; color: #92400e; }
+.status-approved { background-color: #d1fae5; color: #065f46; }
+.status-rejected { background-color: #fee2e2; color: #991b1b; }
 </style>
 
 {% block content %}
@@ -111,7 +125,7 @@
                         <div class="d-inline-flex gap-2 align-items-center p-0">
                           {% if project.status == 'new' or project.status == 'contacted' or project.status == 'quoted_sent' %}
                           <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 {% if budget.status == 'complete' or budget.status == 'approved' %}disabled{% endif %}" 
-                          href="{% url 'edit_budget' project.id budget.id %}" 
+                          href="{% url 'edit_budget' project.id budget.latest_version.id %}" 
                           role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit">
                           <i class="bi bi-pencil-square" style="font-size: 15px;"></i>
                           </a>
@@ -462,7 +476,7 @@
                     role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="View">
                     <i class="bi bi-eye-fill" style="font-size: 15px;"></i>
                     </a>
-                    <a class="btn bg-light border border-2 btn-sm rounded-2" 
+                    <a class="btn bg-light border border-2 btn-sm rounded-2 d-none" 
                     href="{% url 'cost_breakdown' project_id=project.id proposal_id=proposal.id %}" target='_blank'
                     role="button" title="Cost Breakdown" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Cost Breakdown">
                     <i class="bi bi-pie-chart" style="font-size: 15px;"></i>
@@ -575,6 +589,7 @@
                   <th>Create by</th>
                   <th>Last value</th>
                   <th>New value</th>
+                  <th>Status</th>
                   <th>Total Change</th>
                 </tr>
               </thead>
@@ -586,6 +601,21 @@
                   <td>{{ budget.sales_advisor.username }}</td>
                   <td>{{ budget.id_related_total_value | currency_usd}}</td>
                   <td>{{ budget.total_value | currency_usd}}</td>
+                 <td>
+                   {% if budget.change_order_detail %}
+                     <select class="form-select form-select-sm change-order-status" 
+                             data-budget-id="{{ budget.id }}" 
+                             data-change-order-id="{{ budget.change_order_detail.id }}"
+                             style="min-width: 120px; font-size: 0.875rem;">
+                       <option value="draft" {% if budget.change_order_detail.status == 'draft' %}selected{% endif %}>Draft</option>
+                       <option value="pending" {% if budget.change_order_detail.status == 'pending' %}selected{% endif %}>Pending</option>
+                       <option value="approved" {% if budget.change_order_detail.status == 'approved' %}selected{% endif %}>Approved</option>
+                       <option value="rejected" {% if budget.change_order_detail.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                     </select>
+                   {% else %}
+                     <span class="status-badge status-draft">Draft</span>
+                   {% endif %}
+                 </td> 
                   <td>
                     <span class="status title_budget{% if budget.total_change_order < 0 %}Down{% else %}Up{% endif %}">
                       <i class="bi bi-graph-{% if budget.total_change_order < 0 %}down{% else %}up{% endif %}-arrow fs-6"></i>
@@ -599,12 +629,12 @@
                       role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="View">
                       <i class="bi bi-eye-fill" style="font-size: 15px;"></i>
                       </a>
-                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
+                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 d-none" 
                       href="{% url 'edit_budget' project.id budget.id %}" 
                       role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Edit Budget">
                       <i class="bi bi-pencil-square" style="font-size: 15px;"></i>
                       </a>
-                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1" 
+                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 d-none" 
                       href="{% url 'view_budget' project.id budget.id %}"
                       role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Print">
                       <i class="bi bi-printer-fill" style="font-size: 15px;"></i>
@@ -629,7 +659,6 @@
               </tbody>
             </table>
           </div>
-        </div>
         </div>
     </div>   
       {% endif %}
@@ -2303,5 +2332,57 @@ function removeCollaborator(userId) {
     });
   }
 }
+
+// Function to handle Change Order status updates
+document.addEventListener('DOMContentLoaded', function() {
+  const statusSelectors = document.querySelectorAll('.change-order-status');
+  
+  statusSelectors.forEach(selector => {
+    selector.addEventListener('change', function() {
+      const budgetId = this.getAttribute('data-budget-id');
+      const changeOrderId = this.getAttribute('data-change-order-id');
+      const newStatus = this.value;
+      
+      // Show loading state
+      const originalValue = this.value;
+      this.disabled = true;
+      
+      // Make AJAX request
+      fetch(`/projects/{{ project.id }}/change_order/${budgetId}/update_status/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+          status: newStatus
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          showAlert('Change Order status updated successfully!', 'success');
+          
+          // Update the select element styling based on new status
+          this.className = `form-select form-select-sm change-order-status status-${newStatus}`;
+        } else {
+          showAlert('Error updating Change Order status: ' + data.message, 'danger');
+          // Revert to original value
+          this.value = originalValue;
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error updating Change Order status. Please try again.', 'danger');
+        // Revert to original value
+        this.value = originalValue;
+      })
+      .finally(() => {
+        // Re-enable the selector
+        this.disabled = false;
+      });
+    });
+  });
+});
 </script>
 {% endblock %}

@@ -305,13 +305,16 @@
         <a href="{% url 'edit_budgetSimple' project_id=project.id budget_id=proposal.budget.id proposal_id=proposal.id %}" class="btn btn-light btn-sm border border-primary shadow-sm rounded-2" title="Edit Proposal">
             <i class="bi bi-pencil-square text-primary fs-4"></i>
         </a>
-        <button id="emailBtn" class="btn btn-light btn-sm border border-success shadow-sm rounded-2" onclick="openEmailModal()" title="Send by Email">
+                <button id="emailBtn" class="btn btn-light btn-sm border border-success shadow-sm rounded-2" onclick="openEmailModal()" title="Send by Email">
             <i class="bi bi-envelope-fill text-success fs-4"></i>
+        </button>
+        <button id="overheadBtn" class="btn btn-light btn-sm border border-warning shadow-sm rounded-2" onclick="reduceOverhead()" title="Reduce Overhead">
+            <i class="bi bi-percent text-warning fs-4"></i>
         </button>
     </div>
     <section id="invoice-form" class="col-md-9 mx-auto">
         <div class="container px-4 py-1 overflow-hidden select-none" id='main-container'>
-
+            
             <!-- Cost Breakdown Header -->
             <div class="header-blue text-center">
                 <h4 class="m-0 fw-bold">COST BREAKDOWN - {{proposal.project.project_name}}</h4>
@@ -413,19 +416,39 @@
                         {% if category_items %}
                         <tr>
                             <td class="fw-bold">
-                                {{ category_name|title }}
+                                {% if category_name == 'profit' %}
+                                    Overhead
+                                {% else %}
+                                    {{ category_name|title }}
+                                {% endif %}
                             </td>
-                            <td>{{ category_descriptions|get_item:category_name.lower|default:category_name|title }}</td>
+                            <td>
+                                {{ category_description|get_item:category_name.lower|default:category_name|title }}
+                            </td>
                             <td>CC-{{ forloop.counter|stringformat:"03d" }}</td>
-                            <td class="text-right">${{ category_totals|get_item:category_name|floatformat:2 }}</td>
-                            <td class="text-right">{{  category_percentage|get_item:category_name|floatformat:2 }}%</td>
+                            <td class="text-left total-cost-category {{category_name}}" data-category-name="{{category_name}}" data-category-total-cost="{{ category_totals|get_item:category_name }}">{{ category_totals|get_item:category_name|floatformat:2|currency_usd }}</td>
+                            <td class="text-right position-relative  {% if category_name != 'profit' %} total-percentage-category {% endif %} text-truncate"  style="max-width: 75px;" {% if category_name != 'profit' %}data-category-name="{{category_name}}" data-category-percentage-{{category_name}}="{{ category_percentage|get_item:category_name|floatformat:2 }}"{% endif %}>
+                            {% if category_name == 'profit' %}
+                                 <span class="total-percentage-category" id="percentage-profit" data-category-name="{{category_name}}" data-category-percentage-{{category_name}}="{{ category_percentage|get_item:category_name|floatformat:2 }}"  data-percentage="{{  category_percentage|get_item:category_name|floatformat:2 }}">{{  category_percentage|get_item:category_name|floatformat:2 }}%</span>
+                                     <div class="position-absolute end-0 top-0 translate-x-middle d-flex flex-column gap-1">
+                                         <button class="btn btn-success btn-sm p-0" onclick="increaseOverhead()" title="Aumentar overhead">
+                                             <i class="bi bi-arrow-up" style="font-size: 0.6rem;"></i>
+                                         </button>
+                                         <button class="btn btn-danger btn-sm p-0" onclick="reduceOverhead()" title="Reducir overhead">
+                                             <i class="bi bi-arrow-down" style="font-size: 0.6rem;"></i>
+                                         </button>
+                                     </div>
+                                 {% else %}
+                                     {{  category_percentage|get_item:category_name|floatformat:2 }}%
+                                 {% endif %}
+                            </td>
                         </tr>
                         {% endif %}
                     {% endfor %}
                     <!-- Total Row -->
                     <tr class="table-dar fw-bold text-dark border-top-2 border-dark">
                         <td colspan="3"><strong>TOTAL</strong></td>
-                        <td class="text-right">${{ totals.total_cost|floatformat:2 }}</td>
+                        <td class="text-left" data-total-cost="{{ totals.total_cost }}" id="total-cost-by-category">{{ totals.total_cost|floatformat:2|currency_usd }}</td>
                         <td class="text-right">100%</td>
                     </tr>
                 </tbody>
@@ -446,7 +469,7 @@
                             <th>Total</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-category-table="materials">
                         {% for item in categorized_data.materials %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
@@ -456,7 +479,7 @@
                             </td>
                             <td class="quantity-cell">{{ item.content.quantity }}</td>
                             <td class="text-right">${{ item.content.unit_cost|floatformat:2 }}</td>
-                            <td class="text-right cost-cell">${{ item.total|floatformat:2 }}</td>
+                            <td class="text-right cost-cell" data-materials-item-cost="{{ item.total }}">{{ item.total|floatformat:2|currency_usd }}</td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -465,7 +488,7 @@
                         {% endfor %}
                         <tr class="table-secondary fw-bold">
                             <td colspan="4" class="text-end"><strong>Materials Subtotal:</strong></td>
-                            <td class="text-right">${{ totals.materials|floatformat:2 }}</td>
+                            <td class="text-right" data-materials-total-cost="{{ totals.materials }}">{{ totals.materials|floatformat:2|currency_usd }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -483,7 +506,7 @@
                             <th>Total</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-category-table="labor">
                         {% for item in categorized_data.labor %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
@@ -492,7 +515,7 @@
                                 <button class="edit-btn" onclick="editItemDescription(this)">✏️</button>
                             </td>
                             <td class="quantity-cell">{{ item.content.days }}</td>
-                            <td class="text-right cost-cell">${{ item.total|floatformat:2 }}</td>
+                            <td class="text-right cost-cell" data-labor-item-cost="{{ item.total }}">{{ item.total|floatformat:2|currency_usd }}</td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -501,7 +524,7 @@
                         {% endfor %}
                         <tr class="table-secondary fw-bold">
                             <td colspan="3" class="text-end"><strong>Labor Subtotal:</strong></td>
-                            <td class="text-right">${{ totals.labor|floatformat:2 }}</td>
+                            <td class="text-right" data-labor-total-cost="{{ totals.labor }}">{{ totals.labor|floatformat:2|currency_usd }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -519,7 +542,7 @@
                             <th>Total</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-category-table="contractors">
                         {% for item in categorized_data.contractors %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
@@ -527,8 +550,8 @@
                                 {{ item.name }}
                                 <button class="edit-btn" onclick="editItemDescription(this)">✏️</button>
                             </td>
-                            <td>{{ item.content.lead_time }}</td>
-                            <td class="text-right cost-cell">${{ item.total|floatformat:2 }}</td>
+                            <td>{{ item.content.lead_time }}</td>   
+                            <td class="text-right cost-cell" data-contractors-item-cost="{{ item.total }}">{{ item.total|floatformat:2|currency_usd }}</td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -537,7 +560,7 @@
                         {% endfor %}
                         <tr class="table-secondary fw-bold">
                             <td colspan="3" class="text-end"><strong>Contractors Subtotal:</strong></td>
-                            <td class="text-right">${{ totals.contractors|floatformat:2 }}</td>
+                            <td class="text-right" data-contractors-total-cost="{{ totals.contractors }}">{{ totals.contractors|floatformat:2|currency_usd }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -555,7 +578,7 @@
                             <th>Total</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-category-table="utilities">
                         {% for item in categorized_data.utilities %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
@@ -564,7 +587,7 @@
                                 <button class="edit-btn" onclick="editItemDescription(this)">✏️</button>
                             </td>
                             <td class="text-right">${{ item.content.cost_per_hole|floatformat:2 }}</td>
-                            <td class="text-right cost-cell">${{ item.total|floatformat:2 }}</td>
+                            <td class="text-right cost-cell" data-utilities-item-cost="{{ item.total }}">{{ item.total|floatformat:2|currency_usd }}</td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -573,7 +596,7 @@
                         {% endfor %}
                         <tr class="table-secondary fw-bold">
                             <td colspan="3" class="text-end"><strong>Utilities Subtotal:</strong></td>
-                            <td class="text-right">${{ totals.utilities|floatformat:2 }}</td>
+                            <td class="text-right" data-utilities-total-cost="{{ totals.utilities }}">{{ totals.utilities|floatformat:2|currency_usd }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -591,16 +614,16 @@
                             <th>Total</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-category-table="miscellaneous">
                         {% for item in categorized_data.miscellaneous %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
-                            <td class="item-description" data-category="miscellaneous" data-original-name="{{ item.original_name }}" data-custom-name="{{ item.name }}">
+                            <td class="item-description" data-category="miscellaneous" data-original-name="{{ item.original_name }}" data-custom-name="{{ item.name }}">w
                                 {{ item.name }}
                                 <button class="edit-btn" onclick="editItemDescription(this)">✏️</button>
                             </td>
                             <td>{{ item.content.lead_time }}</td>
-                            <td class="text-right cost-cell">${{ item.total|floatformat:2 }}</td>
+                            <td class="text-right cost-cell" data-miscellaneous-item-cost="{{ item.total }}">{{ item.total|floatformat:2|currency_usd }}</td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -609,7 +632,7 @@
                         {% endfor %}
                         <tr class="table-secondary fw-bold">
                             <td colspan="3" class="text-end"><strong>Miscellaneous Subtotal:</strong></td>
-                            <td class="text-right">${{ totals.miscellaneous|floatformat:2 }}</td>
+                            <td class="text-right" data-miscellaneous-total-cost="{{ totals.miscellaneous }}">{{ totals.miscellaneous|floatformat:2|currency_usd }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -627,7 +650,7 @@
                             <th>Total</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-category-table="deducts">
                         {% for item in categorized_data.deducts %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
@@ -636,7 +659,7 @@
                                 <button class="edit-btn" onclick="editItemDescription(this)">✏️</button>
                             </td>
                             <td>{{ item.content.lead_time }}</td>
-                            <td class="text-right cost-cell">${{ item.total|floatformat:2 }}</td>
+                            <td class="text-right cost-cell" data-deducts-item-cost="{{ item.total }}">{{ item.total|floatformat:2|currency_usd }}</td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -645,14 +668,14 @@
                         {% endfor %}
                         <tr class="table-secondary fw-bold">
                             <td colspan="3" class="text-end"><strong>Deducts Subtotal:</strong></td>
-                            <td class="text-right">${{ totals.deducts|floatformat:2 }}</td>
+                            <td class="text-right" data-deducts-total-cost="{{ totals.deducts }}">{{ totals.deducts|floatformat:2|currency_usd }}</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
 
             <!-- Profit Section -->
-            <div class="header-blue">Profit</div>
+            <div class="header-blue">Overhead</div>
             <div class="table-responsive">
                 <table class="table table-bordered table-sm">
                     <thead class="table-dar">
@@ -662,7 +685,7 @@
                             <th>Total</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody data-category-table="profit">
                         {% for item in categorized_data.profit %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
@@ -670,7 +693,7 @@
                                 {{ item.name }}
                                 <button class="edit-btn" onclick="editItemDescription(this)">✏️</button>
                             </td>
-                            <td class="text-right cost-cell">${{ item.total|floatformat:2 }}</td>
+                            <td class="text-right cost-cell" data-profit-item-cost="{{ item.total }}">{{ item.total|floatformat:2|currency_usd }}</td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -678,8 +701,8 @@
                         </tr>
                         {% endfor %}
                         <tr class="table-secondary fw-bold">
-                            <td colspan="2" class="text-end"><strong>Profit Subtotal:</strong></td>
-                            <td class="text-right">${{ totals.profit|floatformat:2 }}</td>
+                            <td colspan="2" class="text-end"><strong>Overhead Subtotal:</strong></td>
+                            <td class="text-right" data-profit-total-cost="{{ totals.total_profit }}">{{ totals.total_profit|floatformat:2|currency_usd }}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -703,11 +726,11 @@
                              <td><strong>1</strong></td>
                              <td>Margin Error</td>
                              <td class="text-center">5%</td>
-                             <td class="text-right text-warning fw-bold">${{ totals.margin_error|floatformat:2 }}</td>
+                             <td class="text-right text-warning fw-bold" data-margin-error-total-cost="{{ totals.margin_error }}">{{ totals.margin_error|floatformat:2|currency_usd }}</td>
                          </tr>
                          <tr class="table-warning fw-bold">
                              <td colspan="3" class="text-end"><strong>Margin Error Total:</strong></td>
-                             <td class="text-right">${{ totals.margin_error|floatformat:2 }}</td>
+                             <td class="text-right" data-margin-error-total-cost="{{ totals.margin_error }}">{{ totals.margin_error|floatformat:2|currency_usd }}</td>
                          </tr>
                      </tbody>
                  </table>
@@ -721,41 +744,45 @@
                     <tbody>
                         <tr>
                             <td><strong>A. Materials Subtotal:</strong></td>
-                            <td class="text-right">${{ totals.materials|floatformat:2 }}</td>
+                            <td class="text-right" data-materials-total-cost="{{ totals.materials }}">{{ totals.materials|floatformat:2|currency_usd }}</td>
                         </tr>
                         <tr>
                             <td><strong>B. Labor Subtotal:</strong></td>
-                            <td class="text-right">${{ totals.labor|floatformat:2 }}</td>
+                            <td class="text-right" data-labor-total-cost="{{ totals.labor }}">{{ totals.labor|floatformat:2|currency_usd }}</td>
                         </tr>
                         <tr>
                             <td><strong>C. Contractor Owned Equipment:</strong></td>
-                            <td class="text-right">${{ totals.contractors|floatformat:2 }}</td>
+                            <td class="text-right" data-contractors-total-cost="{{ totals.contractors }}">{{ totals.contractors|floatformat:2|currency_usd }}</td>
                         </tr>
                         <tr>
                             <td><strong>D. Utilities:</strong></td>
-                            <td class="text-right">${{ totals.utilities|floatformat:2 }}</td>
+                            <td class="text-right" data-utilities-total-cost="{{ totals.utilities }}">{{ totals.utilities|floatformat:2|currency_usd }}</td>
                         </tr>
-                                                 <tr>
-                             <td><strong>E. Misc & Deducts/Credits:</strong></td>
-                             <td class="text-right">${{ totals.overhead|floatformat:2 }}</td>
+                        <tr>
+                             <td><strong>E. Miscellaneous:</strong></td>
+                             <td class="text-right" data-miscellaneous-total-cost="{{ totals.miscellaneous }}">{{ totals.miscellaneous|floatformat:2|currency_usd }}</td>
                          </tr>
+                         <tr>
+                            <td><strong>F. Deducts:</strong></td>
+                            <td class="text-right" data-deducts-total-cost="{{ totals.deducts }}">{{ totals.deducts|floatformat:2|currency_usd }}</td>
+                        </tr>
                          {% if totals.margin_error > 0 %}
                          <tr class="table-warning fw-bold">
-                             <td><strong>F. Margin Error:</strong></td>
-                             <td class="text-right">${{ totals.margin_error|default:0|floatformat:2 }}</td>
+                             <td><strong>G. Margin Error:</strong></td>
+                             <td class="text-right" data-margin-error-total-cost="{{ totals.margin_error }}">{{ totals.margin_error|default:0|floatformat:2|currency_usd }}</td>
                          </tr>
                          {% endif %}
                          <tr class="table-secondary fw-bold">
                             <td><strong>TOTAL COST:</strong></td>
-                            <td class="text-right"><strong>${{ totals.total_cost_with_profit|floatformat:2 }}</strong></td>
+                            <td class="text-right"><strong data-total-cost="{{ totals.total_cost_with_profit }}" id="total-cost-without-overhead">{{ totals.total_cost_with_profit|floatformat:2|currency_usd }}</strong></td>
                         </tr>
                         <tr class="table-success fw-bold">
-                            <td><strong>OVERHEAD & PROFIT:</strong></td>
-                            <td class="text-right"><strong>${{ totals.total_profit|floatformat:2 }}</strong></td>
+                            <td><strong>OVERHEAD:</strong></td>
+                            <td class="text-right"><strong data-total-profit="{{ totals.total_profit }}">{{ totals.total_profit|floatformat:2|currency_usd }}</strong></td>
                         </tr>
                         <tr class="table-primary fw-bold fs-5">
                             <td><strong>GRAND TOTAL:</strong></td>
-                            <td class="text-right"><strong>${{ totals.total_cost|floatformat:2 }}</strong></td>
+                            <td class="text-right"><strong data-total-cost="{{ totals.total_cost }} " id="grand-total">{{ totals.total_cost|floatformat:2|currency_usd }}</strong></td>
                         </tr>
                     </tbody>
                 </table>
@@ -805,12 +832,7 @@
                         </div>
                     </div>
                     
-                    <div class="col-md-6">
-                        <div class="analysis-item">
-                            <h6 class="text-dark">Overhead  {{ totals.overhead|floatformat:2|currency_usd }}</h6>
-                            <p class="text-muted">{{ category_descriptions.overhead.description|default:"Administrative costs, project management, permits, and general overhead expenses." }}</p>
-                        </div>
-                        
+                    <div class="col-md-6">  
                         <div class="analysis-item">
                             <h6 class="text-dark">Miscellaneous  {{ totals.miscellaneous|floatformat:2|currency_usd  }}</h6>
                             <p class="text-muted">{{ category_descriptions.miscellaneous.description|default:"Additional costs including special equipment, temporary structures, and other project-specific expenses." }}</p>
@@ -824,7 +846,7 @@
                         {% endif %}
                         
                         <div class="analysis-item">
-                            <h6 class="text-dark">Profit  {{ totals.profit|floatformat:2|currency_usd }}</h6>
+                            <h6 class="text-dark">Overhead  {{ totals.profit|floatformat:2|currency_usd }}</h6>
                             <p class="text-muted">{{ category_descriptions.profit.description|default:"Project profit margin and business overhead included in the total project cost." }}</p>
                         </div>
                         
@@ -847,7 +869,6 @@
 </div>
 {% include 'components/modal_send_email.html' %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.js"></script>
-<script src="{% static 'js/components/pdf_proposal.js' %}"></script>
 
 <!-- Chart data from Django -->
 {{ chart_data|json_script:"chart-data" }}
@@ -1003,7 +1024,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         meta.data.forEach(function(arc, index) {
             if (!arc || typeof arc.x === 'undefined' || typeof arc.y === 'undefined') {
-                console.log('Invalid arc data for index:', index);
                 return;
             }
             
@@ -1024,7 +1044,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const labelX = centerX + Math.cos(midAngle) * radius;
             const labelY = centerY + Math.sin(midAngle) * radius;
             
-            console.log(`Drawing label for ${chartData.labels[index]}: ${percentage}% at (${labelX}, ${labelY})`);
             
             // Mostrar porcentaje en el centro de cada sección
             ctx.fillStyle = '#000';
@@ -1092,10 +1111,6 @@ function generatePDF() {
     });
 }
 
-function openEmailModal() {
-    // Implementation for email modal
-    console.log('Email modal functionality to be implemented');
-}
 
 // Funciones para editar descripciones de elementos
 function editItemDescription(button) {
@@ -1216,6 +1231,514 @@ function showNotification(message, type) {
         }
     }, 3000);
 }
+function reduceOverhead() {
+    const percentage = document.querySelector('#percentage-profit');
+    const currentPercentage = parseFloat(percentage.dataset.percentage);
+    let newPercentage = Math.max(0, currentPercentage - 1);
+    if (newPercentage <= 0) {  
+        newPercentage = 0;
+        showNotification(`Overhead cannot be less than 0%`, 'error');
+        return;
+    }
+    const formattedPercentage = newPercentage.toFixed(2);
+    // Guardar los   existentes
+    const buttonsContainer = percentage.parentElement.querySelector('.position-absolute');
+    
+    // Actualizar solo el texto del porcentaje
+    percentage.textContent = formattedPercentage + '%';
+    percentage.dataset.percentage = formattedPercentage;
+    
+    // Restaurar los botones si existían
+    if (buttonsContainer && !percentage.parentElement.querySelector('.position-absolute')) {
+        percentage.parentElement.appendChild(buttonsContainer);
+    }
+    
+    recalculateCategories();
+    calculateTotalCostWithoutOverhead()
+    showNotification(`Overhead reduced to ${formattedPercentage}%`, 'success');
+}
+
+function increaseOverhead() {
+    const percentage = document.querySelector('#percentage-profit');
+    const currentPercentage = parseFloat(percentage.dataset.percentage);
+    const newPercentage = Math.min(100, currentPercentage + 1);
+    const formattedPercentage = newPercentage.toFixed(2);
+    if (formattedPercentage > 100) {
+        formattedPercentage = 100;
+        showNotification(`Overhead cannot be greater than 100%`, 'error');
+        return;
+    }
+    
+    // Guardar los botones existentes
+    const buttonsContainer = percentage.parentElement.querySelector('.position-absolute');
+    
+    // Actualizar solo el texto del porcentaje
+    percentage.textContent = formattedPercentage + '%';
+    percentage.dataset.percentage = formattedPercentage;
+    
+    // Restaurar los botones si existían
+    if (buttonsContainer && !percentage.parentElement.querySelector('.position-absolute')) {
+        percentage.parentElement.appendChild(buttonsContainer);
+    }
+    
+    recalculateCategories();
+    showNotification(`Overhead increased to ${formattedPercentage}%`, 'success');
+}
+
+function updateTotalCostByCategory() {
+    
+    // Obtener todas las categorías
+    const categories = ['materials', 'labor', 'contractors', 'utilities', 'miscellaneous', 'deducts', 'margin_error', 'profit'];
+    let totalSum = 0;
+    
+    // Sumar todos los valores de las categorías
+    categories.forEach(category => {
+        const categoryElement = document.querySelector(`.total-cost-category.${category}`);
+        if (categoryElement) {
+            const value = parseFloat(categoryElement.textContent.replace('$', '').replace(',', '')) || 0;
+            totalSum += value;
+        }
+    });
+    
+    // Obtener el total original del proposal
+    const totalCostByCategoryElement = document.getElementById('total-cost-by-category');
+    const originalTotal = parseFloat(totalCostByCategoryElement.dataset.originalProposalTotal) || 
+                         parseFloat(totalCostByCategoryElement.textContent.replace('$', '').replace(',', '')) || 0;
+    
+    
+    // Verificar si el total calculado se pasa del original
+    if (totalSum > originalTotal) {
+        
+        // Mantener el valor original
+        totalCostByCategoryElement.textContent = '$' + originalTotal.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    } else {
+        
+        // Actualizar con el total calculado
+        totalCostByCategoryElement.textContent = '$' + totalSum.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+    
+}
+
+function recalculateCategories() {
+    
+    // Obtener el total original del proposal (base para todos los cálculos)
+    const totalCostByCategoryElement = document.getElementById('total-cost-by-category');
+    let originalProposalTotal = 0;
+    
+    // Si no existe el dataset, crearlo con el valor actual
+    if (totalCostByCategoryElement && !totalCostByCategoryElement.dataset.originalProposalTotal) {
+        originalProposalTotal = parseFloat(totalCostByCategoryElement.textContent.replace('$', '').replace(',', '')) || 0;
+        totalCostByCategoryElement.dataset.originalProposalTotal = originalProposalTotal.toFixed(2);
+    } else if (totalCostByCategoryElement) {
+        originalProposalTotal = parseFloat(totalCostByCategoryElement.dataset.originalProposalTotal) || 0;
+    }
+    
+    // Usar el total original como base para todos los cálculos
+    const grandTotal = originalProposalTotal;
+    
+    // Obtener el nuevo porcentaje de overhead
+    const overheadPercentage = parseFloat(document.querySelector('#percentage-profit').dataset.percentage);
+    
+    // Calcular el nuevo costo del overhead
+    const newOverheadCost = (grandTotal * overheadPercentage) / 100;
+    
+    // Obtener el overhead anterior para calcular la diferencia
+    const overheadCell = document.querySelector('.total-cost-category.profit');
+    const oldOverheadCost = parseFloat(overheadCell.textContent.replace('$', '').replace(',', '')) || 0;
+    const overheadDifference = newOverheadCost - oldOverheadCost;
+    
+    // Actualizar el overhead
+    overheadCell.textContent = '$' + newOverheadCost.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    // Redistribuir la diferencia del overhead entre sus items individuales
+    if (overheadDifference !== 0) {
+        redistributeCategoryItems('profit', overheadDifference);
+    }
+    
+    // Calcular cuánto queda para las otras categorías
+    const remainingForOthers = grandTotal - newOverheadCost;
+    
+    // Obtener todas las categorías excepto overhead
+    const otherCategories = document.querySelectorAll('.total-cost-category:not(.profit)');
+    let totalOtherPercentages = 0;
+
+    
+    // Calcular el total de porcentajes de otras categorías
+    otherCategories.forEach(category => {
+        const categoryName = category.dataset.categoryName;
+        const percentageCell = document.querySelector(`[data-category-percentage-${categoryName}]`);
+        if (percentageCell) {
+            const percentageSpan = percentageCell.querySelector('span');
+            let percentage = 0;
+            if (percentageSpan && !percentageSpan.id.includes('profit')) {
+                percentage = parseFloat(percentageSpan.textContent.replace('%', '')) || 0;
+            } else {
+                percentage = parseFloat(percentageCell.textContent.replace('%', '')) || 0;
+            }
+            totalOtherPercentages += percentage;
+        }
+    });
+    
+    
+    // Recalcular cada categoría basándose en su porcentaje del total restante
+    otherCategories.forEach(category => {
+        const categoryName = category.dataset.categoryName;
+        const percentageCell = document.querySelector(`[data-category-percentage-${categoryName}]`);
+        
+        if (percentageCell) {
+            let currentPercentage = 0;
+            const percentageSpan = percentageCell.querySelector('span');
+            
+            if (percentageSpan && !percentageSpan.id.includes('profit')) {
+                currentPercentage = parseFloat(percentageSpan.textContent.replace('%', '')) || 0;
+            } else {
+                currentPercentage = parseFloat(percentageCell.textContent.replace('%', '')) || 0;
+            }
+            
+            // Calcular el nuevo costo basándose en el porcentaje del total restante
+            const newCost = (remainingForOthers * currentPercentage) / totalOtherPercentages;
+            const newPercentage = ((newCost / grandTotal) * 100);
+            
+            
+            // Obtener el costo anterior de la categoría
+            const oldCost = parseFloat(category.textContent.replace('$', '').replace(',', '')) || 0;
+            const costDifference = newCost - oldCost;
+            
+            // Actualizar el costo de la categoría
+            category.textContent = '$' + newCost.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            
+            // Actualizar el porcentaje
+            if (percentageSpan && !percentageSpan.id.includes('profit')) {
+                percentageSpan.textContent = newPercentage + '%';
+                percentageSpan.dataset.percentage = newPercentage;
+            } else {
+                // Para el overhead (profit), preservar los botones
+                if (categoryName === 'profit') {
+                    // Guardar los botones existentes
+                    const buttonsContainer = percentageCell.querySelector('.position-absolute');
+                    
+                    // Actualizar solo el texto del porcentaje
+                    percentageCell.textContent = newPercentage + '%';
+                    percentageCell.dataset.categoryPercentage = newPercentage;
+                    
+                    // Restaurar los botones si existían
+                    if (buttonsContainer && !percentageCell.querySelector('.position-absolute')) {
+                        percentageCell.appendChild(buttonsContainer);
+                    }
+                } else {
+                    percentageCell.textContent = newPercentage + '%';
+                    percentageCell.dataset.categoryPercentage = newPercentage;
+                }
+            }
+            normalizePercentages();
+            
+            // Redistribuir la diferencia entre los items individuales de esta categoría
+            // margin_error no tiene items individuales, solo se actualiza el subtotal
+            if (categoryName === 'margin_error') {
+                updateMarginErrorSubtotal(newCost);
+            } else {
+                redistributeCategoryItems(categoryName, costDifference);
+            }
+        }
+    });
+    
+    // Actualizar el total dinámicamente
+    updateTotalCostByCategory();
+}
+
+function redistributeCategoryItems(categoryName, costDifference) {
+
+    // Encontrar la tabla de la categoría
+    const categoryTable = document.querySelector(`[data-category-table="${categoryName}"]`);
+    if (!categoryTable) {
+        return;
+    }
+    
+    // Obtener todos los items de costo de esta categoría
+    const costCells = categoryTable.querySelectorAll('.cost-cell');
+    if (costCells.length === 0) {
+        return;
+    }
+    
+    // Calcular el total actual de los items
+    let totalItemsCost = 0;
+    const items = [];
+    
+    costCells.forEach(cell => {
+        const cost = parseFloat(cell.textContent.replace('$', '').replace(',', '')) || 0;
+        totalItemsCost += cost;
+        items.push({
+            element: cell,
+            currentCost: cost
+        });
+    });
+    
+    
+    // Si no hay diferencia o no hay items, salir
+    if (costDifference === 0 || totalItemsCost === 0) {
+        console.log('No hay diferencia que redistribuir');
+        return;
+    }
+    
+    // Redistribuir la diferencia proporcionalmente entre los items
+    items.forEach(item => {
+        const itemShare = item.currentCost / totalItemsCost;
+        const adjustment = costDifference * itemShare;
+        const newCost = item.currentCost + adjustment;
+        
+        // Actualizar el costo del item
+        item.element.textContent = '$' + newCost.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        
+        // Si el item tiene un data attribute para el costo, actualizarlo también
+        if (item.element.dataset.cost) {
+            item.element.dataset.cost = newCost;
+        }
+    });
+
+
+    // Actualizar el subtotal de la categoría
+    updateCategorySubtotal(categoryName);
+}
+
+function updateCategorySubtotal(categoryName) {
+    // Encontrar la tabla de la categoría
+    const categoryTable = document.querySelector(`[data-category-table="${categoryName}"]`);
+    if (!categoryTable) {
+        console.log(`No se encontró tabla para categoría ${categoryName}`);
+        return;
+    }
+    
+    // Obtener todos los items de costo de esta categoría
+    const costCells = categoryTable.querySelectorAll('.cost-cell');
+    if (costCells.length === 0) {
+        return;
+    }
+    
+    // Calcular el nuevo subtotal
+    let newSubtotal = 0;
+    costCells.forEach(cell => {
+        const cost = parseFloat(cell.textContent.replace('$', '').replace(',', '')) || 0;
+        newSubtotal += cost;
+    });
+    
+    
+    // Actualizar el subtotal en la tabla de la categoría
+    const subtotalCell = document.querySelector(`[data-${categoryName}-total-cost]`);
+    if (subtotalCell) {
+        subtotalCell.textContent = '$' + newSubtotal.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        subtotalCell.dataset[`${categoryName}TotalCost`] = newSubtotal;
+    }
+    
+    // Actualizar el subtotal en la tabla de resumen
+    const summarySubtotalCell = document.querySelector(`.total-cost-category.${categoryName}`);
+    if (summarySubtotalCell) {
+        summarySubtotalCell.textContent = '$' + newSubtotal.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        summarySubtotalCell.dataset.categoryTotalCost = newSubtotal;
+    }
+    
+    // Recalcular el porcentaje en la tabla de resumen
+    const grandTotal = parseFloat(document.querySelector('[data-total-cost]').textContent.replace('$', '').replace(',', '')) || 0;
+    const newPercentage = ((newSubtotal / grandTotal) * 100);
+    
+    const percentageCell = document.querySelector(`[data-category-percentage-${categoryName}]`);
+    if (percentageCell) {
+        const percentageSpan = percentageCell.querySelector('span');
+        if (percentageSpan && !percentageSpan.id.includes('profit')) {
+            percentageSpan.textContent = newPercentage + '%';
+            percentageSpan.dataset.percentage = newPercentage;
+        } else {
+            percentageCell.textContent = newPercentage + '%';
+            percentageCell.dataset.categoryPercentage = newPercentage;
+        }
+    }
+    updateTotalCostByCategory();
+    updateCostSummaryValues();
+}
+
+function updateMarginErrorSubtotal(newCost) {
+    // Actualizar todos los elementos que muestran margin_error
+    const marginErrorElements = document.querySelectorAll('[data-margin-error-total-cost]');
+    marginErrorElements.forEach(element => {
+        element.textContent = '$' + newCost.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        element.dataset.marginErrorTotalCost = newCost;
+    });
+    
+    // Actualizar el elemento en la tabla de resumen
+    const summaryElement = document.querySelector('.total-cost-category.margin_error');
+    if (summaryElement) {
+        summaryElement.textContent = '$' + newCost.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        summaryElement.dataset.categoryTotalCost = newCost;
+    }
+    
+    // Actualizar el total dinámicamente
+    updateTotalCostByCategory();
+}
+
+function updateCostSummaryValues() {
+    const categoryValues = {};
+    const categories = ['materials', 'labor', 'contractors', 'utilities', 'miscellaneous', 'deducts', 'margin_error'];
+    
+    categories.forEach(category => {
+        // Obtener el valor desde la tabla de resumen (que ya está actualizada)
+        const summaryElement = document.querySelector(`.total-cost-category.${category}`);
+        if (summaryElement) {
+            const value = parseFloat(summaryElement.textContent.replace('$', '').replace(',', '')) || 0;
+            categoryValues[category] = value;
+        }
+    });
+    
+    
+    
+    // Obtener el overhead actual
+    const overheadElement = document.querySelector('.total-cost-category.profit');
+    const overheadValue = parseFloat(overheadElement.textContent.replace('$', '').replace(',', '')) || 0;
+    
+    // Obtener el total original del proposal (mantener constante)
+    const proposalTotalElement = document.getElementById('total-cost-by-category');
+    const originalProposalTotal = parseFloat(proposalTotalElement.dataset.originalProposalTotal) || 0;
+    
+    // El grand total siempre debe ser el total original del proposal
+    const grandTotal = originalProposalTotal;
+    
+
+    // Actualizar los subtotales en Cost Summary
+    categories.forEach(category => {
+        const costSummaryElements = document.querySelectorAll(`[data-${category}-total-cost]`);
+        const value = categoryValues[category] || 0;
+        costSummaryElements.forEach(element => {
+            element.textContent = '$' + value.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        });
+    });
+
+        // Calcular el total cost (sin overhead) - sumando todos los subtotales menos profit
+
+    
+    // Actualizar GRAND TOTAL en Cost Summary (siempre el total original)
+    const grandTotalElement = document.getElementById('grand-total');
+    if (grandTotalElement) {
+        grandTotalElement.textContent = '$' + grandTotal.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+    
+    // Actualizar OVERHEAD en Cost Summary
+    const overheadSummaryElements = document.querySelectorAll('[data-total-profit]');
+    overheadSummaryElements.forEach(element => {
+        element.textContent = '$' + overheadValue.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    });
+    
+    // Actualizar el total de la tabla de resumen por categorías (mantener original)
+    const totalCostByCategoryElement = document.getElementById('total-cost-by-category');
+    if (totalCostByCategoryElement) {
+        totalCostByCategoryElement.textContent = '$' + grandTotal.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+    
+    // Actualizar valores en Cost Breakdown Analysis
+    categories.forEach(category => {
+        const analysisElements = document.querySelectorAll('.analysis-item h6');
+        analysisElements.forEach(element => {
+            const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
+            if (element.textContent.includes(categoryName)) {
+                const value = categoryValues[category] || 0;
+                element.textContent = `${categoryName}  $${value.toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                })}`;
+            }
+        });
+    });
+    
+    // Actualizar Margin Error en Cost Breakdown Analysis si existe
+    const marginErrorElements = document.querySelectorAll('.analysis-item h6');
+    marginErrorElements.forEach(element => {
+        if (element.textContent.includes('Margin Error')) {
+            const value = categoryValues['margin_error'] || 0;
+            element.textContent = `Margin Error  $${value.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            })}`;
+        }
+    });
+}
+
+function calculateTotalCostWithoutOverhead() {
+    let totalCostWithoutOverhead = 0;
+    const allCategoryElements = document.querySelectorAll('.total-cost-category');
+    
+    allCategoryElements.forEach(element => {
+        const categoryName = element.dataset.categoryName;
+        if (categoryName && categoryName !== 'profit') {
+            const value = parseFloat(element.textContent.replace('$', '').replace(',', '')) || 0;
+            totalCostWithoutOverhead += value;
+        }
+    });
+    
+    const totalCostWithoutOverheadElement = document.getElementById('total-cost-without-overhead');
+    if (totalCostWithoutOverheadElement) {
+        totalCostWithoutOverheadElement.textContent = '$' + totalCostWithoutOverhead.toLocaleString('en-US', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+    
+}
+
+function normalizePercentages() {
+    const percentages = document.querySelectorAll('.total-percentage-category');
+    let total = 0;
+    percentages.forEach(p => {
+        total += parseFloat(p.textContent.replace('%', '')) || 0;
+    });
+
+    if (total !== 100) {
+        const difference = 100 - total;
+        percentages.forEach(p => {
+            const currentPercentage = parseFloat(p.textContent.replace('%', '')) || 0;
+            const newPercentage = (currentPercentage + (difference / percentages.length)).toFixed(1);
+            p.textContent = newPercentage + '%';
+            p.dataset.percentage = newPercentage;
+        });
+    }
+}
+
+
 </script>
 
 {% endblock %} 

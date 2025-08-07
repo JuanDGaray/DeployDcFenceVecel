@@ -51,4 +51,7 @@ urlpatterns = [
     path('projects/<int:project_id>/collaboration_requests/', views.projects_views.get_collaboration_requests, name='get_collaboration_requests'),
     path('collaboration_requests/<int:request_id>/respond/', views.projects_views.respond_collaboration_request, name='respond_collaboration_request'),
     path('projects/<int:project_id>/remove_collaborator/<int:user_id>/', views.projects_views.remove_collaborator, name='remove_collaborator'),
+    
+    # URLs para Change Orders
+    path('projects/<int:project_id>/change_order/<int:budget_id>/update_status/', views.projects_views.update_change_order_status, name='update_change_order_status'),
 ]   

@@ -801,6 +801,19 @@ class EmailTracking(models.Model):
 from django.db import models
 
 class ChangeOrderDetail(models.Model):
+    # Estados del Change Order
+    STATUS_DRAFT = 'draft'
+    STATUS_PENDING = 'pending'
+    STATUS_APPROVED = 'approved'
+    STATUS_REJECTED = 'rejected'
+
+    STATUS_CHOICES = [
+        (STATUS_DRAFT, 'Draft'),
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_APPROVED, 'Approved'),
+        (STATUS_REJECTED, 'Rejected'),
+    ]
+
     budget = models.OneToOneField('BudgetEstimate', on_delete=models.CASCADE, related_name='change_order_detail')
     sub_contract_no = models.CharField(max_length=50, blank=True, null=True)
     job_location = models.CharField(max_length=255, blank=True, null=True)
@@ -809,6 +822,7 @@ class ChangeOrderDetail(models.Model):
     phone = models.CharField(max_length=30, blank=True, null=True)
     change_order_no = models.CharField(max_length=50, blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
+    status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default=STATUS_DRAFT)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
