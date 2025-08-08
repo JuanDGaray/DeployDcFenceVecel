@@ -13,7 +13,7 @@ from django.contrib.auth.models import Group
 from ..utils import create_manager_assignment_notification
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from ..models import ProductionFundingRequest
+from ..models import ProductionFundingRequest, ChangeOrderDetail, BudgetEstimate
 from django.contrib.auth import get_user_model
 import copy
 User = get_user_model()
@@ -60,6 +60,7 @@ def production_project(request, project_id):
             'project': project,
             'productionUsers': productionUsers,
         })
+    
 
     taskGantt = TaskProject.objects.filter(project=project)
     RealCost = RealCostProject.objects.filter(project=project)
@@ -70,9 +71,12 @@ def production_project(request, project_id):
         if RealCostItems: 
             RealCostByItems = json.dumps(RealCostItems.items)
 
-    print(RealCostByItems, 'RealCostByItems')
     proposal = project.get_approved_proposal()
     budget = proposal.budget
+    changeOrders = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True, change_order_detail__status='approved').order_by('-date_created')
+    budgetChangeOrder = changeOrders.first()
+    if budgetChangeOrder:
+        budget = budgetChangeOrder
     costData = {}
     progress = 0
     user_allowed_to_close_production = False
@@ -118,7 +122,9 @@ def production_project(request, project_id):
         'progress': round(progress*100),
         'taskGantt':taskGantt,
         'realCostItems': RealCostByItems,
-        'user_allowed_to_close_production': user_allowed_to_close_production
+        'user_allowed_to_close_production': user_allowed_to_close_production,
+        'changeOrders': changeOrders,
+        'totalChangeOrders': changeOrders.count(),
     })
     
     

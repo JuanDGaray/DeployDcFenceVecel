@@ -371,10 +371,15 @@ def detail_project(request, project_id):
         budgets = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=True, isChangeOrder=False).only('id', 'projected_cost', 'status', 'sales_advisor', 'date_created', 'id_related_budget', 'isChangeOrder')
         invoices = InvoiceProjects.objects.filter(project_id=project_id).only('id', 'date_created', 'due_date', 'total_invoice', 'total_paid', 'status', 'proposal', 'sales_advisor')
         proposals = ProposalProjects.objects.filter(project_id=project_id).only('id', 'date_created', 'due_date', 'status', 'sales_advisor', 'total_proposal', 'sales_advisor', 'billed_proposal')
-        changes_orders = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True).select_related('change_order_detail')
+        changes_orders = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True).select_related('change_order_detail').order_by('date_created')
+
+        are_changes_orders_draft_count = changes_orders.filter(change_order_detail__status__in=['draft', 'pending', 'sent'])
+        are_changes_orders_approved_count = changes_orders.filter(change_order_detail__status='approved')
+        are_changes_orders_draft = (are_changes_orders_draft_count.count() > 0 or changes_orders.count() != (are_changes_orders_draft_count.count() + are_changes_orders_approved_count.count()))
         customers = Customer.objects.only('id', 'first_name', 'last_name', 'email', 'company_name', 'customer_type')
+
         if (len(invoices) <= 0 and len(budgets) <= 0) and project.status not in ['new', 'cancelled', 'inactive', 'pending_payment', 'not_approved']:
-            project.status = 'new'
+            project.status = 'new'  
             project.save()
         budgets_with_related = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=False, isChangeOrder=False).only('id', 'projected_cost', 'status', 'sales_advisor', 'date_created', 'id_related_budget', 'isChangeOrder')
         budgets_dict = {}
@@ -445,6 +450,7 @@ def detail_project(request, project_id):
             'is_collaborator': is_collaborator,
             'collaborators': collaborators,
             'collaboration_requests': collaboration_requests,
+            'are_changes_orders_draft': are_changes_orders_draft,
         })
     
     else:
@@ -670,7 +676,13 @@ def new_change_order(request, project_id, proposal_id):
    
     if request.method == 'GET':
         proposal = get_object_or_404(ProposalProjects, pk=proposal_id)
-        budget = proposal.budget
+        changes_orders = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True, change_order_detail__status='approved').order_by('-date_created')
+        if changes_orders.count() > 0:
+            last_change_order = changes_orders.first()
+            budget = last_change_order
+        else:
+            budget = proposal.budget
+
         data = extract_data_budget(budget)
         return render(request, 'new_changeOrder.html', {
             'project': project,

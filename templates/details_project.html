@@ -578,7 +578,19 @@
       <div class="col-md-12 mt-4">
         <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
           <div class="card-header d-flex justify-content-between p-3 border-bottom bg-warning" style="--bs-bg-opacity: .2;">
-            <h1 class="card-header fs-4 rounded-4 px-2"  style="--bs-bg-opacity: .1;">Change Order</h1>
+            <h1 class="card-header fs-4 rounded-4 px-2"  style="--bs-bg-opacity: .1;">Change Order</h1> 
+            {% if not are_changes_orders_draft %}
+              <a class="btn btn-light border border-2 btn-sm rounded-2" href="{% url 'new_change_order' project.id last_proposal_approved.id %}"> + New Change Order</a>
+            {% else %}
+              <a class="btn bg-secondary text-light border border-2 btn-sm rounded-2" 
+                 disabled role="button" data-bs-toggle="tooltip"
+                 data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                 data-bs-title="Cannot create new Change Order while there are existing Change Orders in draft, pending, or sent status"
+                 aria-label="Info" data-bs-original-title="Approved Proposal"
+                 style="cursor: not-allowed;">
+                 + New Change Order
+              </a>
+            {% endif %}
           </div>
           <div class="card-body">
             <table class="table table-striped">
@@ -603,17 +615,29 @@
                   <td>{{ budget.total_value | currency_usd}}</td>
                  <td>
                    {% if budget.change_order_detail %}
-                     <select class="form-select form-select-sm change-order-status" 
-                             data-budget-id="{{ budget.id }}" 
-                             data-change-order-id="{{ budget.change_order_detail.id }}"
-                             style="min-width: 120px; font-size: 0.875rem;">
-                       <option value="draft" {% if budget.change_order_detail.status == 'draft' %}selected{% endif %}>Draft</option>
-                       <option value="pending" {% if budget.change_order_detail.status == 'pending' %}selected{% endif %}>Pending</option>
-                       <option value="approved" {% if budget.change_order_detail.status == 'approved' %}selected{% endif %}>Approved</option>
-                       <option value="rejected" {% if budget.change_order_detail.status == 'rejected' %}selected{% endif %}>Rejected</option>
-                     </select>
+                     {% if budget.change_order_detail.status == 'approved' and not forloop.last %}
+                       <!-- Si este Change Order está aprobado y no es el último, mostrar solo el status sin poder cambiar -->
+                       <span class="status-empty status-{{ budget.change_order_detail.status }}">
+                         {% if budget.change_order_detail.status == 'draft' %}Draft
+                         {% elif budget.change_order_detail.status == 'pending' %}Pending
+                         {% elif budget.change_order_detail.status == 'approved' %}Approved
+                         {% elif budget.change_order_detail.status == 'rejected' %}Rejected
+                         {% else %}{{ budget.change_order_detail.status|title }}{% endif %}
+                       </span>
+                     {% else %}
+                       <!-- Si este Change Order no está aprobado o es el último, permitir cambiar status -->
+                       <select class="change-order-status status-empty status-{{ budget.change_order_detail.status }}"
+                               data-budget-id="{{ budget.id }}" 
+                               data-change-order-id="{{ budget.change_order_detail.id }}"
+                               style="min-width: 120px; font-size: 0.875rem;">
+                         <option value="draft" {% if budget.change_order_detail.status == 'draft' %}selected{% endif %}>Draft</option>
+                         <option value="pending" {% if budget.change_order_detail.status == 'pending' %}selected{% endif %}>Pending</option>
+                         <option value="approved" {% if budget.change_order_detail.status == 'approved' %}selected{% endif %}>Approved</option>
+                         <option value="rejected" {% if budget.change_order_detail.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                       </select>
+                     {% endif %}
                    {% else %}
-                     <span class="status-badge status-draft">Draft</span>
+                     <span class="status-empty status-draft">Draft</span>
                    {% endif %}
                  </td> 
                   <td>
@@ -639,15 +663,31 @@
                       role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Print">
                       <i class="bi bi-printer-fill" style="font-size: 15px;"></i>
                       </a>
-                      <a class="btn btn-danger btn-sm rounded-2"
-                        href="{% url 'delete_budget' project.id budget.id %}"                         
-                        role="button" title="Delete Budget" 
-                        data-bs-toggle="tooltip" 
-                        data-bs-placement="bottom" 
-                        data-bs-custom-class="custom-tooltip" 
-                        data-delete-action data-bs-title="Delete">
+                      {% if budget.change_order_detail.status == 'approved' and not forloop.last %}
+                        <!-- Si hay un Change Order aprobado y este no es el aprobado, deshabilitar el botón de eliminar -->
+                        <a class="btn btn-secondary btn-sm rounded-2"
+                          href="#"                         
+                          role="button" 
+                          title="Cannot delete Change Order when there is an approved Change Order" 
+                          data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" 
+                          data-bs-custom-class="custom-tooltip" 
+                          data-bs-title="Cannot delete Change Order when there is an approved Change Order"
+                          disabled>
                           <i class="bi bi-trash" style="font-size: 15px;"></i>
-                      </a>
+                        </a>
+                      {% else %}
+                        <!-- Si no hay Change Order aprobado o este es el aprobado, permitir eliminar -->
+                        <a class="btn btn-danger btn-sm rounded-2"
+                          href="{% url 'delete_budget' project.id budget.id %}"                         
+                          role="button" title="Delete Budget" 
+                          data-bs-toggle="tooltip" 
+                          data-bs-placement="bottom" 
+                          data-bs-custom-class="custom-tooltip" 
+                          data-delete-action data-bs-title="Delete">
+                          <i class="bi bi-trash" style="font-size: 15px;"></i>
+                        </a>
+                      {% endif %}
                     </div>
                   </td>
                 </tr>
@@ -2362,12 +2402,9 @@ document.addEventListener('DOMContentLoaded', function() {
       .then(data => {
         if (data.status === 'success') {
           showAlert('Change Order status updated successfully!', 'success');
-          
-          // Update the select element styling based on new status
-          this.className = `form-select form-select-sm change-order-status status-${newStatus}`;
+          window.location.reload();
         } else {
           showAlert('Error updating Change Order status: ' + data.message, 'danger');
-          // Revert to original value
           this.value = originalValue;
         }
       })
