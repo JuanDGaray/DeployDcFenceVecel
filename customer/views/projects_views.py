@@ -601,8 +601,7 @@ def new_budget(request, project_id):
 def view_changeOrder(request, project_id, budget_id):
     project = get_object_or_404(Project, pk=project_id)
     budget = get_object_or_404(BudgetEstimate, pk=budget_id)
-    qtCHO = BudgetEstimate.objects.filter(id_related_budget=budget.id_related_budget, isChangeOrder=True)
-    
+    qtCHO = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True)
     if request.method == 'GET':
         # Buscar si existe un ChangeOrderDetail para este budget
         try:
@@ -624,7 +623,7 @@ def view_changeOrder(request, project_id, budget_id):
         context = {
             'project': project,
             'budget': budget,
-            'qtChangeOrder': len(qtCHO),
+            'qtChangeOrder': int(qtCHO.count()),
             'change_order_data': json.dumps(change_order_data, default=str),
             'project_status': project.status,
         }

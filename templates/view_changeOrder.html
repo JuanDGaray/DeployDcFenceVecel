@@ -162,7 +162,7 @@
                     </div>
                     <div class="col-6 border-black p-2">
                         <div  class="fw-bold">Change Order No.</div>
-                        <input id="ChangeOrderNo" type="number" class="form-control border-0 p-0" value='{{qtChangeOrder}}' readonly>
+                        <input id="ChangeOrderNo" type="number" class="form-control border-0 p-0" value='{{qtChangeOrder}}'>
                     </div>
                 </div>
             </div>
@@ -259,6 +259,22 @@
              autoResize(textarea);
          });
      });
+     
+           // Function to apply auto-resize to all textareas before printing
+      function applyAutoResizeBeforePrint() {
+          const textareas = document.querySelectorAll('textarea');
+          textareas.forEach(textarea => {
+              // Forzar el cálculo de altura
+              textarea.style.height = 'auto';
+              textarea.style.height = textarea.scrollHeight + 'px';
+              
+              // Forzar un reflow del DOM
+              textarea.offsetHeight;
+          });
+          
+          // Forzar un reflow completo del documento
+          document.body.offsetHeight;
+      }
 
     // --- Poblar campos si hay datos del backend ---
     document.addEventListener('DOMContentLoaded', function() {
@@ -375,16 +391,77 @@
         });
     }
 
-                   document.getElementById('printButton').addEventListener('click', function() {
-          const element = document.getElementById('changeOrderPrintArea');
-          const opt = {
-              margin:       0,
-              filename:     'CHO - {{project.project_name}} - {{budget.id}}',
-              html2canvas:  { scale: 2, useCORS: true, allowTaint: true },
-              jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-          };
-          html2pdf().set(opt).from(element).save();
-      });
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               document.getElementById('printButton').addEventListener('click', function() {
+                // Función para convertir textareas a divs con <br> para el PDF
+                function convertTextareasForPrint() {
+                    const textareas = document.querySelectorAll('#changeOrderPrintArea textarea');
+                    textareas.forEach(textarea => {
+                        // Obtener el contenido del textarea
+                        const content = textarea.value;
+                        
+                        // Crear un div temporal con el mismo contenido pero con <br> para saltos de línea
+                        const tempDiv = document.createElement('div');
+                        tempDiv.style.cssText = `
+                            width: 100%;
+                            min-height: 20px;
+                            padding: 0;
+                            margin: 0;
+                            border: none;
+                            background: transparent;
+                            font-family: inherit;
+                            font-size: inherit;
+                            line-height: inherit;
+                            white-space: pre-wrap;
+                            word-wrap: break-word;
+                        `;
+                        
+                        // Convertir saltos de línea a <br> tags
+                        const formattedContent = content.replace(/\n/g, '<br>');
+                        tempDiv.innerHTML = formattedContent;
+                        
+                        // Reemplazar el textarea con el div temporal
+                        textarea.style.display = 'none';
+                        textarea.parentNode.insertBefore(tempDiv, textarea);
+                        
+                        // Guardar referencia para restaurar después
+                        textarea._tempDiv = tempDiv;
+                    });
+                }
+                
+                // Función para restaurar textareas después del PDF
+                function restoreTextareas() {
+                    const textareas = document.querySelectorAll('#changeOrderPrintArea textarea');
+                    textareas.forEach(textarea => {
+                        if (textarea._tempDiv) {
+                            textarea.style.display = '';
+                            textarea._tempDiv.remove();
+                            delete textarea._tempDiv;
+                        }
+                    });
+                }
+                
+                // Convertir textareas para impresión
+                convertTextareasForPrint();
+                
+                // Forzar un reflow
+                document.body.offsetHeight;
+                
+                // Generar PDF
+                setTimeout(() => {
+                    const element = document.getElementById('changeOrderPrintArea');
+                    const opt = {
+                        margin:       0,
+                        filename:     'CHO - {{project.project_name}} - {{budget.id}}',
+                        html2canvas:  { scale: 2, useCORS: true, allowTaint: true },
+                        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+                    };
+                    
+                    html2pdf().set(opt).from(element).save().then(() => {
+                        // Restaurar textareas después de generar el PDF
+                        restoreTextareas();
+                    });
+                }, 100);
+            });
 
 </script>
 
