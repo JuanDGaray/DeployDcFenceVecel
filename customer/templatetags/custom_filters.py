@@ -235,3 +235,14 @@ def add(value, arg):
         return value + arg
     except (ValueError, TypeError):
         return 0
+
+@register.filter(name='concat_co')
+def concat_co(value):
+    """
+    Concatena 'CO' con el número del change order.
+    Ejemplo: concat_co:1 -> 'CO1'
+    """
+    try:
+        return f"CO{value}"
+    except (ValueError, TypeError):
+        return f"CO{value}"

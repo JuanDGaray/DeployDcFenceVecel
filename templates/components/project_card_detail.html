@@ -63,18 +63,27 @@
                 </a>
                   {{ project.customer.first_name }} {{ project.customer.last_name }}
                   {% endif %}
-                  <p class="p-0 m-0 d-flex flex-row flex-wrap gap-2 text-nowrap">
-                    <span class="d-flex flex-row gap-2"><i class="bi bi-geo-alt-fill text-primary"></i> {{ project.customer.address }} {{ project.customer.city }} {{ project.customer.state }} {{ project.customer.country }} - {{ project.customer.zip_code }} </span>
-                    <span class="d-flex flex-row gap-2"><i class="bi bi-telephone-fill text-primary"></i> {{ project.customer.phone }}  </span>
-                    <span class="d-flex flex-row gap-2"><i class="bi bi-envelope-fill text-primary "></i> {{ project.customer.email }} </span>
-                  </p>
+                    <div class="p-0 m-0 d-flex flex-column gap-2">
+                     <div class="d-flex flex-row gap-2 w-100 flex-wrap">
+                       <span class="text-break"><i class="bi bi-geo-alt-fill text-primary flex-shrink-0"></i> {{ project.customer.address }} {{ project.customer.city }} {{ project.customer.state }} {{ project.customer.country }} - {{ project.customer.zip_code }}</span>
+                     </div>
+                     <div class="d-flex flex-row gap-2 w-100">
+                       <i class="bi bi-telephone-fill text-primary flex-shrink-0"></i> 
+                       <span class="text-break">{{ project.customer.phone }}</span>
+                     </div>
+                     <div class="d-flex flex-row gap-2 w-100">
+                       <i class="bi bi-envelope-fill text-primary flex-shrink-0"></i> 
+                       <span class="text-break">{{ project.customer.email }}</span>
+                     </div>
+                   </div>
                 </p>
             </div>
           </div>
           <div class="card  col-md-3 mt-2 mx-2 my-2 p-0 overflow-hidden"> 
-            <div class="p-2">
-              <p class="text-capitalize"><strong>Project Address:</strong> {{ project.address }} {{ project.city }} {{ project.state }} {{ project.country }} - {{ project.zip_code }}</p>
-            </div>
+                         <div class="p-2">
+               <p class="text-capitalize"><strong>Project Address:</strong></p>
+               <p class="text-break m-0">{{ project.address }} {{ project.city }} {{ project.state }} {{ project.country }} - {{ project.zip_code }}</p>
+             </div>
             {% include 'components/manager_selection.html' %}
           </div>
           <div class="card col-md-4 my-2 p-0">

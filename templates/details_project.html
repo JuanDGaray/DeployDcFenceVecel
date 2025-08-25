@@ -541,23 +541,13 @@
                     </a>
                     {% endif %}
                     {% if proposal.status == 'approved' %}
-                      {% if not changes_orders %}
-                          <a class="btn btn-sm rounded-2 p-1 bg-warning fw-bold" role="button" data-bs-toggle="tooltip" 
-                            data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
-                            data-bs-title="<strong class='bg-warning text-dark'> Change order </strong> requested by the client after approval, modifying scope, cost, or timeline."
-                            aria-label="Info" data-bs-original-title="Approved Proposal"
-                            href="{% url 'new_change_order' project.id proposal.id %}">
-                            C.O.
-                        </a>
-                      {% else %}
-                        <a class="btn btn-sm rounded-2 p-1 bg-secondary text-light fw-bold" role="button" data-bs-toggle="tooltip" 
+                        <a class="btn btn-sm rounded-2 p-1 bg-warning fw-bold" role="button" data-bs-toggle="tooltip" 
                           data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
-                          data-bs-title="<strong class='bg-secondary text-light'> Change order </strong> requested by the client after approval, modifying scope, cost, or timeline. You cannot create a new change order because there is already one."
+                          data-bs-title="<strong class='bg-warning text-dark'> Change order </strong> requested by the client after approval, modifying scope, cost, or timeline."
                           aria-label="Info" data-bs-original-title="Approved Proposal"
-                          style="cursor: not-allowed; font-size: 11px;">
+                          href="{% url 'new_change_order' project.id proposal.id %}">
                           C.O.
-                        </a>
-                      {% endif %}
+                      </a>
                     {% endif %}
                 </td>
                 </tr>
@@ -579,18 +569,6 @@
         <div class="container border m-0 px-0 rounded-4 overflow-hidden shadow-sm">
           <div class="card-header d-flex justify-content-between p-3 border-bottom bg-warning" style="--bs-bg-opacity: .2;">
             <h1 class="card-header fs-4 rounded-4 px-2"  style="--bs-bg-opacity: .1;">Change Order</h1> 
-            {% if not are_changes_orders_draft %}
-              <a class="btn btn-light border border-2 btn-sm rounded-2" href="{% url 'new_change_order' project.id last_proposal_approved.id %}"> + New Change Order</a>
-            {% else %}
-              <a class="btn bg-secondary text-light border border-2 btn-sm rounded-2" 
-                 disabled role="button" data-bs-toggle="tooltip"
-                 data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
-                 data-bs-title="Cannot create new Change Order while there are existing Change Orders in draft, pending, or sent status"
-                 aria-label="Info" data-bs-original-title="Approved Proposal"
-                 style="cursor: not-allowed;">
-                 + New Change Order
-              </a>
-            {% endif %}
           </div>
           <div class="card-body">
             <table class="table table-striped">
@@ -1440,6 +1418,7 @@ function showSelectProject(id_budget) {
   selectProject.classList.toggle('d-none');
   const duplicate_budget_id = document.getElementById('duplicate_budget_id');
   duplicate_budget_id.value = id_budget;
+
   ajaxGetRequest(`/get_array_projects/`, function (data) {
 
     const projectSelect = document.getElementById('projectSelect');
@@ -1477,11 +1456,18 @@ function showSelectCustomerProject() {
   selectCustomerProject.classList.toggle('d-none');
 }
 
-function sendBudgetDuplicate(budgetId) {
+function sendBudgetDuplicate() {
+  const duplicate_budget_id = document.getElementById('duplicate_budget_id');
+  const budgetId = duplicate_budget_id.value;
   const selectProject = document.getElementById('projectSelect');
   const projectId = selectProject.value;
   if (projectId === null || projectId === '') {
     showAlert('Please select a project before duplicating the budget.', 'danger');
+    return;
+  }
+
+  if (budgetId === null || budgetId === '') {
+    showAlert('Please select a budget before duplicating the project.', 'danger');
     return;
   }
   

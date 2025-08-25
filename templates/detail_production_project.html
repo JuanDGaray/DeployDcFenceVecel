@@ -33,6 +33,24 @@
                     <div class="card col-4 col-md-2 mx-4 mb-4">
                         <p class="fw-semibold mb-0"> Cost Estimated</p>
                         <p class="text-end text-primary bg-primary bg-opacity-25 rounded-2 p-1 px-2 fw-bold fs-4" id="estimated-budget"></p>
+                        {% if changeOrders %}
+                            {% for changeOrder in changeOrders %}
+                                <p class="text-end text-warning bg-warning bg-opacity-10 rounded-2 p-1 px-2 fw-bold fs-6 d-flex justify-content-between">
+                                    <span class="fw-bold text-dark">C.O. #{{forloop.counter}}</span>
+                                    {% if changeOrder.total_change_order < 0 %}
+                                        <span class="text-danger">
+                                            <i class="bi bi-arrow-down-short"></i>
+                                            {{ changeOrder.total_change_order | currency_usd }}
+                                        </span>
+                                    {% else %}
+                                        <span class="text-success">
+                                            <i class="bi bi-arrow-up-short"></i>
+                                            {{ changeOrder.total_change_order | currency_usd }}
+                                        </span>
+                                    {% endif %}
+                                    </p>
+                            {% endfor %}
+                        {% endif %}
                     </div>
                     <div class="card col-4 col-md-2 mx-4 mb-4">
                         <p class="fw-semibold mb-0">Cost Spent</p>
@@ -971,6 +989,7 @@
     function calculateEstimatedBudget(dataPreview) {
         let total = 0;
         dataPreview.forEach(function(row) {
+            console.log(row);
             if (Array.isArray(row) && row.length >= 2) {
                 total += extractNumber(row[1]);
             }

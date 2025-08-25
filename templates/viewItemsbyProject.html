@@ -55,6 +55,26 @@
                     </tr>
                     {% endif %}
                 {% endfor %}
+                {% if changeOrders %}
+                    <tr>
+                        <td colspan="2" class="p-0 border px-4 text-center bg-warning bg-opacity-10 fw-bold">Changes Orders Approved</td>
+                    </tr>
+                    <tbody class="word-wrap word-break table-striped">
+                    {% for changeOrder in changeOrders %}
+                        <tr>
+                            <td class="p-0 border px-4">
+                                {{changeOrder.change_order_detail.created_at|date:"m/d/y"}} - CO{{changeOrder.change_order_detail.change_order_no}} 
+                                {% if changeOrder.change_order_detail %}
+                                    {% for item in changeOrder.change_order_detail.items.all %}
+                                        <div class="text-break">{{ item.description }}</div>
+                                    {% endfor %}
+                                {% endif %}
+                            </td>
+                            <td class="p-0 border px-4 fw-bold">{{changeOrder.total_change_order | currency_usd}}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                {% endif %}
                 </tbody>
             </table>
         </div>
@@ -79,6 +99,7 @@
                             <td class="text-end" id="costSpent"><strong>{{ realCostItems|get_item_value:item.0 | currency_usd }}</strong>
                                 <button class="bg-success text-white ms-2 incrementButton border border-1 border-success rounded-2"{% if not user_allowed_to_close_production %} disabled style="opacity: 0.5; cursor: not-allowed;" {% endif %}  onclick="showUpdateCostModal('{{item.0}}','{{item.1}}')" >+</button>
                             </td>
+                            
                         </tr>
                         {% endif %}
 
@@ -140,6 +161,91 @@
                         </tr>
                         {% endfor %}
                     {% endfor %}
+                    
+                    {% if changeOrders %}
+                        <tr>
+                            <td colspan="3" class="p-0 border px-4 text-center bg-success bg-opacity-10 fw-bold">Changes Orders Approved</td>
+                        </tr>
+                        <tbody class="word-wrap word-break table-striped">
+                        {% for changeOrder in changeOrders %}
+                            <tr>
+                                <td class="p-0 border px-4">
+                                    {{changeOrder.change_order_detail.created_at|date:"m/d/y"}} - CO{{changeOrder.change_order_detail.change_order_no}} 
+                                    {% if changeOrder.change_order_detail %}
+                                        {% for item in changeOrder.change_order_detail.items.all %}
+                                            <div class="text-break">{{ item.description }}</div>
+                                        {% endfor %}
+                                    {% endif %}
+                                </td>
+                                <td class="p-0 border fw-bold text-end">{{changeOrder.total_change_order | currency_usd}}</td>
+                                <td class="p-0 border fw-bold text-end">
+                                    {% with co_number=changeOrder.change_order_detail.change_order_no|concat_co %}
+                                    {{ realCostItems|get_item_value:co_number | currency_usd }}
+                                    <button class="bg-success text-white ms-2 incrementButton border border-1 border-success rounded-2"{% if not user_allowed_to_close_production %} disabled style="opacity: 0.5; cursor: not-allowed;" {% endif %}  onclick="showUpdateCostModal('{{co_number}}','{{changeOrder.total_change_order}}')" >+</button>
+                                    {% endwith %}
+                                </td>
+                            </tr>
+                            {% with co_number=changeOrder.change_order_detail.change_order_no|concat_co %}
+                            {% for subItem in realCostItems|get_Subitem:co_number %}
+                                <tr class='table-secondary p-4'>
+                                    <td colspan='2' class='p-0 border px-4'>
+                                            {% if subItem.1|length >= 1 %}
+                                            <i class="bi bi-caret-right text-success fw-bold bg-light bg-opacity-75 rounded-2 p-0 m-0 drownIcon collapsed" 
+                                                style="font-size:0.9rem"
+                                                data-bs-toggle="collapse" 
+                                                data-bs-target="#collapse-{{ forloop.counter }}" 
+                                                aria-expanded="false" 
+                                                aria-controls="collapse-{{ forloop.counter }}"
+                                                id="drownIcon icon-{{ forloop.counter }}"></i>
+                                            {% endif %}
+                                            {{subItem.0}}
+                                            {% if subItem.0|slice:":2" != 'ID' %}
+                                                <span class="text-danger rounded-2 h-100 px-1 m-0 text-danger fw-bold bg-danger bg-opacity-10 border border-1 border-danger" style="font-size: 0.8rem;">
+                                                    New Item
+                                                </span>
+                                                <a class="btn btn-sm rounded-2 p-1"  role="button" data-bs-toggle="tooltip" 
+                                                    data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
+                                                    data-bs-title="This is a new item that the sales team has not added to the budget." >
+                                                    <i class="bi bi-info-circle text-danger" style="font-size: 0.8rem;"></i>
+                                                </a>
+                                            {% endif %}
+                                    </td>
+                                    <td colspan='1' class='p-0 border px-4'>
+                                        {{ subItem.1|sum_values|currency_usd }}
+
+                                    </td>
+                                </tr>
+                                <tr class="collapse bg-light" id="collapse-{{ forloop.counter }}">
+                                    <td colspan="3" class='p-0'>
+                                        <table class="table table-sm table-borderless table-striped">
+                                            {% for description in subItem.1 %}
+                                            <tr class='p-0 border px-6 ms-2'>
+                                                <td class="ps-4 d-flex flex-row align-items-center justify-content-betwee gap-2" style="font-size:0.9rem">
+                                                    <span class="text-primary rounded-2 h-100 ms-4 px-1 text-secondary fw-bold bg-secondary bg-opacity-10">
+                                                        {{ forloop.counter }}.
+                                                        {{ description.0 }}
+                                                    </span>
+                                                    {% if description.1.evidence_url %}
+                                                        <button class="border border-1 border-primary rounded-2 px-1 m-0 text-primary fw-bold bg-primary bg-opacity-10" title="View file" style="font-size: 0.8rem;" onclick="viewDocument('{{ description.1.evidence_url }}', '{{ description.1.costValue | currency_usd }}', '{{ description.0 }}')">
+                                                            <i class="bi bi-file-earmark-pdf text-primary"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-end" style="font-size:0.8rem">
+                                                    <span class="text-success rounded-2 h-100 px-1 m-0 text-success fw-bold bg-success bg-opacity-10">
+                                                        {{ description.1.costValue | currency_usd }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </table>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% endwith %}
+                        {% endfor %}
+                        </tbody>
+                    {% endif %}
                     
                 </tbody>
             </table>

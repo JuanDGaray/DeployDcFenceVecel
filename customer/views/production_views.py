@@ -73,10 +73,7 @@ def production_project(request, project_id):
 
     proposal = project.get_approved_proposal()
     budget = proposal.budget
-    changeOrders = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True, change_order_detail__status='approved').order_by('-date_created')
-    budgetChangeOrder = changeOrders.first()
-    if budgetChangeOrder:
-        budget = budgetChangeOrder
+    changeOrders = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True, change_order_detail__status='approved').select_related('change_order_detail').prefetch_related('change_order_detail__items').order_by('-date_created')
     costData = {}
     progress = 0
     user_allowed_to_close_production = False
@@ -109,8 +106,8 @@ def production_project(request, project_id):
             progress = calculate_project_progress(gantt_data)
     else:
         gantt_data = []
-
-
+    print(budget.id)
+    print(budget.dataPreview)
     return render(request, 'detail_production_project.html', {
         'project': project,
         'today': timezone.now().date(),
