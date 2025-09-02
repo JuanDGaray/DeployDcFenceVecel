@@ -999,7 +999,7 @@
                   <th>Date</th>
                   <th>Due Date</th> 
                   <th>Create by</th>
-                  <th>Status</th>
+                  <th class="d-none">Status</th>
                   <th>Amount</th>
                   <th>Paid</th>
                 </tr>
@@ -1013,12 +1013,12 @@
                   <td>{{ invoice.date_created | date:'M/d/y' }}</td>
                   <td>{{ invoice.due_date | date:'M/d/y' }}</td>
                   <td>{{ invoice.sales_advisor.username }}</td>
-                  <td> 
+                  <td class="d-none"> 
                     <form method="post" class='m-0'>
                       {% csrf_token %}
                       <input type="hidden" name="invoice_id" value="{{ invoice.id }}" style='display:none'>
                     
-                      <select name="status" class="status status-empty status_{{   invoice.status }}" onchange="this.form.submit()">
+                      <select name="status" class="status status-empty status_{{   invoice.status }} d-none" onchange="this.form.submit()">
                         {% for value, label in invoice.STATUS_CHOICES %}
                           <option value="{{ value }}" {% if invoice.status == value %}selected{% endif %}>
                             {{ label }}
@@ -1103,7 +1103,7 @@
       </div>
       {% include "components/checklist_documents.html" %}
   </div>    
-    {% if project.status == 'in_production' %}
+    {% if project.status == 'in_production' or project.status == 'completed' or project.status == 'pending_payment' %}
       <a class="btn btn-success my-3 d-flex justify-content-end align-items-center fw-bold fs-3 px-4" style="width: fit-content; margin-left: auto;" href="/production/{{project.id }}"> Go to panel of production <i class="bi bi-arrow-right ms-2"></i></a>
     {% endif %}
   {% endif %}

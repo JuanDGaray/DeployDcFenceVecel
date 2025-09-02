@@ -1,0 +1,940 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load admin_filters %}
+{% load custom_filters %}
+
+{% block title %}Dashboard de Proyectos Completados - Administración{% endblock %}
+
+{% block extra_head %}
+<style>
+    .admin-dashboard {
+        padding: 20px;
+        background-color: #f8f9fa;
+        min-height: 100vh;
+    }
+    
+    .dashboard-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 1rem;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        text-align: center;
+        transition: transform 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #667eea;
+    }
+    
+    .stat-label {
+        color: #6c757d;
+        font-size: 1rem;
+        font-weight: 500;
+    }
+    
+              .period-section {
+         background: white;
+         border-radius: 12px;
+         box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+         margin-bottom: 25px;
+         overflow: hidden;
+     }
+     
+     .expand-icon {
+         transition: transform 0.3s ease;
+     }
+    
+    .month-totals {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+        padding: 15px 20px;
+        background: white;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .month-total-item {
+        text-align: center;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .month-total-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-bottom: 5px;
+    }
+    
+    .month-total-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .projects-list {
+        padding: 20px;
+    }
+    
+    .project-card {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+    }
+    
+    .project-card:hover {
+        border-color: #667eea;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    .project-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .project-name {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .project-customer {
+        color: #6c757d;
+        font-size: 1rem;
+    }
+    
+    .project-details {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .detail-item {
+        text-align: center;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 6px;
+    }
+    
+    .detail-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        font-weight: 500;
+    }
+    
+    .detail-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .profit-positive {
+        color: #28a745;
+    }
+    
+    .profit-negative {
+        color: #dc3545;
+    }
+    
+    .profit-neutral {
+        color: #6c757d;
+    }
+    
+    .project-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+    }
+    
+    .btn-view-details {
+        background: #667eea;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background 0.3s ease;
+    }
+    
+    .btn-view-details:hover {
+        background: #5a6fd8;
+    }
+    
+    .btn-export {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: background 0.3s ease;
+        margin-bottom: 20px;
+    }
+    
+    .btn-export:hover {
+        background: #218838;
+    }
+    
+    /* Modal styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+    }
+    
+    .modal-content {
+        background-color: white;
+        margin: 5% auto;
+        padding: 0;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 12px 12px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .modal-close {
+        color: white;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+        background: none;
+        border: none;
+    }
+    
+    .modal-body {
+        padding: 30px;
+    }
+    
+    .project-info-section {
+        margin-bottom: 30px;
+    }
+    
+    .section-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .info-item {
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .info-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+        font-weight: 500;
+    }
+    
+    .info-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .table-responsive {
+        overflow-x: auto;
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 12px;
+        text-align: left;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .data-table th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .data-table tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .loading {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+    }
+    
+    .no-projects {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6c757d;
+        font-size: 1.2rem;
+    }
+    
+    @media (max-width: 768px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .month-totals {
+            grid-template-columns: 1fr;
+        }
+        
+        .project-details {
+            grid-template-columns: 1fr;
+        }
+        
+        .modal-content {
+            width: 95%;
+            margin: 10% auto;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-dashboard mx-4">
+    <!-- Header del Dashboard -->
+    <div class="d-flex flex-row align-items-center justify-content-between gap-4">
+        <div class="bg-light border border-3 border-primary text-primary p-4 rounded-3 mb-4 w-50">
+            <h1><i class="fas fa-chart-line fw-bold"></i> Projects Completed</h1>
+            <p class="text-white-70 fw-bold" >Admin dashboard for all completed projects organized by period</p>
+                <!-- Botón de Exportar -->
+            <button class="btn-export fw-bold" onclick="exportData()">
+                <i class="bi bi-download me-2"></i> Export Data
+            </button>
+        </div>
+        
+        <!-- Estadísticas Generales -->
+        <div class="stats-grid w-50 fs-4">
+            <div class="stat-card">
+                <div class="stat-number text-primary">{{ total_completed_projects }}</div>
+                <div class="stat-label fw-bold text-primary">Completed Projects</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number text-primary">{{ total_budgeted_cost|currency_usd }}</div>
+                <div class="stat-label fw-bold text-primary">Total Budgeted Cost</div>
+            </div>
+                         <div class="stat-card">
+                 <div class="stat-number text-primary">{{ total_actual_cost|currency_usd }}</div>
+                 <div class="stat-label fw-bold text-primary">Total Actual Cost</div>
+             </div>
+             <div class="stat-card">
+                 <div class="stat-number {% if total_profit > 0 %}profit-positive{% elif total_profit < 0 %}profit-negative{% else %}profit-neutral{% endif %}">{{ total_profit|currency_usd }}</div>
+                 <div class="stat-label fw-bold {% if total_profit > 0 %}profit-positive{% elif total_profit < 0 %}profit-negative{% else %}profit-neutral{% endif %}">Profit Total</div>
+             </div>
+         </div>
+    </div>
+    
+    
+         <!-- Proyectos por Período -->
+     {% if projects_by_period %}
+         {% for year in projects_by_period %}
+         <div class="period-section mb-4">
+                <div class="period-header bg-secondary text-primary bg-opacity-25 text-center fs-3 fw-bold p-3" 
+                   data-bs-toggle="collapse" 
+                   data-bs-target="#year-{{ year }}" 
+                   aria-expanded="false" 
+                   aria-controls="year-{{ year }}"
+                   style="cursor: pointer;">
+                  <div class="d-flex justify-content-between align-items-center">
+                      <div class="d-flex align-items-center gap-4">
+                          <span><i class="bi bi-calendar me-1 fw-bold "></i> {{ year }}</span> 
+                      </div>
+                      <i class="bi bi-chevron-down expand-icon"></i>
+                  </div>
+              </div>
+             
+             <div class="collapse" id="year-{{ year }}">
+                 <div class="p-3">
+                     <div class="row g-3">
+                         {% for month in projects_by_period|get_item:year %}
+                         <div class="col-12 col-md-6 col-lg-4">
+                             <div class="month-section">
+                                        <div class="month-header bg-secondary text-white p-3 rounded-3 text-white fw-bold fs-5" 
+                                       data-bs-toggle="collapse" 
+                                       data-bs-target="#month-{{ year }}-{{ month }}" 
+                                       aria-expanded="false" 
+                                       aria-controls="month-{{ year }}-{{ month }}"
+                                       style="cursor: pointer;">
+                                      <div class="d-flex justify-content-between align-items-center w-100">
+                                            <div class="d-flex align-items-center">
+                                              <span class="fs-5 fw-bold">{{ month|month_name }}</span>
+                                            </div>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <span class="fs-5 text-end bg-light rounded-2 py-1 px-2 {% if period_totals|get_item:year|get_item:month|get_item:'total_profit' > 0 %}text-success{% elif period_totals|get_item:year|get_item:month|get_item:'total_profit' < 0 %}text-danger{% else %}text-secondary{% endif %}">{{ period_totals|get_item:year|get_item:month|get_item:'total_profit'|currency_usd }}</span>
+                                                <span class="fs-5 text-end bg-light rounded-2 py-1 px-2 text-secondary">{{projects_by_period|get_item:year|get_item:month|length}}</span>
+                                                <i class="bi bi-chevron-down expand-icon"></i>
+                                            </div>
+                                            
+                                      </div>
+                                  </div>
+                                 
+                                 <div class="collapse bg-secondary bg-opacity-25 rounded-3" id="month-{{ year }}-{{ month }}">
+                                     <!-- Totales del Mes -->
+                                     <div class="month-totals p-3 bg-secondary bg-opacity-25 rounded-3 my-2">
+                                         <div class="row g-2">
+                                             <div class="col-3">
+                                                 <div class="month-total-item text-center p-1">
+                                                     <div class="month-total-label small text-muted fw-bold border-bottom border-2 border-secondary">Budgeted</div>
+                                                     <div class="month-total-value fw-bold text-primary">{{ period_totals|get_item:year|get_item:month|get_item:'total_budgeted'|currency_usd }}</div>
+                                                 </div>
+                                             </div>
+                                             <div class="col-3">
+                                                 <div class="month-total-item text-center p-1">
+                                                     <div class="month-total-label small text-muted fw-bold border-bottom border-2 border-secondary">Spent</div>
+                                                     <div class="month-total-value fw-bold text-danger">{{ period_totals|get_item:year|get_item:month|get_item:'total_actual'|currency_usd }}</div>
+                                                 </div>
+                                             </div>
+                                             <div class="col-3">
+                                                 <div class="month-total-item text-center p-1">
+                                                     <div class="month-total-label small text-muted fw-bold border-bottom border-2 border-secondary">Profit</div>
+                                                     <div class="month-total-value fw-bold {% if period_totals|get_item:year|get_item:month|get_item:'total_profit' > 0 %}profit-positive{% elif period_totals|get_item:year|get_item:month|get_item:'total_profit' < 0 %}profit-negative{% else %}profit-neutral{% endif %}">
+                                                         {{ period_totals|get_item:year|get_item:month|get_item:'total_profit'|currency_usd }}
+                                                     </div>
+                                                 </div>
+                                             </div>
+                                             <div class="col-3">
+                                                 <div class="month-total-item text-center p-1">
+                                                     <div class="month-total-label small text-muted fw-bold border-bottom border-2 border-secondary">Projects</div>
+                                                     <div class="month-total-value fw-bold">{{ period_totals|get_item:year|get_item:month|get_item:'project_count' }}</div>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+                                     
+                                     <!-- Lista de Proyectos -->
+                                     <div class="projects-list p-3">
+                                         {% for project_data in projects_by_period|get_item:year|get_item:month %}
+                                         {% with project=project_data.project totals=project_data.totals %}
+                                         <div class="project-card mb-3 cursor-none">
+                                             <div class="project-header mb-3">
+                                                 <div>
+                                                     <div class="project-name fw-bold fs-6"><a href="/projects/{{ project.id }}/"target="_blank" class="text-decoration-none">{{ project.project_name|title }}</a></div>
+                                                     <div class="project-customer text-muted small">{{ project.customer.get_full_name }}</div>
+                                                 </div>
+                                                 <div class="project-actions">
+                                                     <button class="btn btn-sm btn-primary" onclick="viewProjectDetails({{ project.id }})">
+                                                         <i class="bi bi-eye"></i>
+                                                     </button>
+                                                     <a class="btn btn-sm btn-success" href="/production/{{ project.id }}" target="_blank" class="text-decoration-none">
+                                                        <i class="bi bi bi-wrench-adjustable-circle-fill"></i>
+                                                     </a>
+                                                 </div>
+                                             </div>
+                                             
+                                             <div class="project-details ">
+                                                 <div class="row g-2">
+                                                     <div class="col-3">
+                                                         <div class="detail-item text-center p-2">
+                                                             <div class="detail-label small text-muted border-bottom border-2 border-secondary">Budgeted</div>
+                                                             <div class="detail-value fw-bold">{{ totals.budgeted_cost|currency_usd }}</div>
+                                                         </div>
+                                                     </div>
+                                                     <div class="col-3">
+                                                        <div class="detail-item text-center p-2">
+                                                            <div class="detail-label small text-muted border-bottom border-2 border-secondary">Cost</div>
+                                                            <div class="detail-value fw-bold">{{ totals.total_cost_budget|currency_usd }}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <div class="detail-item text-center p-2">
+                                                            <div class="detail-label small text-muted border-bottom border-2 border-secondary">Spent</div>
+                                                            <div class="detail-value fw-bold">{{ totals.actual_cost|currency_usd }}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <div class="detail-item text-center p-2 position-relative">
+                                                            <div class="detail-label small text-muted border-bottom border-2 border-secondary">Cost Diff.</div>
+                                                            <div class="detail-value fw-bold "> {%if totals.cost_difference > 0 %}<span class="text-success position-absolute top-0 end-0 bg-success bg-opacity-25 rounded-2"><i class="bi bi-arrow-up-short"></i></span>{{ totals.cost_difference|currency_usd }}</span>{% else %}<span class="text-danger position-absolute top-0 end-0 bg-danger bg-opacity-25 rounded-2"><i class="bi bi-arrow-down-short"></i></span> {{ totals.cost_difference|currency_usd }}</span>{% endif %}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <div class="detail-item text-center p-2 position-relative">
+                                                            <div class="detail-label small text-muted border-bottom border-2 border-secondary">Profit</div>
+                                                            <div class="detail-value fw-bold"> {%if totals.profit > 0 %}<span class="text-success position-absolute top-0 end-0 bg-success bg-opacity-25 rounded-2"><i class="bi bi-arrow-up-short"></i></span>{{ totals.profit|currency_usd }}</span>{% else %}<span class="text-danger position-absolute top-0 end-0 bg-danger bg-opacity-25 rounded-2"><i class="bi bi-arrow-down-short"></i></span> {{ totals.profit|currency_usd }}</span>{% endif %}</div>
+                                                        </div>
+                                                    </div>  
+                                                    <div class="col-3">     
+                                                        <div class="detail-item text-center p-2 position-relative">  
+                                                            <div class="detail-label small text-muted border-bottom border-2 border-secondary">Margin</div>
+                                                            <div class="detail-value fw-bold"> {%if totals.percentage_profit > 0 %}<span class="text-success position-absolute top-0 end-0 bg-success bg-opacity-25 rounded-2"><i class="bi bi-arrow-up-short"></i></span>{{ totals.percentage_profit|floatformat:1 }}%</span>{% else %}<span class="text-danger position-absolute top-0 end-0 bg-danger bg-opacity-25 rounded-2"><i class="bi bi-arrow-down-short"></i></span> {{ totals.percentage_profit|floatformat:1 }}%</span>{% endif %}</div>
+                                                        </div>
+                                                    </div>
+                                                 {% if project.end_date %}
+                                                    <div class="col-3"> 
+                                                        <div class="detail-item text-center p-2">
+                                                            <div class="detail-label small text-muted border-bottom border-2 border-secondary">End Date</div>
+                                                            <div class="detail-value fw-bold">{{ project.end_date|date:"d/m/Y" }}</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-24">
+                                                        <div class="detail-item text-center p-2">
+                                                            <div class="detail-label small text-muted border-bottom border-2 border-secondary">Location</div>
+                                                            <div class="detail-value fw-bold">{{ project.city }}, {{ project.state }} {{ project.zip_code }}</div>
+                                                        </div>
+                                                    </div>
+                                                 {% endif %}
+                                                 </div>
+                                             </div>
+                                         </div>
+                                         {% endwith %}
+                                         {% endfor %}
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
+                         {% endfor %}
+                     </div>
+                 </div>
+             </div>
+         </div>
+         {% endfor %}
+     {% else %}
+        <div class="no-projects">
+            <i class="fas fa-inbox fa-3x mb-3"></i>
+            <p>No hay proyectos completados para mostrar.</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Modal para Detalles del Proyecto -->
+<div id="projectModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Project Details</h2>
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="modalBody">
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                <p>Loading project details...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Función para ver detalles del proyecto
+    function viewProjectDetails(projectId) {
+        const modal = document.getElementById('projectModal');
+        const modalBody = document.getElementById('modalBody');
+        
+        // Mostrar modal con loading
+        modal.style.display = 'block';
+        modalBody.innerHTML = `
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                <p>Loading project details...</p>
+            </div>
+        `;
+        
+        // Hacer petición AJAX
+        fetch(`/admin/project-details/${projectId}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayProjectDetails(data.project);
+                } else {
+                    modalBody.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Error: ${data.error}
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                modalBody.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Error loading data: ${error.message}
+                    </div>
+                `;
+            });
+    }
+    
+    // Función para mostrar los detalles del proyecto
+    function displayProjectDetails(project) {
+        const modalTitle = document.getElementById('modalTitle');
+        const modalBody = document.getElementById('modalBody');
+        
+        modalTitle.textContent = `Proyecto: ${project.project.name}`;
+        
+        modalBody.innerHTML = `
+            <!-- Información del Proyecto -->
+            <div class="project-info-section">
+                <h3 class="section-title">General Information</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Customer</div>
+                        <div class="info-value">${project.project.customer}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Sales Advisor</div>
+                        <div class="info-value">${project.project.sales_advisor}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Project Manager</div>
+                        <div class="info-value">${project.project.project_manager}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Location</div>
+                        <div class="info-value">${project.project.city}, ${project.project.state}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Start Date</div>
+                        <div class="info-value">${project.project.start_date || 'No especificada'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">End Date</div>
+                        <div class="info-value">${project.project.end_date || 'No especificada'}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Totales del Proyecto -->
+            <div class="project-info-section">
+                <h3 class="section-title">Financial Summary</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Budgeted Cost</div>
+                        <div class="info-value">$${project.totals.budgeted_cost.toLocaleString()}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Actual Cost</div>
+                        <div class="info-value">$${project.totals.actual_cost.toLocaleString()}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Total Proposals</div>
+                        <div class="info-value">$${project.totals.total_proposals.toLocaleString()}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Total Invoiced</div>
+                        <div class="info-value">$${project.totals.total_invoiced.toLocaleString()}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Profit</div>
+                        <div class="info-value ${project.totals.profit > 0 ? 'profit-positive' : project.totals.profit < 0 ? 'profit-negative' : 'profit-neutral'}">
+                            $${project.totals.profit.toLocaleString()}
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Profit Margin</div>
+                        <div class="info-value ${project.totals.profit_margin > 0 ? 'profit-positive' : project.totals.profit_margin < 0 ? 'profit-negative' : 'profit-neutral'}">
+                            ${project.totals.profit_margin.toFixed(1)}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Presupuestos -->
+            ${project.budgets.length > 0 ? `
+            <div class="project-info-section">
+                <h3 class="section-title">Budgets</h3>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Version</th>
+                                <th>Projected Cost</th>
+                                <th>Profit Value</th>
+                                <th>Valor Total</th>
+                                <th>Status</th>
+                                <th>Date Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${project.budgets.map(budget => `
+                                <tr>
+                                    <td>${budget.version}</td>
+                                    <td>$${budget.projected_cost.toLocaleString()}</td>
+                                    <td>$${budget.profit_value.toLocaleString()}</td>
+                                    <td>$${budget.total_value.toLocaleString()}</td>
+                                    <td>${budget.status}</td>
+                                    <td>${budget.date_created}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            ` : ''}
+            
+            <!-- Propuestas -->
+            ${project.proposals.length > 0 ? `
+            <div class="project-info-section">
+                <h3 class="section-title">Approved Proposals</h3>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                    <th>Tracking ID</th>
+                                <th>Total Proposal</th>
+                                <th>Total Invoiced</th>
+                                <th>Remaining Amount</th>
+                                <th>Date Created</th>
+                                <th>Due Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${project.proposals.map(proposal => `
+                                <tr>
+                                    <td>${proposal.tracking_id}</td>
+                                    <td>$${proposal.total_proposal.toLocaleString()}</td>
+                                    <td>$${proposal.billed_amount.toLocaleString()}</td>
+                                    <td>$${proposal.remaining_amount.toLocaleString()}</td>
+                                    <td>${proposal.date_created}</td>
+                                    <td>${proposal.due_date || 'No especificada'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            ` : ''}
+            
+            <!-- Facturas -->
+            ${project.invoices.length > 0 ? `
+            <div class="project-info-section">
+                <h3 class="section-title">Invoices</h3>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Subtotal</th>
+                                <th>Tax</th>
+                                <th>Retention</th>
+                                <th>Total Invoice</th>
+                                <th>Total Paid</th>
+                                <th>Status</th>
+                                <th>Date Created</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${project.invoices.map(invoice => `
+                                <tr>
+                                    <td>${invoice.id}</td>
+                                    <td>$${invoice.subtotal.toLocaleString()}</td>
+                                    <td>$${invoice.tax.toLocaleString()}</td>
+                                    <td>$${invoice.retention.toLocaleString()}</td>
+                                    <td>$${invoice.total_invoice.toLocaleString()}</td>
+                                    <td>$${invoice.total_paid.toLocaleString()}</td>
+                                    <td>${invoice.status}</td>
+                                    <td>${invoice.date_created}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            ` : ''}
+            
+            <!-- Costos Reales -->
+            ${project.real_costs.length > 0 ? `
+            <div class="project-info-section">
+                <h3 class="section-title">Real Costs</h3>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Total</th>
+                                <th>Elements</th>
+                                <th>Evidencia</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${project.real_costs.map(cost => `
+                                <tr>
+                                    <td>${cost.total}</td>
+                                    <td>${cost.items_count}</td>
+                                    <td>${cost.evidence_url ? `<a href="${cost.evidence_url}" target="_blank">Evidence</a>` : 'No available'}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            ` : ''}
+        `;
+    }
+    
+    // Función para cerrar el modal
+    function closeModal() {
+        document.getElementById('projectModal').style.display = 'none';
+    }
+    
+    // Cerrar modal al hacer clic fuera de él
+    window.onclick = function(event) {
+        const modal = document.getElementById('projectModal');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+    
+         // Función para exportar datos
+     function exportData() {
+         fetch('/admin/export-completed-projects/')
+             .then(response => response.json())
+             .then(data => {
+                 if (data.success) {
+                     // Crear archivo CSV
+                     const csvContent = convertToCSV(data.data);
+                     downloadCSV(csvContent, 'completed_projects.csv');
+                 } else {
+                     alert('Error exporting data');
+                 }
+             })
+             .catch(error => {
+                 console.error('Error:', error);
+                 alert('Error exporting data');
+             });
+     }
+     
+     // Función para manejar la rotación de iconos en años
+     document.addEventListener('DOMContentLoaded', function() {
+         // Manejar colapso de años
+         const yearHeaders = document.querySelectorAll('[data-bs-target^="#year-"]');
+         yearHeaders.forEach(header => {
+             header.addEventListener('click', function() {
+                 const icon = this.querySelector('.expand-icon');
+                 const isExpanded = this.getAttribute('aria-expanded') === 'true';
+                 
+                 if (isExpanded) {
+                     icon.style.transform = 'rotate(0deg)';
+                 } else {
+                     icon.style.transform = 'rotate(180deg)';
+                 }
+             });
+         });
+         
+         // Manejar colapso de meses
+         const monthHeaders = document.querySelectorAll('[data-bs-target^="#month-"]');
+         monthHeaders.forEach(header => {
+             header.addEventListener('click', function() {
+                 const icon = this.querySelector('.expand-icon');
+                 const isExpanded = this.getAttribute('aria-expanded') === 'true';
+                 
+                 if (isExpanded) {
+                     icon.style.transform = 'rotate(0deg)';
+                 } else {
+                     icon.style.transform = 'rotate(180deg)';
+                 }
+             });
+         });
+     });
+    
+    // Función para convertir datos a CSV
+    function convertToCSV(data) {
+        const headers = [
+            'ID Project', 'Project Name', 'Customer', 'Start Date', 'End Date',
+            'Sales Advisor', 'Project Manager', 'City', 'State', 'Budgeted Cost',
+            'Actual Cost', 'Total Proposals', 'Total Invoiced', 'Profit', 'Profit Margin'
+        ];
+        
+        const csvRows = [headers.join(',')];
+        
+        for (const row of data) {
+            const values = [
+                row.project_id,
+                `"${row.project_name}"`,
+                `"${row.customer}"`,
+                row.start_date || '',
+                row.end_date || '',
+                `"${row.sales_advisor}"`,
+                `"${row.project_manager}"`,
+                `"${row.city}"`,
+                `"${row.state}"`,
+                row.budgeted_cost,
+                row.actual_cost,
+                row.total_proposals,
+                row.total_invoiced,
+                row.profit,
+                row.profit_margin
+            ];
+            csvRows.push(values.join(','));
+        }
+        
+        return csvRows.join('\n');
+    }
+    
+    // Función para descargar CSV
+    function downloadCSV(content, fileName) {
+        const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', fileName);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+</script>
+{% endblock %}

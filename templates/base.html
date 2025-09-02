@@ -92,6 +92,16 @@
                         {% endif %}
                     </li>
                     <li>
+                        {% if user.groups.first.name == 'ADMIN' %}
+                        <a href="/admin/completed-projects/" class="nav-link central {% if view == 'admin_dashboard'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Dashboard Admin">
+                            <div class="position-relative">
+                                <i class="bi bi-graph-up-arrow fs-4 text-secondary"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning" style="font-size: 0.6rem; transform: translate(-50%, -50%);">ADMIN</span>
+                            </div>
+                        </a>
+                        {% endif %}
+                    </li>
+                    <li>
                         {% if user.groups.first.name == 'PRODUCTION' or user.groups.first.name == 'ADMIN' %}
                         <a href="/production" class="nav-link central {% if view == 'production'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Production">
                             <i class="bi bi-wrench-adjustable-circle-fill fs-4 text-secondary"></i>

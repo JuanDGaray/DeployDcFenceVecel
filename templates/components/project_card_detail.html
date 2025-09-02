@@ -133,7 +133,7 @@
             {% endfor %}
         </div>
     </div>
-    {% if total_paid >= total_billed and total_billed > 0 and project.status != 'completed' and project.status != 'closed' %}
+    {% if project.status == 'pending_payment' %}
       <div class="d-flex justify-content-end">
         <form method="post" action="{% url 'close_project' project.id %}">
           {% csrf_token %}

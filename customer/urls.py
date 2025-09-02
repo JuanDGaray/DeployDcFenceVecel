@@ -54,4 +54,9 @@ urlpatterns = [
     
     # URLs para Change Orders
     path('projects/<int:project_id>/change_order/<int:budget_id>/update_status/', views.projects_views.update_change_order_status, name='update_change_order_status'),
+    
+    # URLs para Dashboard de Proyectos Completados (Solo Administradores)
+    path('admin/completed-projects/', views.admin_views.completed_projects_dashboard, name='completed_projects_dashboard'),
+    path('admin/project-details/<int:project_id>/', views.admin_views.get_project_details_ajax, name='get_project_details_ajax'),
+    path('admin/export-completed-projects/', views.admin_views.export_completed_projects_data, name='export_completed_projects_data'),
 ]   

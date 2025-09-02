@@ -15,6 +15,7 @@ from .production_views import production, production_project, setDateInProductio
 from .settings_views import settings, add_user_post, delete_user
 from .metrics_views import metrics, cost_trend, project_status_distribution, sales_performance_view, projects_by_creation_date, proposals_donut_chart
 from .team_views import active_users_view, user_detail_view
+from .admin_views import completed_projects_dashboard, get_project_details_ajax, export_completed_projects_data
 from .utils_get import *
 from .planning_accounting import *
 
