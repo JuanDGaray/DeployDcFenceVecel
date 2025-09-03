@@ -131,6 +131,7 @@
       });
     const inputs = document.querySelectorAll("#total-cost, #retention, #creation-date, #due-date");
     const saveBtn = document.getElementById("save-btn");
+    const loadingOverlay = document.getElementById('loadingOverlay');
     function checkInputs() {
       const allFilled = Array.from(inputs).every(input => input.value.trim() !== "");
       saveBtn.disabled = !allFilled; // Habilita o deshabilita el botón
@@ -170,7 +171,6 @@
       })
       .then(data => {
           console.log('Respuesta del servidor:', dataToSend);
-          const loadingOverlay = document.getElementById('loadingOverlay');
           window.location.href = `/projects/{{project.id}}/`;
           loadingOverlay.classList.add('d-none');
       })
