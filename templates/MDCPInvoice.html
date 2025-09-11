@@ -510,7 +510,6 @@
                     if (infoSaved.classList.contains("d-none")) {
                         infoSaved.classList.remove("d-none");
                     }
-                    saveButton.disabled = true;
                     showAlert('The budget amount exceeds the available total for billing. ' + maxTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD' }), 'warning');
                 } else {
                     saveButton.disabled = false;
