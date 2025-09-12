@@ -67,6 +67,7 @@ urlpatterns = [
     path('projects/<int:project_id>/updateMdcpInvoice/<int:invoice_id>', views.updateMdcpInvoice, name='updateMdcpInvoice'), 
     path('projects/<int:project_id>/changePaidInvoice/<int:invoice_id>', views.changePaidInvoice, name='changePaidInvoice'), 
     path('projects/<int:project_id>/broadInvoice10/<int:invoice_id>', views.BroadInvoice10, name='broadInvoice10'), 
+    path('projects/<int:project_id>/gcBroDadeInvoice/<int:invoice_id>', views.GcBroDadeInvoice, name='gcBroDadeInvoice'), 
     path('customers/<int:client_id>/', views.detail_customer, name='detail_customer'),
     path('customers/edit/<int:client_id>/', views.edit_customer, name='edit_customer'),
     path('customers/<int:client_id>/delete/', views.delete_customer, name='delete_customer'),

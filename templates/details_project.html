@@ -507,6 +507,7 @@
                         <li><a class="dropdown-item" href="{% url 'mdcpInvoice' project_id=project.id invoice_id=proposal.id %}" target='_blank'>Invoice MDCP</a></li>
                         <li><a class="dropdown-item" href="{% url 'broadInvoice10' project_id=project.id invoice_id=proposal.id %}"  target='_blank'>Invoice BROD</a></li>
                         <li><a class="dropdown-item" href="{% url 'aiaInvoice5' project_id=project.id invoice_id=proposal.id %}"  target='_blank'>Invoice AIA 5%</a></li>
+                        <li><a class="dropdown-item" href="{% url 'gcBroDadeInvoice' project_id=project.id invoice_id=proposal.id %}" target='_blank'>Invoice GENERAL CONTRACTOR</a></li>
                         <li><a class="dropdown-item" href="{% url 'aiaInvoice10' project_id=project.id invoice_id=proposal.id %}"  target='_blank'>Invoice AIA 10%</a></li>
                       </ul>
                       {% if proposal.status == 'new' or proposal.status == 'sent' or proposal.status == 'pending'  or proposal.status == 'rejected' %}
@@ -516,10 +517,10 @@
                           aria-label="Info" data-bs-original-title="Rejected Proposal">
                           <i class="bi bi-info-circle text-danger" style="font-size: 15px;"></i>
                       </a>
-                      {% elif  proposal.total_proposal <=  proposal.billed_proposal %}
+                      {% elif  proposal.total_with_change_orders <=  proposal.billed_proposal %}
                       <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
                           data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
-                          data-bs-title="You cannot add more invoices because the total of the proposal has already been invoiced." 
+                          data-bs-title="You cannot add more invoices because the total of the proposal (including approved change orders) has already been invoiced." 
                           aria-label="Info" data-bs-original-title="Rejected Proposal">
                           <i class="bi bi-info-circle text-success" style="font-size: 15px;"></i>
                       </a>
@@ -803,10 +804,10 @@
                             aria-label="Info" data-bs-original-title="Rejected Proposal">
                             <i class="bi bi-info-circle text-danger" style="font-size: 15px;"></i>
                         </a>
-                        {% elif  proposal.total_proposal <=  proposal.billed_proposal %}
+                        {% elif  proposal.total_with_change_orders <=  proposal.billed_proposal %}
                         <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
                             data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
-                            data-bs-title="You cannot add more invoices because the total of the proposal has already been invoiced." 
+                            data-bs-title="You cannot add more invoices because the total of the proposal (including approved change orders) has already been invoiced." 
                             aria-label="Info" data-bs-original-title="Rejected Proposal">
                             <i class="bi bi-info-circle text-success" style="font-size: 15px;"></i>
                         </a>
@@ -964,7 +965,7 @@
             <h1 class="card-header fs-4 rounded-4 d-flex align-items-center gap-2 flex-row w-100 justify-content-between">Invoice
               {% if project.accounting_manager %}
               <div class="dropdown d-flex align-items-center">
-                {% if last_proposal_approved.billed_proposal != last_proposal_approved.total_proposal %}
+                {% if last_proposal_approved.billed_proposal != last_proposal_approved.total_with_change_orders %}
                 <button class="btn bg-primary text-white border border-2 btn-sm rounded-2 px-2 py-1 dropdown-toggle fs-6" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false" title="Make Budget" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="Make invoice">
                   <i class="bi bi-cash-stack text-white fs-6"> </i>  Add Invoice
                 </button>
@@ -972,6 +973,7 @@
                     <li><a class="dropdown-item" href="/projects/{{project.id}}/mdcpInvoice/{{last_proposal_approved.id}}" >Invoice MDCP</a></li>
                     <li><a class="dropdown-item" href="/projects/{{project.id}}/broadInvoice10/{{last_proposal_approved.id}}" >Invoice BROD</a></li>
                     <li><a class="dropdown-item" href="/projects/{{project.id}}/aiaInvoice5/{{last_proposal_approved.id}}" >Invoice AIA 5%</a></li>
+                    <li><a class="dropdown-item" href="/projects/{{project.id}}/gcBroDadeInvoice/{{last_proposal_approved.id}}" >Invoice GENERAL CONTRACTOR</a></li>
                     <li><a class="dropdown-item" href="/projects/{{project.id}}/aiaInvoice10/{{last_proposal_approved.id}}" >Invoice AIA 10%</a></li>
                   </ul>
                 {% else %}
@@ -980,7 +982,7 @@
                 </button>
                 <a class="btn btn-sm rounded-2 p-1" role="button" data-bs-toggle="tooltip" 
                     data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" 
-                    data-bs-title="You cannot add more invoices because the total of the proposal has already been invoiced." 
+                    data-bs-title="You cannot add more invoices because the total of the proposal (including approved change orders) has already been invoiced." 
                     aria-label="Info" data-bs-original-title="Rejected Proposal">
                     <i class="bi bi-info-circle text-secondary fs-" style="font-size: 15px;"></i>
                 </a>
@@ -1055,14 +1057,21 @@
                     <i class="bi bi-eye-fill" style="font-size: 15px;"></i>
                   </a>
                   {% if is_superuser_or_admin_or_accounting_manager %}
-                    <a class="btn btn-sm rounded-2 p-1 bg-secondary text-white" style="cursor: not-allowed;" 
-                      role="button" title="Delete Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-delete-action data-bs-title="you cannot delete an invoice that has been paid.">
-                      <i class="bi bi-trash" style="font-size: 15px;"></i>
-                    </a>
+                    {% if invoice.total_paid > 0 %}
+                      <a class="btn btn-sm rounded-2 p-1 bg-secondary text-white" style="cursor: not-allowed;" 
+                        role="button" title="Delete Invoice" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="You cannot delete an invoice that has been paid.">
+                        <i class="bi bi-trash" style="font-size: 15px;"></i>
+                      </a>
+                    {% else %}
+                      <a class="btn btn-sm rounded-2 p-1 bg-danger text-white" 
+                        href="{% url 'delete_invoice' project.id invoice.id %}"
+                        role="button" title="Delete Invoice" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-delete-action data-bs-title="Delete">
+                        <i class="bi bi-trash" style="font-size: 15px;"></i>
+                      </a>
+                    {% endif %}
                   {% else %}
-                    <a class="btn btn-sm rounded-2 p-1 bg-danger text-white" 
-                      href="{% url 'delete_invoice' project.id invoice.id %}"
-                      role="button" title="Delete Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-delete-action data-bs-title="Delete">
+                    <a class="btn btn-sm rounded-2 p-1 bg-secondary text-white" style="cursor: not-allowed;" 
+                      role="button" title="Delete Invoice" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="You don't have permission to delete invoices.">
                       <i class="bi bi-trash" style="font-size: 15px;"></i>
                     </a>
                   {% endif %}

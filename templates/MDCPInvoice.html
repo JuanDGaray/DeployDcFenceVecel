@@ -93,9 +93,9 @@
         <input type="hidden" id="csrf-token" data-csrf="{{ csrf_token }}" data-typeInv='MDCP'>
         <input type="hidden" id="mode" value="{{ mode|default:'edit' }}" 
                data-item-count="{% if mode == 'view' %}{{invoice.invoiceInfo.items|length|default:1}}{% else %}1{% endif %}"
-               data-total="{% if mode == 'view' %}{{invoice.total_invoice}}{% else %}{{proposal.remaining_amount}}{% endif %}"
-               data-proposal-remaining="{% if proposal %}{{proposal.remaining_amount}}{% else %}0{% endif %}"
-               data-proposal-total="{% if proposal %}{{proposal.total_proposal}}{% else %}0{% endif %}">
+               data-total="{% if mode == 'view' %}{{invoice.total_invoice}}{% else %}{{proposal.remaining_with_change_orders}}{% endif %}"
+               data-proposal-remaining="{% if proposal %}{{proposal.remaining_with_change_orders}}{% else %}0{% endif %}"
+               data-proposal-total="{% if proposal %}{{proposal.total_with_change_orders}}{% else %}0{% endif %}">
     
 
         <h1 class='fs-5 bg-white border border-4 border-primary fw-bold text-primary p-2 m-2 rounded-4 w-75 d-flex flex-row justify-content-between align-items-center'>
@@ -244,7 +244,7 @@
                             <tr class='itemRow'>
                                 <td style='width:40px'><input id="item1Quantity" type="number" class="form-control" value="1"></td>
                                 <td><input id="item1Description" type="text" class="form-control" value="Supply and install Chain Link Fence and Gates"></td>
-                                <td class="text-end w-25"><input id="item1Amount" type="text" class="form-control text-end" value="{% if proposal %}{{proposal.remaining_amount|floatformat:2}}{% else %}0.00{% endif %}" oninput="updateTotal()"></td>
+                                <td class="text-end w-25"><input id="item1Amount" type="text" class="form-control text-end" value="{% if proposal %}{{proposal.remaining_with_change_orders|floatformat:2}}{% else %}0.00{% endif %}" oninput="updateTotal()"></td>
                             </tr>
                         {% endif %}
                     </tbody>
@@ -252,7 +252,7 @@
                         <tr>
                             <td colspan="2" class="text-end text-primary fw-bold"><strong>TOTAL :</strong></td>
                             <td class="text-end bg-primary">
-                                <input id="totalAmount" type="text" class="form-control text-end bg-primary text-light fw-bold" value="{% if mode == 'view' %}{{invoice.total_invoice|floatformat:2}}{% else %}{% if proposal %}{{proposal.remaining_amount|floatformat:2}}{% else %}0.00{% endif %}{% endif %}" readonly >
+                                <input id="totalAmount" type="text" class="form-control text-end bg-primary text-light fw-bold" value="{% if mode == 'view' %}{{invoice.total_invoice|floatformat:2}}{% else %}{% if proposal %}{{proposal.remaining_with_change_orders|floatformat:2}}{% else %}0.00{% endif %}{% endif %}" readonly >
                             </td>
                         </tr>
                     </tfoot>

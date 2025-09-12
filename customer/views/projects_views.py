@@ -143,22 +143,34 @@ def BroadInvoice10(request,project_id, invoice_id):
         log_project_history(request, project, 'CREATE', 'Invoice Broad created')
         return HttpResponse(status=200)
 
+def GcBroDadeInvoice(request,project_id, invoice_id):
+    project = get_object_or_404(Project, pk=project_id)
+    proposal = get_object_or_404(ProposalProjects, id=invoice_id)
+    next_invoice_id = (InvoiceProjects.objects.aggregate(Max('id'))['id__max'] or 0) + 1
+
+    if request.method == 'GET':
+        return render(request, 'GCBroDadeInvoice.html', {
+            'project': project,
+            'proposal':proposal,
+            'today': timezone.now().date(),
+            'next_invoice_id': next_invoice_id,})
+    elif request.method == 'POST':
+        data = json.loads(request.body)
+        saleAdvisor = request.user
+        save_invoice(data, project, proposal.budget, proposal, saleAdvisor)
+        log_project_history(request, project, 'CREATE', 'Invoice GC BRO DADE created')
+        return HttpResponse(status=200)
+
 def changePaidInvoice(request,project_id, invoice_id):
     project = get_object_or_404(Project, pk=project_id)
     invoice = get_object_or_404(InvoiceProjects, id=invoice_id)
     if request.method == 'POST':
         print(request.body)
         data = json.loads(request.body)
-        
-        # Update invoice total_paid by summing all payments
         from decimal import Decimal
-        existing_payments = PaymentsReceived.objects.filter(invoice=invoice).aggregate(total=Sum('amount'))['total'] or 0
         new_amount = Decimal(str(data['amount']))
-        new_total_paid = existing_payments + new_amount
-        invoice.total_paid = new_total_paid
-        invoice.save()
-        
-        # Create payment record in PaymentsReceived
+
+        # Create payment record in PaymentsReceived; signal will recalc invoice.total_paid
         payment_date = timezone.now()
         if 'date' in data and data['date']:
             try:
@@ -179,7 +191,12 @@ def changePaidInvoice(request,project_id, invoice_id):
         }
         
         PaymentsReceived.objects.create(**payment_data)
-        
+        # Ensure invoice reflects current sum after creation
+        updated_total = invoice.payments.aggregate(total=Sum('amount'))['total'] or 0
+        if updated_total != invoice.total_paid:
+            invoice.total_paid = updated_total
+            invoice.save(update_fields=['total_paid'])
+
         log_project_history(request, project, 'UPDATE', 'Invoice paid updated')
         return HttpResponse(status=200)
 
@@ -923,6 +940,12 @@ def view_invoice(request, project_id, invoice_id):
             'mode': mode})
     elif invoice.type_invoice == 'BROWARD':
         return render(request, 'BrodInvoice.html', {
+            'project': project,
+            'invoice': invoice,
+            'proposal': proposal,
+            'mode': mode})
+    elif invoice.type_invoice == 'BRO_DADE':
+        return render(request, 'GCBroDadeInvoice.html', {
             'project': project,
             'invoice': invoice,
             'proposal': proposal,

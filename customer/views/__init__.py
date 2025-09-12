@@ -7,7 +7,7 @@ from .projects_views  import (  delete_budget, delete_invoice, duplicate_project
                                 changePaidInvoice, select_Manager, assign_accounting_manager, assign_project_manager,
                                 add_comment, view_changeOrder,chat_with_groq, pdf_proposal, new_change_order, 
                                 delete_proposal, delete_project, projects, aiaInvoice10, aiaInvoice5, MdcpInvoice, 
-                                updateMdcpInvoice, BroadInvoice10, view_invoice,  detail_project, new_budget, view_budget, generate_pdf,       
+                                updateMdcpInvoice, BroadInvoice10, GcBroDadeInvoice, view_invoice,  detail_project, new_budget, view_budget, generate_pdf,       
                                 view_budgetSimple, delete_budget,  edit_budget, delete_invoice, create_project, edit_project,
                                 project_history, close_project, cancel_proposal, cancel_project, cost_breakdown)
 

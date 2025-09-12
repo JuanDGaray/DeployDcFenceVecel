@@ -3,7 +3,7 @@ from django.db import models
 from django.utils import timezone
 from datetime import date
 from django.contrib.auth.models import User
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.db.models import Sum,Q
 from django.db.models.functions import Coalesce
@@ -457,8 +457,8 @@ class InvoiceProjects(models.Model):
         
     @property
     def percentage_of_proposal(self):
-        if self.proposal and self.proposal.total_proposal > 0:
-            return int((self.total_invoice / math.floor(self.proposal.total_proposal)) * 100)
+        if self.proposal and self.proposal.total_with_change_orders > 0:
+            return int((self.total_invoice / math.floor(self.proposal.total_with_change_orders)) * 100)
         return 0
     
     @property
@@ -477,6 +477,14 @@ class PaymentsReceived(models.Model):
     id_transaction = models.CharField(max_length=255, null=True, blank=True)
     url_receipt = models.CharField(max_length=255, null=True, blank=True)
     
+@receiver(post_save, sender=PaymentsReceived)
+@receiver(post_delete, sender=PaymentsReceived)
+def update_invoice_total_paid_on_payment_change(sender, instance, **kwargs):
+    invoice = instance.invoice
+    total_paid = invoice.payments.aggregate(total=Sum('amount'))['total'] or 0
+    invoice.total_paid = total_paid
+    invoice.save(update_fields=['total_paid'])
+
 class ProposalProjects(models.Model):
     # Estados del invoice
     STATUS_NEW = 'new'
@@ -521,6 +529,28 @@ class ProposalProjects(models.Model):
     @property
     def remaining_amount(self):
         return max(0, self.total_proposal - self.billed_proposal)
+
+    @property
+    def approved_change_orders_total(self):
+        try:
+            from .models import BudgetEstimate
+            approved_cos = BudgetEstimate.objects.filter(
+                project=self.project,
+                isChangeOrder=True,
+                change_order_detail__status='approved',
+                id_related_budget=self.budget
+            )
+            return sum(co.total_change_order for co in approved_cos)
+        except Exception:
+            return 0
+
+    @property
+    def total_with_change_orders(self):
+        return (self.total_proposal or 0) + (self.approved_change_orders_total or 0)
+
+    @property
+    def remaining_with_change_orders(self):
+        return max(0, self.total_with_change_orders - (self.billed_proposal or 0))
 
     @property
     def is_overdue(self):
