@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.apps import apps
 from django.core.serializers import serialize
 from django.contrib.auth.models import Group
@@ -386,6 +386,7 @@ def detail_project(request, project_id):
             })
         
         budgets = BudgetEstimate.objects.filter(project_id=project_id, id_related_budget__isnull=True, isChangeOrder=False).only('id', 'projected_cost', 'status', 'sales_advisor', 'date_created', 'id_related_budget', 'isChangeOrder')
+        all_budgets = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=False).order_by('-date_created')
         invoices = InvoiceProjects.objects.filter(project_id=project_id).only('id', 'date_created', 'due_date', 'total_invoice', 'total_paid', 'status', 'proposal', 'sales_advisor')
         proposals = ProposalProjects.objects.filter(project_id=project_id).only('id', 'date_created', 'due_date', 'status', 'sales_advisor', 'total_proposal', 'sales_advisor', 'billed_proposal')
         changes_orders = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True).select_related('change_order_detail').order_by('date_created')
@@ -447,6 +448,7 @@ def detail_project(request, project_id):
         return render(request, 'details_project.html', {
             'project': project,
             'budgets': budgets,
+            'all_budgets': all_budgets,
             'steps': timeline_steps,
             'budgets_dict': budgets_dict,
             'invoices': invoices,
@@ -1482,6 +1484,55 @@ def update_billed_proposal(sender, instance, **kwargs):
     proposal.billed_proposal = total_billed
     proposal.save()
     
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser or u.is_staff)
+def change_proposal_budget(request, project_id, proposal_id):
+    """
+    Admin-only view to change the budget ID of a proposal (AJAX only)
+    """
+    if request.method != 'POST':
+        return JsonResponse({
+            'status': 'error', 
+            'message': 'Only POST requests are allowed'
+        }, status=405)
+    
+    project = get_object_or_404(Project, pk=project_id)
+    proposal = get_object_or_404(ProposalProjects, pk=proposal_id)
+    
+    try:
+        new_budget_id = request.POST.get('new_budget_id')
+        if not new_budget_id:
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'Budget ID is required'
+            }, status=400)
+        
+        new_budget = get_object_or_404(BudgetEstimate, pk=new_budget_id)
+        old_budget_id = proposal.budget.id if proposal.budget else None
+        
+        # Update the proposal's budget
+        proposal.budget = new_budget
+        proposal.save()
+        
+        # Log the change
+        log_project_history(
+            request, 
+            project, 
+            'UPDATE', 
+            f'Proposal budget changed from {old_budget_id} to {new_budget_id} by admin'
+        )
+        
+        return JsonResponse({
+            'status': 'success', 
+            'message': f'Budget ID successfully changed from {old_budget_id} to {new_budget_id}'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error', 
+            'message': f'Error changing budget ID: {str(e)}'
+        }, status=500)
 
 def updateStatusProject(proposalStatus, project):
 
