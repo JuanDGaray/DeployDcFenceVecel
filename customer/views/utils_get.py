@@ -509,7 +509,8 @@ def get_customers_primary_info(request):
             customer_company = request.GET.get('searchInputCustomerCompanyOrContractor', '')
             customer_type = request.GET.get('searchInputCustomerType', '')
             customer_email = request.GET.get('searchInputCustomerEmail', '')
-            status = request.GET.get('searchInputStatus', '')
+            # On frontend the control id is searchInputCustomerStatus
+            status = request.GET.get('searchInputCustomerStatus', '')
             seller = request.GET.get('searchInputSeller', '')
             print(seller, type(seller)) 
             filters = Q()

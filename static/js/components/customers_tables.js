@@ -9,12 +9,25 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
+let lastCustomerFilters = '';
+let lastCustomerSort = 'false';
+
 async function loadCustomers(page, filters = '', sort = 'false') {
     document.getElementById('customersTableBody').innerHTML = emptyTable;
     document.getElementById('customers-count').innerHTML = '0';
     document.getElementById('paginationCustomers').innerHTML = '';
     const all = document.getElementById('view-all-customers').checked
-    const url = `/get_customers_primary_info/?page=${page}&filters=${filters}&sort=${sort}&all=${all}`;
+    // Persist last used filters and sort so pagination keeps them
+    if (typeof filters === 'string') {
+        lastCustomerFilters = filters;
+    }
+    if (typeof sort === 'string') {
+        lastCustomerSort = sort;
+    }
+
+    // Build URL with filters as real query params (not nested under a single "filters" key)
+    const queryFilters = lastCustomerFilters ? `&${lastCustomerFilters}` : '';
+    const url = `/get_customers_primary_info/?page=${page}${queryFilters}&sort=${lastCustomerSort}&all=${all}`;
     const data = await fetchData(url);
     if (data) {
         renderTable(data);
@@ -110,7 +123,7 @@ document.getElementById('paginationCustomers').addEventListener('click', async f
     event.preventDefault();
     const page = target.getAttribute('data-page');
     if (page) {
-        await loadCustomers(page);
+        await loadCustomers(page, lastCustomerFilters, lastCustomerSort);
     }
 });
 
@@ -123,13 +136,14 @@ document.getElementById('applyFiltersCustomer').addEventListener('click', async 
         'searchInputCustomerEmail',
         'searchInputSeller',
     ]
-        .map(id => `${id}=${document.getElementById(id).value}`).join('&');
+        .map(id => `${id}=${encodeURIComponent(document.getElementById(id).value)}`).join('&');
     console.log(filters);
     await loadCustomers(1, filters, 'false');
 });
 
 document.getElementById('clearFilters').addEventListener('click', async function () {       
-    loadCustomers(1);
+    lastCustomerFilters = '';
+    await loadCustomers(1, '', lastCustomerSort);
 });
 
 document.querySelectorAll('[data-sort]').forEach(element => {
@@ -144,7 +158,7 @@ document.querySelectorAll('[data-sort]').forEach(element => {
             element.classList.add('bi-sort-down');
             sort = sort;
         }
-        loadCustomers(1, '', sort);
+        await loadCustomers(1, lastCustomerFilters, sort);
     });
 }); 
 

@@ -4,6 +4,7 @@ from django.http import JsonResponse
 from django.db.models import Q, Sum, Count
 from django.utils import timezone
 from datetime import datetime
+from decimal import Decimal
 from ..models import Project, BudgetEstimate, RealCostProject, ProposalProjects, InvoiceProjects
 from django.contrib.auth.models import User
 import json
@@ -111,35 +112,37 @@ def calculate_project_totals(project):
     """
     # Obtener el presupuesto aprobado (última versión)
     approved_proposal = project.get_approved_proposal()
-
     change_orders = project.budget_categories.filter(isChangeOrder=True, status='approved')
 
     invoices = project.invoices.all()
-    total_invoiced = sum(invoice.total_invoice for invoice in invoices)
-    
+    total_invoiced = sum((invoice.total_invoice or Decimal('0')) for invoice in invoices)
+
+    approved_total_value = (approved_proposal.total_proposal if approved_proposal and approved_proposal.total_proposal else Decimal('0'))
+    approved_cost_budget = (approved_proposal.budget.projected_cost if approved_proposal and approved_proposal.budget and approved_proposal.budget.projected_cost else Decimal('0'))
 
     if change_orders.count() > 0:
-        change_budget = sum(change_order.budget.total_change_order for change_order in change_orders)
-        budgeted_cost = approved_proposal.total_proposal + change_budget
-        cost_budget = (approved_proposal.budget.projected_cost) + change_budget or 0
+        change_budget = sum((co.budget.total_change_order or Decimal('0')) for co in change_orders)
+        budgeted_cost = approved_total_value + change_budget
+        cost_budget = approved_cost_budget + change_budget
     else:
-        budgeted_cost = approved_proposal.total_proposal or 0
-        cost_budget = (approved_proposal.budget.projected_cost) or 0
+        budgeted_cost = approved_total_value
+        cost_budget = approved_cost_budget
 
     
 
-    actual_cost = project.actual_cost or 0
+    actual_cost = project.actual_cost or Decimal('0')
     profit = budgeted_cost - actual_cost
 
-    percentage_profit = float((profit / budgeted_cost * 100) if budgeted_cost > 0 else 0)
+    percentage_profit = float((profit / budgeted_cost * Decimal('100')) if budgeted_cost > 0 else Decimal('0'))
     
     return {
         'budgeted_cost': float(budgeted_cost),
         'actual_cost': float(actual_cost),
         'total_cost_budget': float(cost_budget),
         'total_invoiced': float(total_invoiced),
+        'total_proposals': float(approved_total_value),
         'profit': float(profit),
-        'profit_margin': float((profit / budgeted_cost * 100) if budgeted_cost > 0 else 0),
+        'profit_margin': float((profit / budgeted_cost * Decimal('100')) if budgeted_cost > 0 else Decimal('0')),
         'cost_difference': float(cost_budget - actual_cost),
         'percentage_profit': float(percentage_profit)
     }
