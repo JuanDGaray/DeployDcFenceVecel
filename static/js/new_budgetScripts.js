@@ -1460,16 +1460,16 @@ function checkItemHasFts(itemName) {
     // Selecciona todas las filas del cuerpo de la tabla
     const rows = document.querySelectorAll("#tbodyFt\\&Post tr");
     let ftsValue = 0;
-
     rows.forEach(row => {
         const itemCell = row.querySelector("td:first-child input[type='checkbox']");
         const ftsInput = row.querySelector("input[name='ft']");
 
         // Verifica si el nombre del ítem coincide
         if (itemCell && itemCell.id.includes(itemName)) {
-            // Verifica si el valor en 'Fts' es mayor que 0
-            if (ftsInput && ftsInput.value) {
+            // Verifica si el checkbox está marcado (item activo) y si el valor en 'Fts' es mayor que 0
+            if (itemCell.checked && ftsInput && ftsInput.value && parseFloat(ftsInput.value) > 0) {
                 ftsValue = parseFloat(ftsInput.value);
+                return; // Retorna inmediatamente cuando encuentra el item activo
             }
         }
     });
@@ -1544,6 +1544,7 @@ function calculateTotalByItem() {
         if (totalsByItem.hasOwnProperty(item)) {
             const totalCost = totalsByItem[item];
             const ftsValue = checkItemHasFts(item);
+            console.log('ftsValue', item, ftsValue)
             const costPerFoot = ftsValue > 0 ? totalCost / ftsValue : 0;
 
             let row = `

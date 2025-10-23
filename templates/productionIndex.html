@@ -78,13 +78,22 @@
                                         <div class='d-flex flex-column justify-content-start bg-secondary p-2 bg-opacity-10 rounded-2 gap-1'>
                                             <div class='px-3 d-flex flex-row gap-2 justify-content-start align-items-center'>
                                                 <span
-                                                    class="customer-avatar text-light rounded-circle m-0 bg-warning"
+                                                    class="customer-avatar text-light rounded-circle m-0 {% if project.sales_advisor %} bg-warning {% else %} bg-secondary {% endif %}"
                                                     style="font-size: 0.8rem; font-weight: bold; width: 30px; height: 30px;">
-                                                    {{ project.sales_advisor.first_name|slice:":1" }}{{ project.sales_advisor.last_name|slice:":1" }}
+                                                    {% if project.sales_advisor %}
+                                                        {{ project.sales_advisor.first_name|slice:":1" }}{{ project.sales_advisor.last_name|slice:":1" }}
+                                                    {% else %}
+                                                        N/A
+                                                    {% endif %}
                                                 </span> 
                                                 <div class='d-flex flex-column h-5' style="line-height: 1; gap: 0.1rem;">
-                                                    <span class="m-0 align-self-center border-bottom border-3 border-bottom fw-bold">@{{ project.sales_advisor.first_name|short_name:project.sales_advisor.last_name }}</span>
-                                                    <span class="m-0 text-warning bg-warning-subtle rounded-2 px-2 warp-nowrap" style="font-size: 0.7rem;">Sales Manager</span> 
+                                                    {% if project.sales_advisor %}
+                                                        <span class="m-0 align-self-center border-bottom border-3 border-bottom fw-bold">@{{ project.sales_advisor.first_name|short_name:project.sales_advisor.last_name }}</span>
+                                                        <span class="m-0 text-warning bg-warning-subtle rounded-2 px-2 warp-nowrap" style="font-size: 0.7rem;">Sales Manager</span> 
+                                                    {% else %}
+                                                        <span class="m-0 border-bottom border-3 border-bottom fw-bold">N/A</span>
+                                                        <span class="m-0 text-secondary bg-secondary-subtle rounded-2 px-2" style="font-size: 0.7rem;">Sales Manager</span> 
+                                                    {% endif %}
                                                 </div>
                                             </div>
                                             
@@ -199,7 +208,7 @@
                         </td>
                       </td>
                       {% endif %}
-                    <td>{{ project.sales_advisor }}</td>
+                    <td>{% if project.sales_advisor %}{{ project.sales_advisor }}{% else %}N/A{% endif %}</td>
                 </tr>
                 {% endfor %}
             </tbody>

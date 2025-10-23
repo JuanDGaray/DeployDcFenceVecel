@@ -1882,7 +1882,7 @@ function calculateProfitAndCostByItem() {
             // Crear una nueva fila
             row = `
             <tr >
-                <td class="p-0  px-2">${item}</td>
+                <td class="p-0  px-2">${item} asdasdasda</td>
                 <td class="p-0  px-2">$${totalsByItem[item].toFixed(2)}</td>
             </tr>`
             // Añadir la fila al cuerpo de la tabla

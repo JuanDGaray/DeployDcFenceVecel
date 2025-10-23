@@ -21,7 +21,7 @@ User = get_user_model()
 @login_required
 def production(request):
     # Retrieves the list of all customers and paginates it
-    Project_list = Project.objects.filter(status="in_production").only('id', 'project_name', 'status', 'customer', 'sales_advisor', 'accounting_manager', 'start_date', 'end_date')
+    Project_list = Project.objects.filter(status="in_production").only('id', 'project_name', 'status', 'customer', 'sales_advisor', 'accounting_manager', 'start_date', 'end_date').order_by('-id')
     paginator = Paginator(Project_list, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
