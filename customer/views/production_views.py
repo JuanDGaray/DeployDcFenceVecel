@@ -21,7 +21,17 @@ User = get_user_model()
 @login_required
 def production(request):
     # Retrieves the list of all customers and paginates it
-    Project_list = Project.objects.filter(status="in_production").only('id', 'project_name', 'status', 'customer', 'sales_advisor', 'accounting_manager', 'start_date', 'end_date').order_by('-id')
+    from django.db.models import Sum
+    from decimal import Decimal
+    
+    Project_list = Project.objects.filter(status="in_production").select_related('customer', 'sales_advisor', 'accounting_manager', 'project_manager').prefetch_related('invoices').order_by('-id')
+    
+    # Annotate with billing information
+    Project_list = Project_list.annotate(
+        total_invoiced=Sum('invoices__total_invoice', default=Decimal('0')),
+        total_paid=Sum('invoices__total_paid', default=Decimal('0'))
+    )
+    
     paginator = Paginator(Project_list, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)

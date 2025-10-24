@@ -450,6 +450,30 @@
             }
             function generatePDF() {
                 const element = document.getElementById('containerInvoice');
+                
+                // Hide elements that shouldn't appear in PDF
+                const addItemBtn = document.getElementById('addItem');
+                const calculatorContainer = document.getElementById('calculatorContainer');
+                const saveButton = document.getElementById('saveButton');
+                const editButton = document.getElementById('editButton');
+                const downloadPdfButton = document.getElementById('downloadPdfButton');
+                
+                // Store original display states
+                const originalStates = {
+                    addItem: addItemBtn ? addItemBtn.style.display : 'none',
+                    calculator: calculatorContainer ? calculatorContainer.style.display : 'none',
+                    save: saveButton ? saveButton.style.display : 'none',
+                    edit: editButton ? editButton.style.display : 'none',
+                    download: downloadPdfButton ? downloadPdfButton.style.display : 'none'
+                };
+                
+                // Hide elements for PDF
+                if (addItemBtn) addItemBtn.style.display = 'none';
+                if (calculatorContainer) calculatorContainer.style.display = 'none';
+                if (saveButton) saveButton.style.display = 'none';
+                if (editButton) editButton.style.display = 'none';
+                if (downloadPdfButton) downloadPdfButton.style.display = 'none';
+                
                 const opt = {
                     filename: `Invoice_${document.getElementById('invoiceId').value}_${new Date().toISOString().split('T')[0]}.pdf`,
                     image: { type: 'jpeg', quality: 1 },
@@ -457,7 +481,15 @@
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape', hotfixes: ['px_scaling'] },
                     margin: [0, 0, 0, 0],
                 };
-                html2pdf().set(opt).from(element).save();
+                
+                html2pdf().set(opt).from(element).save().then(() => {
+                    // Restore original display states after PDF generation
+                    if (addItemBtn) addItemBtn.style.display = originalStates.addItem;
+                    if (calculatorContainer) calculatorContainer.style.display = originalStates.calculator;
+                    if (saveButton) saveButton.style.display = originalStates.save;
+                    if (editButton) editButton.style.display = originalStates.edit;
+                    if (downloadPdfButton) downloadPdfButton.style.display = originalStates.download;
+                });
             }
 
             function addItem() {
@@ -726,6 +758,29 @@
                 sendButton.innerHTML = '<i class="bi bi-file-pdf"></i> Generating PDF...';
                 console.log('Changed to Generating PDF state'); // Debug log
                 
+                // Hide elements that shouldn't appear in PDF for email
+                const addItemBtn = document.getElementById('addItem');
+                const calculatorContainer = document.getElementById('calculatorContainer');
+                const saveButton = document.getElementById('saveButton');
+                const editButton = document.getElementById('editButton');
+                const downloadPdfButton = document.getElementById('downloadPdfButton');
+                
+                // Store original display states
+                const originalStates = {
+                    addItem: addItemBtn ? addItemBtn.style.display : 'none',
+                    calculator: calculatorContainer ? calculatorContainer.style.display : 'none',
+                    save: saveButton ? saveButton.style.display : 'none',
+                    edit: editButton ? editButton.style.display : 'none',
+                    download: downloadPdfButton ? downloadPdfButton.style.display : 'none'
+                };
+                
+                // Hide elements for PDF
+                if (addItemBtn) addItemBtn.style.display = 'none';
+                if (calculatorContainer) calculatorContainer.style.display = 'none';
+                if (saveButton) saveButton.style.display = 'none';
+                if (editButton) editButton.style.display = 'none';
+                if (downloadPdfButton) downloadPdfButton.style.display = 'none';
+                
                 html2pdf().set(opt).from(element).outputPdf('blob').then(function(pdfBlob) {
                     // Cambiar estado a "Sending"
                     sendButton.innerHTML = '<i class="bi bi-envelope"></i> Sending...';
@@ -758,12 +813,26 @@
                         showAlert('Error sending email. Please try again.', 'danger');
                     })
                     .finally(() => {
+                        // Restore original display states after PDF generation
+                        if (addItemBtn) addItemBtn.style.display = originalStates.addItem;
+                        if (calculatorContainer) calculatorContainer.style.display = originalStates.calculator;
+                        if (saveButton) saveButton.style.display = originalStates.save;
+                        if (editButton) editButton.style.display = originalStates.edit;
+                        if (downloadPdfButton) downloadPdfButton.style.display = originalStates.download;
+                        
                         // Restaurar el botón
                         sendButton.disabled = false;
                         sendButton.innerHTML = originalText;
                         console.log('Button restored to original state'); // Debug log
                     });
                 }).catch(error => {
+                    // Restore original display states after PDF generation error
+                    if (addItemBtn) addItemBtn.style.display = originalStates.addItem;
+                    if (calculatorContainer) calculatorContainer.style.display = originalStates.calculator;
+                    if (saveButton) saveButton.style.display = originalStates.save;
+                    if (editButton) editButton.style.display = originalStates.edit;
+                    if (downloadPdfButton) downloadPdfButton.style.display = originalStates.download;
+                    
                     document.getElementById('loadingOverlay').classList.add('d-none');
                     sendButton.disabled = false;
                     sendButton.innerHTML = originalText;

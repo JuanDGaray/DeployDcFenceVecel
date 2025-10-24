@@ -74,6 +74,14 @@
                                                 <span class='text-danger bg-danger-subtle rounded-2 px-2 border border-danger z-1' style="font-size: 0.7rem;">Actual</span>
                                                 <span class='z-2 fw-bold'> {{ project.actual_cost | currency_usd }}</span>
                                             </div>
+                                            <div class='d-flex flex-column mx-2 justify-content-center align-items-center'>
+                                                <span class='text-primary bg-primary-subtle rounded-2 px-2 border border-primary z-1' style="font-size: 0.7rem;">Invoiced</span>
+                                                <span class='z-2 fw-bold'> {{ project.total_invoiced | currency_usd }}</span>
+                                            </div>
+                                            <div class='d-flex flex-column mx-2 justify-content-center align-items-center'>
+                                                <span class='text-warning bg-warning-subtle rounded-2 px-2 border border-warning z-1' style="font-size: 0.7rem;">Paid</span>
+                                                <span class='z-2 fw-bold'> {{ project.total_paid | currency_usd }}</span>
+                                            </div>
                                     </div>
                                         <div class='d-flex flex-column justify-content-start bg-secondary p-2 bg-opacity-10 rounded-2 gap-1'>
                                             <div class='px-3 d-flex flex-row gap-2 justify-content-start align-items-center'>
@@ -160,6 +168,8 @@
                 <th scope="col" class="bg-light">Costumer</th>
                 <th scope="col" class="bg-light">Estimated Budget</th>
                 <th scope="col" class="bg-light">Actual Budget</th>
+                <th scope="col" class="bg-light">Invoiced</th>
+                <th scope="col" class="bg-light">Paid</th>
                 <th scope="col" class="bg-light">Seller</th>
             </tr>
             </thead>
@@ -208,6 +218,12 @@
                         </td>
                       </td>
                       {% endif %}
+                    <td>
+                        <span class="text-primary fw-bold">{{ project.total_invoiced | currency_usd }}</span>
+                    </td>
+                    <td>
+                        <span class="text-warning fw-bold">{{ project.total_paid | currency_usd }}</span>
+                    </td>
                     <td>{% if project.sales_advisor %}{{ project.sales_advisor }}{% else %}N/A{% endif %}</td>
                 </tr>
                 {% endfor %}

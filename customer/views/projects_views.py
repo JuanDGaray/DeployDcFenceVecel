@@ -958,6 +958,13 @@ def view_invoice(request, project_id, invoice_id):
             'invoice': invoice,
             'proposal': proposal,
             'mode': mode})
+    else:
+        # Default case for unknown invoice types
+        return render(request, 'BrodInvoice.html', {
+            'project': project,
+            'invoice': invoice,
+            'proposal': proposal,
+            'mode': mode})
 
 
 
