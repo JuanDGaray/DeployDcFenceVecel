@@ -256,6 +256,176 @@ def save_real_cost_by_items(request, project_id):
     except json.JSONDecodeError:
         return JsonResponse({'status': 'error', 'message': 'Invalid JSON data'}, status=400)
 
+@login_required
+@require_POST
+def update_real_cost_item(request, project_id):
+    """Update an existing real cost sub-item (concept/description/value/evidence)."""
+    try:
+        project = get_object_or_404(Project, pk=project_id)
+        payload = json.loads(request.body)
+
+        item_key = payload.get('item')
+        original_concept = payload.get('original_concept')
+        original_description = payload.get('original_description')
+        new_concept = payload.get('concept', original_concept)
+        new_description = payload.get('description', original_description)
+        new_cost_value = payload.get('costValue')
+        new_evidence_url = payload.get('evidence_url') if 'evidence_url' in payload else None
+
+        if not all([item_key, original_concept, original_description]):
+            return JsonResponse({'status': 'error', 'message': 'Missing required fields'}, status=400)
+
+        real_cost, _ = RealCostProject.objects.get_or_create(project=project)
+        data = real_cost.items or {}
+        if item_key not in data or 'subItems' not in data[item_key]:
+            return JsonResponse({'status': 'error', 'message': 'Item not found'}, status=404)
+
+        sub_items = data[item_key]['subItems']
+        if original_concept not in sub_items or original_description not in sub_items[original_concept]:
+            return JsonResponse({'status': 'error', 'message': 'Sub-item not found'}, status=404)
+
+        data_before = copy.deepcopy(data)
+
+        # Extract existing record
+        record = sub_items[original_concept][original_description]
+
+        # If concept/description changed, move the record
+        target_concept = new_concept
+        target_description = new_description
+        if original_concept != target_concept or original_description != target_description:
+            # Ensure target concept container exists
+            if target_concept not in sub_items:
+                sub_items[target_concept] = {}
+            sub_items[target_concept][target_description] = record
+            # Remove old entry
+            del sub_items[original_concept][original_description]
+            if len(sub_items[original_concept]) == 0:
+                del sub_items[original_concept]
+        else:
+            # Keep reference to same record
+            pass
+
+        # Update fields
+        if new_cost_value is not None:
+            try:
+                record['costValue'] = float(new_cost_value)
+            except (TypeError, ValueError):
+                return JsonResponse({'status': 'error', 'message': 'Invalid cost value'}, status=400)
+        if new_evidence_url is not None:
+            record['evidence_url'] = new_evidence_url
+
+        # Recalculate totals
+        def sum_all_cost_values(obj):
+            total = 0
+            if isinstance(obj, dict):
+                for v in obj.values():
+                    if isinstance(v, dict):
+                        if 'costValue' in v:
+                            try:
+                                total += float(v['costValue'])
+                            except (ValueError, TypeError):
+                                pass
+                        else:
+                            total += sum_all_cost_values(v)
+                    elif isinstance(v, (int, float)):
+                        total += v
+            return total
+
+        data[item_key]['total'] = sum_all_cost_values(data[item_key]['subItems'])
+        real_cost.items = data
+        real_cost.save()
+
+        project.actual_cost = sum(float(item_data.get('total', 0)) for item_data in data.values() if isinstance(item_data, dict))
+        project.save()
+
+        ProductionChangeLog.objects.create(
+            project=project,
+            user=request.user,
+            action="edit_real_cost",
+            description=f"Edición de costo real en item {item_key}",
+            data_before=data_before,
+            data_after=data,
+        )
+
+        return JsonResponse({'status': 'success'})
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@login_required
+@require_POST
+def delete_real_cost_item(request, project_id):
+    """Delete an existing real cost sub-item by item/concept/description."""
+    try:
+        project = get_object_or_404(Project, pk=project_id)
+        payload = json.loads(request.body)
+        item_key = payload.get('item')
+        concept = payload.get('concept')
+        description = payload.get('description')
+
+        if not all([item_key, concept, description]):
+            return JsonResponse({'status': 'error', 'message': 'Missing required fields'}, status=400)
+
+        real_cost, _ = RealCostProject.objects.get_or_create(project=project)
+        data = real_cost.items or {}
+        if item_key not in data or 'subItems' not in data[item_key]:
+            return JsonResponse({'status': 'error', 'message': 'Item not found'}, status=404)
+
+        sub_items = data[item_key]['subItems']
+        if concept not in sub_items or description not in sub_items[concept]:
+            return JsonResponse({'status': 'error', 'message': 'Sub-item not found'}, status=404)
+
+        data_before = copy.deepcopy(data)
+
+        # Delete the entry
+        del sub_items[concept][description]
+        if len(sub_items[concept]) == 0:
+            del sub_items[concept]
+        if len(sub_items) == 0:
+            # remove whole item if empty
+            del data[item_key]
+        else:
+            # Recalculate total for the item
+            def sum_all_cost_values(obj):
+                total = 0
+                if isinstance(obj, dict):
+                    for v in obj.values():
+                        if isinstance(v, dict):
+                            if 'costValue' in v:
+                                try:
+                                    total += float(v['costValue'])
+                                except (ValueError, TypeError):
+                                    pass
+                            else:
+                                total += sum_all_cost_values(v)
+                        elif isinstance(v, (int, float)):
+                            total += v
+                return total
+            if item_key in data:
+                data[item_key]['total'] = sum_all_cost_values(sub_items)
+
+        real_cost.items = data
+        real_cost.save()
+
+        project.actual_cost = sum(float(item_data.get('total', 0)) for item_data in data.values() if isinstance(item_data, dict))
+        project.save()
+
+        ProductionChangeLog.objects.create(
+            project=project,
+            user=request.user,
+            action="delete_real_cost",
+            description=f"Eliminación de costo real en item {item_key}",
+            data_before=data_before,
+            data_after=data,
+        )
+
+        return JsonResponse({'status': 'success'})
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
 def calculate_project_progress(tasks):
     total_progress = 0
     total_duration = 0

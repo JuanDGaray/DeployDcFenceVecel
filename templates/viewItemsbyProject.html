@@ -1,6 +1,14 @@
 {% load static %}
 {% load custom_filters %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    .rc-actions{display:none; gap:6px}
+    .cost-row:hover .rc-actions{display:inline-flex}
+    #realCostsSection{position:relative}
+    #realCostsSection.is-loading{pointer-events:none; filter: grayscale(0.2);}
+    .section-loading{position:absolute; inset:0; background:rgba(255,255,255,0.6); display:flex; align-items:center; justify-content:center; z-index:10}
+    .section-loading.hidden{display:none}
+</style>
 <div class="modal fade" id="UpdateCostSpent" tabindex="-1" aria-labelledby="UpdateCostSpent" aria-hidden="true">
     <div class="modal-dialog p-1 d-flex justify-content-center">
       <div class="modal-content p-1 m-0" style="min-width: 500px;">
@@ -79,7 +87,13 @@
             </table>
         </div>
 
-        <div class="card my-4 overflow m-4 w-50 border border-2 border-success">
+        <div class="card my-4 overflow m-4 w-50 border border-2 border-success" id="realCostsSection">
+            <div class="section-loading hidden" id="realCostsLoading">
+                <div class="d-flex flex-column align-items-center gap-2">
+                    <div class="spinner-border text-success" role="status" style="width: 2rem; height: 2rem;"></div>
+                    <small class="text-muted">Updating...</small>
+                </div>
+            </div>
             <h2 class="card-header fs-6 text-center py-1 bg-success text-dark bg-opacity-25">Cost per items (REAL)</h2>
                 <table class="table table-bordered mx-auto">
                     <thead>
@@ -137,7 +151,7 @@
                             <td colspan="3" class='p-0'>
                                 <table class="table table-sm table-borderless table-striped">
                                     {% for description in subItem.1 %}
-                                    <tr class='p-0 border px-6 ms-2'>
+                                    <tr class='p-0 border px-6 ms-2 cost-row'>
                                         <td class="ps-4 d-flex flex-row align-items-center justify-content-betwee gap-2" style="font-size:0.9rem">
                                             <span class="text-primary rounded-2 h-100 ms-4 px-1 text-secondary fw-bold bg-secondary bg-opacity-10">
                                                 {{ forloop.counter }}.
@@ -147,6 +161,16 @@
                                                 <button class="border border-1 border-primary rounded-2 px-1 m-0 text-primary fw-bold bg-primary bg-opacity-10" title="View file" style="font-size: 0.8rem;" onclick="viewDocument('{{ description.1.evidence_url }}', '{{ description.1.costValue | currency_usd }}', '{{ description.0 }}')">
                                                     <i class="bi bi-file-earmark-pdf text-primary"></i>
                                                 </button>
+                                            {% endif %}
+                                            {% if user_allowed_to_close_production %}
+                                            <span class="rc-actions">
+                                                <button class="border border-1 border-secondary rounded-2 px-1 m-0 text-secondary fw-bold bg-secondary bg-opacity-10" title="Edit" style="font-size: 0.8rem;" onclick="openEditRealCostModal('{{ item.0 }}','{{ subItem.0 }}','{{ description.0 }}','{{ description.1.costValue }}','{{ description.1.evidence_url|default_if_none:"" }}')">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="border border-1 border-danger rounded-2 px-1 m-0 text-danger fw-bold bg-danger bg-opacity-10" title="Delete" style="font-size: 0.8rem;" onclick="confirmDeleteRealCost('{{ item.0 }}','{{ subItem.0 }}','{{ description.0 }}')">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </span>
                                             {% endif %}
                                         </td>
                                         <td class="text-end" style="font-size:0.8rem">
@@ -621,6 +645,7 @@
 
     function submitFormData(formData) {
         const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+        showRealCostsLoading();
         
         fetch(`/production/{{project.id}}/save_real_cost_by_items/`, {
             method: 'POST',
@@ -632,16 +657,16 @@
         })
         .then(() => {
             showAlert('Cost updated successfully', 'success');
-            updateCostModal.hide();
-            // Actualizar el gráfico en lugar de recargar la página
+            if (updateCostModal) { try { updateCostModal.hide(); } catch(e){} }
             setTimeout(() => {
                 updateCostChart();
-                location.reload();
+                reloadRealCostSection();
             }, 500);
         })
         .catch((error) => {
             console.error('Error:', error);
             showAlert('Error updating cost', 'danger');
+            hideRealCostsLoading();
         });
     }
 
@@ -649,6 +674,152 @@
     document.addEventListener('DOMContentLoaded', function() {
         createCostComparisonChart();
     });
+
+    function reloadRealCostSection() {
+        const container = document.getElementById('realCostsSection');
+        if (!container) return;
+        showRealCostsLoading();
+        fetch(window.location.href, { credentials: 'same-origin' })
+            .then(res => res.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const fresh = doc.querySelector('#realCostsSection');
+                if (fresh) {
+                    container.outerHTML = fresh.outerHTML;
+                }
+                hideRealCostsLoading();
+            })
+            .catch(err => console.error('Error reloading section:', err));
+    }
+
+    function showRealCostsLoading(){
+        const section = document.getElementById('realCostsSection');
+        const overlay = document.getElementById('realCostsLoading');
+        if (section) section.classList.add('is-loading');
+        if (overlay) overlay.classList.remove('hidden');
+    }
+
+    function hideRealCostsLoading(){
+        const section = document.getElementById('realCostsSection');
+        const overlay = document.getElementById('realCostsLoading');
+        if (overlay) overlay.classList.add('hidden');
+        if (section) section.classList.remove('is-loading');
+    }
+
+    function openEditRealCostModal(itemKey, concept, description, value, evidenceUrl) {
+        updateCostModal = new bootstrap.Modal(document.getElementById('UpdateCostSpent'));
+        const modalBody = document.querySelector('#UpdateCostSpent .modal-body');
+        const optionsHTML = `<option value="${concept}" selected>${concept}</option>`;
+
+        modalBody.innerHTML = `
+            <form id="costForm">
+                <input type="hidden" id="mode" value="edit" />
+                <input type="hidden" id="original_concept" value="${concept}" />
+                <input type="hidden" id="original_description" value="${description}" />
+                <div class="d-flex justify-content-between align-items-center p-2 border border-2" style="background-color: #f1f1f1; border-radius: 8px;">
+                    <label class="form-label d-flex align-items-center justify-content-center" id="NameCost"><strong>${itemKey}</strong></label>
+                    <label class="form-label border px-2 bg-info text-white w-30 text-center m-0">$${parseFloat(value || 0).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}<div class="m-0 p-0 fs-7">Current Value</div></label>
+                </div>
+                <div class="d-flex flex-column mt-3 justify-content-center align-items-center p-2 border border-2" style="background-color: #f1f1f1; border-radius: 8px;">
+                    <div class="d-flex align-items-center justify-content-center w-100">
+                        <label class="form-label mx-1 my-0 w-50"><strong>New cost value:</strong></label>
+                        <input type="number" class="form-control p-0 px-1 m-0" id="costValue" value="${value || ''}" placeholder="Enter cost value">
+                    </div>
+                    <hr style="border: 2px solid rgb(124, 124, 124);" class="w-100">
+                    <div class="d-flex flex-column align-items-center justify-content-center w-100">
+                        <label class="form-label mx-1 my-0 w-50"><strong>Description:</strong></label>
+                        <textarea id="descriptionValue" rows="3" cols="10">${description}</textarea>
+                    </div>
+                    <label class="gap-2 d-flex flex-row w-100 align-items-center justify-content-center mb-2">
+                        <strong>Concept</strong>
+                    </label>
+                    <select class="form-select" id="concept" aria-label="Select a concept">
+                        ${optionsHTML}
+                    </select>
+                </div>
+            </form>
+        `;
+        // preload evidence if needed (optional)
+        const fileInput = document.getElementById('evidenceFile');
+        if (evidenceUrl) {
+            fileInput.value = '';
+        }
+        const saveBtn = document.getElementById('confirmRealCost');
+        saveBtn.onclick = submitEditForm;
+        updateCostModal.show();
+    }
+
+    function submitEditForm() {
+        event.preventDefault();
+        const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+        showRealCostsLoading();
+        const itemKey = (document.getElementById('NameCost').textContent || '').trim();
+        const concept = document.getElementById('concept').value;
+        const description = document.getElementById('descriptionValue').value;
+        const costValue = parseFloat(document.getElementById('costValue').value);
+        const original_concept = document.getElementById('original_concept').value;
+        const original_description = document.getElementById('original_description').value;
+
+        const payload = {
+            item: itemKey,
+            concept,
+            description,
+            costValue,
+            original_concept,
+            original_description,
+        };
+
+        fetch(`/production/{{project.id}}/update_real_cost_item/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(r => {
+            if (!r.ok) throw new Error('Update failed');
+            return r.json();
+        })
+        .then(() => {
+            showAlert('Cost updated successfully', 'success');
+            if (updateCostModal) { try { updateCostModal.hide(); } catch(e){} }
+            setTimeout(() => { updateCostChart(); reloadRealCostSection(); }, 400);
+        })
+        .catch(err => {
+            console.error(err);
+            showAlert('Error updating cost', 'danger');
+            hideRealCostsLoading();
+        });
+    }
+
+    function confirmDeleteRealCost(itemKey, concept, description) {
+        if (!confirm('Delete this cost entry?')) return;
+        const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+        showRealCostsLoading();
+        fetch(`/production/{{project.id}}/delete_real_cost_item/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken,
+            },
+            body: JSON.stringify({ item: itemKey, concept, description })
+        })
+        .then(r => {
+            if (!r.ok) throw new Error('Delete failed');
+            return r.json();
+        })
+        .then(() => {
+            showAlert('Cost deleted successfully', 'success');
+            setTimeout(() => { updateCostChart(); reloadRealCostSection(); }, 300);
+        })
+        .catch(err => {
+            console.error(err);
+            showAlert('Error deleting cost', 'danger');
+            hideRealCostsLoading();
+        });
+    }
 
     function uploadFileEvidence(file_input, folder_id) {
         const formData = new FormData();
