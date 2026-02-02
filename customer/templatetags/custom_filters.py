@@ -43,6 +43,18 @@ def days_since(value):
     return delta.days
 
 @register.filter
+def split_lines(value):
+    """Split text by newlines into a list of paragraphs (non-empty lines). For use in templates to render scope paragraph by paragraph."""
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [s.strip() for s in value.splitlines() if s.strip()]
+    if isinstance(value, list):
+        return value
+    return [str(value)]
+
+
+@register.filter
 def type_of(value):
     if isinstance(value, str):
         return "string"

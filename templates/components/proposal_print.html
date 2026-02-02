@@ -24,6 +24,14 @@
     .no-break {
         page-break-inside: avoid;
     }
+    /* Evitar fractura dentro de cada párrafo del scope (no partir un párrafo entre hojas) */
+    .scope-paragraph {
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+    @media print {
+        .scope-paragraph { page-break-inside: avoid; break-inside: avoid; }
+    }
     .header-blue {
         background-color: #1a4784;
         color: white;
@@ -191,9 +199,15 @@
                     {% for key, data in proposal.proposalInfo.items %}
                         {% if key != 'price' %}
                             <ol id="scope-list">
-                                <p class="text-start scope-title">
-                                     {% if data.scope|type_of == "string" %}{{ data.scope|linebreaksbr }}{% else %}{{ data.scope | join:", " }}{% endif %}
-                                </p>
+                                {% if data.scope|type_of == "string" %}
+                                    {% for paragraph in data.scope|split_lines %}
+                                        <p class="text-start scope-paragraph">{{ paragraph }}</p>
+                                    {% empty %}
+                                        <p class="text-start scope-paragraph">{{ data.scope|linebreaksbr }}</p>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-start scope-paragraph">{{ data.scope | join:", " }}</p>
+                                {% endif %}
                             </ol>
                             <div class="materials-box bg-white no-break">
                                 <div class="materials-header">Materials shall be as follows:</div>
