@@ -9,8 +9,27 @@
         box-shadow: 2px 0px 100px 10px #0000001e;
 
     }
+    /* Terms and conditions: evitar que se corten letras y que aparezca barra negra en saltos de línea (PDF) */
     #termsInput{
         text-align: justify;
+        overflow: visible;
+        line-height: 1.5;
+        padding: 0.5rem 0.75rem 0.75rem 0.75rem;
+        min-height: 1.5em;
+        box-sizing: border-box;
+        border: none !important;
+        outline: none !important;
+        box-shadow: none !important;
+    }
+    .termsContainer {
+        overflow: visible;
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+    .termsContainer #termsInput {
+        display: block;
+        page-break-inside: avoid;
+        break-inside: avoid;
     }
 
     #main-container{
@@ -116,6 +135,14 @@
     .form-control {
         overflow: hidden;
         resize: none;
+    }
+    /* Excepción: terms no debe recortar texto ni mostrar bordes que se dibujan como barra en el PDF */
+    #termsInput.form-control {
+        overflow: visible;
+        border: none !important;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
     }
 </style>
     {% csrf_token %}
@@ -292,19 +319,15 @@
                 </div>
             </div>
             
-        <div class="bg-company  p-4 mt-4 termsContainer">
+        <div class="bg-company p-4 mt-4 termsContainer js-pdf-no-break">
             <label for="termsInput" class='text-white pb-2 d-flex'><b>Terms and conditions</b></label>
             <div id="termsInput" class="form-control text-justify text-sm" style='white-space: pre-wrap;'>{{ proposal.terms_conditions }}</div>
         </div>
         <script>
             function generatePDF() {
-                // Selección del contenedor principal
                 const element = document.getElementById('main-container');
-
-                // Configuración de opciones para html2pdf
                 const opt = {
                     filename: `PS_{{ proposal.project_name }}__{{ proposal.id }}__{{now|date:"m-d-y" }}.pdf`,
-                    // No incluir la opción 'image' para evitar rasterización
                     html2canvas: { 
                         scale: 2,
                         useCORS: true,
@@ -317,10 +340,9 @@
                         orientation: 'portrait',
                         hotfixes: ['px_scaling']
                     },
-                    margin: [0, 0, 0, 0]
+                    margin: [0, 0, 0, 0],
+                    pagebreak: { mode: ['css', 'legacy'], avoid: ['.termsContainer', '.js-pdf-no-break', '#termsInput'] }
                 };
-
-                // Generación y descarga del PDF
                 html2pdf().set(opt).from(element).save();
             }
         </script>

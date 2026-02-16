@@ -99,10 +99,9 @@ function sendProposalEmail() {
     const pdfOptions = {
         margin: 0,
         filename: 'proposal_' + projectId + '_' + proposalId + '.pdf',
-        // No incluir la opción 'image' para evitar rasterización
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'] }
+        pagebreak: { mode: ['css', 'legacy'], avoid: ['.termsContainer', '.js-pdf-no-break', '#termsInput'] }
     };
     html2pdf().set(pdfOptions).from(element).outputPdf('blob').then(function(pdfBlob) {
         formData.append('pdf_file', pdfBlob, 'Proposal_' + projectId + '_' + proposalId + '.pdf');
