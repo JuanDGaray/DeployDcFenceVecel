@@ -3,7 +3,7 @@
 {% load custom_filters %}
 {% block content%}
 {% include "loading_component.html" %} 
-<div class="container d-flex flex-column justify-content-center p-4">
+<div class="container d-flex flex-column justify-content-center p-4" data-view="view_project">
   {% include 'components/project_table.html' with projectindex=True %}
 
 

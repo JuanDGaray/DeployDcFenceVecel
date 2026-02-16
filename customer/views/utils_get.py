@@ -13,6 +13,7 @@ from django.shortcuts import get_object_or_404
 import os
 from django.conf import settings
 from django.utils.timezone import now
+from datetime import datetime
 
 @login_required
 def get_proposals(request, page=1):
@@ -89,7 +90,7 @@ def get_array_projects(request):
 @login_required
 def get_projects(request, page=1):
         timeInitial = timezone.now()
-        view = request.GET.get('view')
+        view = request.GET.get('view') or 'view_project'
         allProjects = request.GET.get('all')
         onlyMe = request.GET.get('only-me')
         sort = request.GET.get('sort')
@@ -101,7 +102,7 @@ def get_projects(request, page=1):
         current_user = request.user
         is_admin = current_user.is_superuser or current_user.groups.filter(name='ADMIN').exists()
 
-        # Determinar qué proyectos mostrar basado en los filtros
+        # Determinar qué proyectos mostrar: view_project = todos; otro = solo mis proyectos
         if view == 'view_project':
             if onlyMe == 'true':
                 # Solo proyectos del usuario actual
@@ -119,9 +120,9 @@ def get_projects(request, page=1):
                     'customer__customer_type', 'customer__first_name', 'customer__last_name', 'customer__company_name',
                     'sales_advisor__first_name', 'sales_advisor__last_name', 'sales_advisor__id', 'collaborators'
                 )
-            numberProjects = 15
+            numberProjects = 25
         else:
-            # Vista "My Projects" - siempre solo proyectos del usuario
+            # Vista "My Projects" / My Space - solo proyectos del usuario
             projects = Project.objects.filter(sales_advisor=request.user).order_by(sort).values(
                 'id', 'project_name', 'status', 
                 'sales_advisor__username', 'estimated_cost', 'actual_cost', 'created_at', 'customer',
@@ -141,16 +142,20 @@ def get_projects(request, page=1):
             if status:
                 filters &= Q(status=status)
             if due_date:
-                filters &= Q(created_at=due_date)
+                try:
+                    filter_date = datetime.strptime(due_date.strip(), '%Y-%m-%d').date()
+                    filters &= Q(created_at__date=filter_date)
+                except (ValueError, TypeError):
+                    pass
             if project_name:
                 filters &= Q(project_name__icontains=project_name)
 
             # Aplica todos los filtros en una sola consulta
             projects = projects.filter(filters)
 
-        # Paginación
+        # Paginación (si "View all" está marcado, traer hasta 5000 por página)
         if allProjects == 'true':
-            numberProjects = 1000
+            numberProjects = 5000
         paginator = Paginator(projects, numberProjects)
         page_obj = paginator.get_page(page)
         
@@ -433,7 +438,11 @@ def get_invoices(request, page=1):
             if status:
                 filters &= Q(status=status)
             if due_date:
-                filters &= Q(created_at=due_date)
+                try:
+                    filter_date = datetime.strptime(due_date.strip(), '%Y-%m-%d').date()
+                    filters &= Q(created_at__date=filter_date)
+                except (ValueError, TypeError):
+                    pass
             # Aplica todos los filtros en una sola consulta
             invoices = invoices.filter(filters)
 
