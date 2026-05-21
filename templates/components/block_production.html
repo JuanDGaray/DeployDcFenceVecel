@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const endDateInput = document.getElementById('end_date');
     const selectManager = document.getElementById('selectManager');
     const selectProjectManager = document.getElementById('selectProjectManager');
+    const selectSalesManager = document.getElementById('selectSalesManager');
     
     // Get project ID from URL
     const projectId = window.location.pathname.split('/').filter(segment => segment !== '').pop();
@@ -43,13 +44,17 @@ document.addEventListener('DOMContentLoaded', function() {
         // Validate all required fields
         const errors = [];
         
+        if (selectSalesManager && selectSalesManager.value === '') {
+            errors.push('Sales Manager is required');
+        }
+
         // Check if accounting manager is selected (only if the select exists and is visible)
-        if (selectManager && selectManager.style.display !== 'none' && selectManager.value === '') {
+        if (selectManager && selectManager.value === '') {
             errors.push('Accounting Manager is required');
         }
         
         // Check if project manager is selected (only if the select exists and is visible)
-        if (selectProjectManager && selectProjectManager.style.display !== 'none' && selectProjectManager.value === '') {
+        if (selectProjectManager && selectProjectManager.value === '') {
             errors.push('Project Manager is required');
         }
         
@@ -87,6 +92,10 @@ document.addEventListener('DOMContentLoaded', function() {
         formData.append('end_date', endDateInput.value);
         
         // Only add manager IDs if the selects exist and have values
+        if (selectSalesManager && selectSalesManager.value) {
+            formData.append('sales_advisor_id', selectSalesManager.value);
+        }
+
         if (selectManager && selectManager.value) {
             formData.append('accounting_manager_id', selectManager.value);
         }

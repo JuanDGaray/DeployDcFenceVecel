@@ -43,6 +43,44 @@ client = Groq(
 )
 
 
+def user_is_admin(user):
+    return user.is_superuser or user.groups.filter(name='ADMIN').exists()
+
+
+def manager_needs_reassign(user):
+    return user is None or not getattr(user, 'is_active', True)
+
+
+def get_production_users_dict():
+    groups = Group.objects.prefetch_related("user_set").all()
+    admin_users = []
+    production_users = []
+    for group in groups:
+        if group.name == "ADMIN":
+            admin_users = [
+                {
+                    "name": f"{user.first_name} {user.last_name}".strip() or user.username,
+                    "email": user.email,
+                    "id": user.id,
+                }
+                for user in group.user_set.filter(is_active=True)
+            ]
+        elif group.name == "PRODUCTION":
+            production_users = [
+                {
+                    "name": f"{user.first_name} {user.last_name}".strip() or user.username,
+                    "email": user.email,
+                    "id": user.id,
+                }
+                for user in group.user_set.filter(is_active=True)
+            ]
+    return {'Admins': admin_users, 'Managers': production_users}
+
+
+def get_active_sellers_queryset():
+    return User.objects.filter(is_active=True).order_by('first_name', 'last_name')
+
+
 def log_project_history(request, project, action, description):
     try:
         project_history = ProjectHistory.objects.create(
@@ -354,11 +392,14 @@ def copy_info_item_table(exclusionList, original_object):
 def detail_project(request, project_id):
     if request.method == 'GET':
         project = get_object_or_404(
-            Project.objects.only(
-                'id', 'project_name', 'customer', 'status', 'estimated_cost', 
-                'actual_cost', 'sales_advisor', 'project_manager', 'created_at', 
-                'updated_at', 'city', 'state', 'zip_code', 'country', 'folder_id'
-            ), 
+            Project.objects.select_related(
+                'customer', 'sales_advisor', 'accounting_manager', 'project_manager',
+            ).only(
+                'id', 'project_name', 'customer', 'status', 'estimated_cost',
+                'actual_cost', 'sales_advisor', 'accounting_manager', 'project_manager',
+                'created_at', 'updated_at', 'city', 'state', 'zip_code', 'country',
+                'folder_id',
+            ),
             pk=project_id
         )
         
@@ -407,20 +448,20 @@ def detail_project(request, project_id):
                 budgets_dict[related_id] = {'budget': [budget]}
             else:
                 budgets_dict[related_id]['budget'].insert(0, budget)
-        productionUsers = None  
-        project_manager_not_available = project.status in ['new', 'contacted', 'quote_sent', 'in_negotiation', 'not_approved', 'cancelled', 'approved','planning_and_documentation', 'in_accounting']
+        productionUsers = None
+        project_manager_not_available = project.status in ['new', 'contacted', 'quote_sent', 'in_negotiation', 'not_approved', 'cancelled', 'approved', 'planning_and_documentation', 'in_accounting']
         accounting_manager_not_available = project.status in ['new', 'contacted', 'quote_sent', 'in_negotiation', 'not_approved', 'cancelled', ]
+        accounting_manager_needs_reassign = manager_needs_reassign(project.accounting_manager)
+        project_manager_needs_reassign = manager_needs_reassign(project.project_manager)
+        sales_advisor_needs_reassign = manager_needs_reassign(project.sales_advisor)
+        sellers = get_active_sellers_queryset() if is_admin else None
 
-        if not project_manager_not_available or not accounting_manager_not_available :
-            groups = Group.objects.prefetch_related("user_set").all()
-            admin_users = []
-            production_users = []
-            for group in groups:
-                if group.name == "ADMIN":
-                    admin_users = [{"name": user.first_name + user.last_name, "email": user.email, "id":  user.id} for user in group.user_set.all()]
-                elif group.name == "PRODUCTION":
-                    production_users = [{"name": user.first_name + user.last_name, "email": user.email, "id":  user.id} for user in group.user_set.all()]
-            productionUsers = {'Admins': admin_users, 'Managers':production_users}
+        if (
+            not project_manager_not_available
+            or not accounting_manager_not_available
+            or is_admin
+        ):
+            productionUsers = get_production_users_dict()
 
         status_choices = Project.STATUS_CHOICES
         timeline_steps = get_timeline_steps(project)
@@ -459,6 +500,10 @@ def detail_project(request, project_id):
             'customers': customers,
             'project_manager_not_available': project_manager_not_available,
             'accounting_manager_not_available': accounting_manager_not_available,
+            'accounting_manager_needs_reassign': accounting_manager_needs_reassign,
+            'project_manager_needs_reassign': project_manager_needs_reassign,
+            'sales_advisor_needs_reassign': sales_advisor_needs_reassign,
+            'sellers': sellers,
             'last_proposal_approved': last_proposal_approved,
             'is_superuser_or_admin_or_accounting_manager': request.user.is_superuser or request.user.groups.filter(name='ADMIN').exists() or project.accounting_manager == request.user ,
             'total_paid': total_paid,
@@ -526,8 +571,20 @@ def assign_accounting_manager(request, project_id, manager_id):
     if request.method == 'POST':
         try:
             project = get_object_or_404(Project, id=project_id)
-            manager = get_object_or_404(User, id=manager_id)
-            
+            manager = get_object_or_404(User, id=manager_id, is_active=True)
+            is_admin = user_is_admin(request.user)
+            accounting_manager_not_available = project.status in [
+                'new', 'contacted', 'quote_sent', 'in_negotiation', 'not_approved', 'cancelled',
+            ]
+            if not is_admin and (
+                accounting_manager_not_available
+                or not manager_needs_reassign(project.accounting_manager)
+            ):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Only administrators can assign the accounting manager in this state.',
+                }, status=403)
+
             # Assign the accounting manager
             project.accounting_manager = manager
             project.save()
@@ -561,8 +618,21 @@ def assign_project_manager(request, project_id, manager_id):
     if request.method == 'POST':
         try:
             project = get_object_or_404(Project, id=project_id)
-            manager = get_object_or_404(User, id=manager_id)
-            
+            manager = get_object_or_404(User, id=manager_id, is_active=True)
+            is_admin = user_is_admin(request.user)
+            project_manager_not_available = project.status in [
+                'new', 'contacted', 'quote_sent', 'in_negotiation', 'not_approved', 'cancelled',
+                'approved', 'planning_and_documentation', 'in_accounting',
+            ]
+            if not is_admin and (
+                project_manager_not_available
+                or not manager_needs_reassign(project.project_manager)
+            ):
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Only administrators can assign the project manager in this state.',
+                }, status=403)
+
             # Assign the project manager
             project.project_manager = manager
             project.save()

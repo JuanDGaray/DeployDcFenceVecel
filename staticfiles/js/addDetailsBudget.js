@@ -139,6 +139,11 @@ function populateUtils(data) {
     document.getElementById("cboxMWadd").checked = utilsData.add_data_profit_by_daymw;
     document.getElementById("cbox4").checked = utilsData.add_loans;
 
+    const percentageLoansEl = document.getElementById("percentage-loans");
+    if (percentageLoansEl && utilsData.percentage != null && utilsData.percentage !== undefined) {
+        percentageLoansEl.value = utilsData.percentage;
+    }
+
 }
 
 function addManualData(data) {
@@ -192,6 +197,7 @@ function toggleCheckboxesInChecklist(data) {
 
 document.addEventListener("DOMContentLoaded", () => {
     console.log(dataC)
+    window.budgetInitialLoad = true;
     populateUtils(dataC.utils);
     addManualData(dataC)
     toggleAddHole()
@@ -209,5 +215,11 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleCheckboxes(false);
     toggleCheckboxes(dataC.utils[0].add_unit_cost_mi);
     updateRowNumbers(laborSection);
-    reloadMarginError()
+    reloadMarginError();
+
+    const utils = dataC.utils[0];
+    if (utils.add_loans && typeof reoloadLoans === "function") {
+        reoloadLoans();
+    }
+    window.budgetInitialLoad = false;
 });

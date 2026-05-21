@@ -1712,6 +1712,35 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
+
+  const selectSalesManager = document.getElementById('selectSalesManager');
+  if (selectSalesManager) {
+    selectSalesManager.addEventListener('change', function() {
+      const managerId = this.value;
+      if (!managerId) return;
+
+      fetch(`/projects/{{ project.id }}/assign_sales_manager/${managerId}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token }}',
+        },
+      })
+        .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+        .then(({ ok, data }) => {
+          if (ok && data.status === 'success') {
+            window.location.reload();
+          } else {
+            alert('Error assigning sales manager: ' + (data.message || 'Unknown error'));
+            selectSalesManager.value = '';
+          }
+        })
+        .catch(() => {
+          alert('Error assigning sales manager. Please try again.');
+          selectSalesManager.value = '';
+        });
+    });
+  }
 });
 
 // Global variable to store all items

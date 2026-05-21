@@ -78,6 +78,7 @@ urlpatterns = [
     path('projects/<int:project_id>/selectManager/', views.select_Manager, name='select_manager'),
     path('projects/<int:project_id>/assign_accounting_manager/<int:manager_id>/', views.assign_accounting_manager, name='assign_accounting_manager'),
     path('projects/<int:project_id>/assign_project_manager/<int:manager_id>/', views.assign_project_manager, name='assign_project_manager'),
+    path('projects/<int:project_id>/assign_sales_manager/<int:manager_id>/', views.assign_sales_manager, name='assign_sales_manager'),
     path('projects/<int:project_id>/add_comment/', views.add_comment, name='add_comment'),
     path('projects/<int:project_id>/edit_project/', views.edit_project, name='edit_project'),
     path('projects/create-folder/', utils.create_folder_in_drive, name='create_folder_in_drive'),
