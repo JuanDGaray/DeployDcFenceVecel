@@ -138,6 +138,10 @@ function populateUtils(data) {
     document.getElementById("add-removal-per-FT").checked = utilsData.add_removal_checked;
     document.getElementById("cboxMWadd").checked = utilsData.add_data_profit_by_daymw;
     document.getElementById("cbox4").checked = utilsData.add_loans;
+    const percentageLoansEl = document.getElementById("percentage-loans");
+    if (percentageLoansEl && utilsData.percentage != null && utilsData.percentage !== '') {
+        percentageLoansEl.value = utilsData.percentage;
+    }
 
 }
 
@@ -191,6 +195,7 @@ function toggleCheckboxesInChecklist(data) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    window.budgetInitialLoad = true;
     console.log(dataC)
     populateUtils(dataC.utils);
     addManualData(dataC)
@@ -209,5 +214,9 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleCheckboxes(false);
     toggleCheckboxes(dataC.utils[0].add_unit_cost_mi);
     updateRowNumbers(laborSection);
-    reloadMarginError()
+    reloadMarginError();
+    if (dataC.utils && dataC.utils[0] && dataC.utils[0].add_loans && typeof reoloadLoans === 'function') {
+        reoloadLoans();
+    }
+    window.budgetInitialLoad = false;
 });
