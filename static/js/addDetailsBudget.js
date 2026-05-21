@@ -19,7 +19,7 @@ function updateTableMi(data) {
 function updateManufacturingTable(data) {
     data.forEach(entry => {
         // Escape special characters in the item name for the selector
-        const escapedItem = entry.item.trim().replace(/[&]/g, '\\&').replace(/\s+/g, '-').replace(/[.]/g, '\\.');
+        const escapedItem = entry.item.trim().replace(/[&]/g, '\\&').replace(/\s+/g, '-');
         const row = document.querySelector(`#manufacturing-${escapedItem}`);
         if (row) {
             const daysInput = row.querySelector(`input[type="number"]`);
@@ -38,7 +38,7 @@ function updateManufacturingTable(data) {
 function updateManufacturingMWTable(data) {
     data.forEach(entry => {
         // Escape special characters in the item name for the selector
-        const escapedItem = entry.item.trim().replace(/[&]/g, '\\&').replace(/\s+/g, '-').replace(/[.]/g, '\\.');
+        const escapedItem = entry.item.trim().replace(/[&]/g, '\\&').replace(/\s+/g, '-');
         const row = document.querySelector(`#manufacturingMW-${escapedItem}`);
         if (row) {
             // Actualiza el campo de qtyWLD si existe
@@ -71,9 +71,7 @@ function populateUtils(data) {
     utilsData.cost_data.forEach(entry => addItem(entry.item));
     document.getElementById("assistantCostByDay").value = utilsData.data_unit_cost_mw[0].value;;
     document.getElementById("welderCostByDay").value = utilsData.data_unit_cost_mw[1].value;
-
-    document.getElementById("marginErrorCheck").checked = utilsData.margin_error_check;
-    document.getElementById("marginErrorPercentage").value = utilsData.percentage_margin_error;
+    
 
     document.getElementById("Labor_gas").value = utilsData.manufacturing_data.Gas  || 0;
     document.getElementById("Labor_water").value = utilsData.manufacturing_data.Water  || 0;
@@ -89,11 +87,12 @@ function populateUtils(data) {
     utilsData.totalFtAdPost.forEach((obj) => {
         if (obj && typeof obj === "object") {
             Object.keys(obj).forEach((key) => {
-                
                 const entry = obj[key]; // Accede al contenido del objeto por la clave
-                const element = document.getElementById(key); // Busca el elemento en el DOM\
+                const element = document.getElementById(key); // Busca el elemento en el DOM
+    
                 if (element) {
                     console.log(`Elemento encontrado para ID: ${key}`);
+
                     const ft = entry.ft || 0;
                     const posts = entry.posts || 0;
                     const Multiplier = entry.Multiplier || 0;
@@ -109,6 +108,7 @@ function populateUtils(data) {
                         postsInput.value = posts;
                         MultiplierInput.value = Multiplier
                     }
+                    console.warn(`No se encontró ningún elemento con ID: ${key}`);
                 }
             });
         } else {
@@ -212,7 +212,7 @@ document.addEventListener("DOMContentLoaded", () => {
     reloadRowProfitManufacturingMW()
     updatePorfitInstallations()
     toggleCheckboxes(false);
-    toggleCheckboxes(dataC.utils[0].add_unit_cost_mi);
+    toggleCheckboxes(true);
     updateRowNumbers(laborSection);
     reloadMarginError();
     if (dataC.utils && dataC.utils[0] && dataC.utils[0].add_loans && typeof reoloadLoans === 'function') {

@@ -7,9 +7,64 @@ from django.core.validators import EmailValidator, ValidationError
 from django.contrib.auth.password_validation import validate_password
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.db import transaction
 import json
 import traceback
-from ..models import CostItemDescription
+from ..models import (
+    CostItemDescription,
+    Customer,
+    Project,
+    BudgetEstimate,
+    ProposalProjects,
+    InvoiceProjects,
+    PaymentsReceived,
+    commentsProject,
+    ProjectDocumentRequirement,
+    ProjectHistory,
+    ProductionChangeLog,
+    EmailTracking,
+    Notification,
+    ProductionFundingRequest,
+    UserTask,
+    ProjectCollaborationRequest,
+)
+
+
+def transfer_user_ownership(from_user, to_user):
+    """Reassign records owned by from_user to to_user before account deletion."""
+    uid = from_user.id
+    new_id = to_user.id
+
+    Customer.objects.filter(sales_advisor_id=uid).update(sales_advisor_id=new_id)
+    BudgetEstimate.objects.filter(sales_advisor_id=uid).update(sales_advisor_id=new_id)
+    Project.objects.filter(sales_advisor_id=uid).update(sales_advisor_id=new_id)
+    Project.objects.filter(project_manager_id=uid).update(project_manager_id=new_id)
+    Project.objects.filter(accounting_manager_id=uid).update(accounting_manager_id=new_id)
+    ProposalProjects.objects.filter(sales_advisor_id=uid).update(sales_advisor_id=new_id)
+    InvoiceProjects.objects.filter(sales_advisor_id=uid).update(sales_advisor_id=new_id)
+    PaymentsReceived.objects.filter(user_id=uid).update(user_id=new_id)
+    commentsProject.objects.filter(user_id=uid).update(user_id=new_id)
+    ProjectDocumentRequirement.objects.filter(added_by_id=uid).update(added_by_id=new_id)
+    ProjectHistory.objects.filter(user_id=uid).update(user_id=new_id)
+    ProductionChangeLog.objects.filter(user_id=uid).update(user_id=new_id)
+    EmailTracking.objects.filter(sent_by_id=uid).update(sent_by_id=new_id)
+    CostItemDescription.objects.filter(updated_by_id=uid).update(updated_by_id=new_id)
+    Notification.objects.filter(sender_id=uid).update(sender_id=new_id)
+
+    ProductionFundingRequest.objects.filter(requested_by_id=uid).update(requested_by_id=new_id)
+    UserTask.objects.filter(user_id=uid).update(user_id=new_id)
+
+    for project in Project.objects.filter(collaborators=from_user):
+        project.collaborators.remove(from_user)
+        if not project.collaborators.filter(id=new_id).exists():
+            project.collaborators.add(to_user)
+
+    for comment in commentsProject.objects.filter(mentioned_users=from_user):
+        comment.mentioned_users.remove(from_user)
+
+    ProjectCollaborationRequest.objects.filter(requester_id=uid).delete()
+    ProjectCollaborationRequest.objects.filter(requested_by_id=uid).delete()
+    Notification.objects.filter(recipient_id=uid).delete()
 
 @login_required
 def settings(request):
@@ -108,9 +163,13 @@ def delete_user(request):
             return JsonResponse({"error": "You cannot delete yourself, request a Juan Garay to delete you"}, status=403)
         try:
             user_id = request.POST.get("user_id")
-            print('user_id', user_id)
             user = User.objects.get(id=user_id)
-            user.delete()
+            new_owner = request.user
+
+            with transaction.atomic():
+                transfer_user_ownership(user, new_owner)
+                user.delete()
+
             return JsonResponse({"success": "User deleted successfully"}, status=200)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)

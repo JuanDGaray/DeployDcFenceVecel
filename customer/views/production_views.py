@@ -54,21 +54,42 @@ def production(request):
 def production_project(request, project_id):
     if type(project_id) == str:
         project_id = int(project_id)
-    project = get_object_or_404(Project, pk=project_id)
-    if project.accounting_manager == None or project.sales_advisor == None or project.project_manager == None or project.start_date == None or project.end_date == None:
-        groups = Group.objects.prefetch_related("user_set").all()
-        admin_users = []
-        production_users = []
-        for group in groups:
-            if group.name == "ADMIN":
-                admin_users = [{"name": user.first_name + " " + user.last_name, "email": user.email, "id":  user.id} for user in group.user_set.all()]
-            elif group.name == "PRODUCTION":
-                production_users = [{"name": user.first_name + " " + user.last_name, "email": user.email, "id":  user.id} for user in group.user_set.all()]
-        productionUsers = {'Admins': admin_users, 'Managers':production_users}
+    project = get_object_or_404(
+        Project.objects.select_related('sales_advisor', 'accounting_manager', 'project_manager'),
+        pk=project_id,
+    )
+    from .projects_views import (
+        get_production_users_dict,
+        get_active_sellers_queryset,
+        manager_needs_reassign,
+        user_is_admin,
+    )
+    if (
+        manager_needs_reassign(project.accounting_manager)
+        or manager_needs_reassign(project.sales_advisor)
+        or manager_needs_reassign(project.project_manager)
+        or project.start_date is None
+        or project.end_date is None
+    ):
+        is_admin = user_is_admin(request.user)
+        project_manager_not_available = project.status in [
+            'new', 'contacted', 'quote_sent', 'in_negotiation', 'not_approved', 'cancelled',
+            'approved', 'planning_and_documentation', 'in_accounting',
+        ]
+        accounting_manager_not_available = project.status in [
+            'new', 'contacted', 'quote_sent', 'in_negotiation', 'not_approved', 'cancelled',
+        ]
 
         return render(request, 'detail_production_project.html', {
             'project': project,
-            'productionUsers': productionUsers,
+            'productionUsers': get_production_users_dict(),
+            'is_admin': is_admin,
+            'sellers': get_active_sellers_queryset() if is_admin else None,
+            'accounting_manager_not_available': accounting_manager_not_available,
+            'project_manager_not_available': project_manager_not_available,
+            'accounting_manager_needs_reassign': manager_needs_reassign(project.accounting_manager),
+            'project_manager_needs_reassign': manager_needs_reassign(project.project_manager),
+            'sales_advisor_needs_reassign': manager_needs_reassign(project.sales_advisor),
         })
     
 
@@ -482,7 +503,10 @@ def update_project_production(request, project_id):
             end_date = request.POST.get('end_date')
             accounting_manager_id = request.POST.get('accounting_manager_id')
             project_manager_id = request.POST.get('project_manager_id')
-            
+            sales_advisor_id = request.POST.get('sales_advisor_id')
+
+            from .projects_views import manager_needs_reassign
+
             # Validate required fields
             errors = []
             
@@ -491,10 +515,12 @@ def update_project_production(request, project_id):
             if not end_date:
                 errors.append('End date is required')
             
-            # Only validate managers if they are not already assigned
-            if not project.accounting_manager and not accounting_manager_id:
+            # Only validate managers if they are not already assigned (or need reassignment)
+            if manager_needs_reassign(project.sales_advisor) and not sales_advisor_id:
+                errors.append('Sales manager is required')
+            if manager_needs_reassign(project.accounting_manager) and not accounting_manager_id:
                 errors.append('Accounting manager is required')
-            if not project.project_manager and not project_manager_id:
+            if manager_needs_reassign(project.project_manager) and not project_manager_id:
                 errors.append('Project manager is required')
             
             if errors:
@@ -519,12 +545,15 @@ def update_project_production(request, project_id):
                 project.start_date = start_date
             if end_date:
                 project.end_date = end_date
+            if sales_advisor_id:
+                sales_advisor = get_object_or_404(User, id=sales_advisor_id, is_active=True)
+                project.sales_advisor = sales_advisor
             if accounting_manager_id:
-                accounting_manager = get_object_or_404(User, id=accounting_manager_id)
+                accounting_manager = get_object_or_404(User, id=accounting_manager_id, is_active=True)
                 project.accounting_manager = accounting_manager
                 create_manager_assignment_notification(project, accounting_manager, 'accounting', request.user)
             if project_manager_id:
-                project_manager = get_object_or_404(User, id=project_manager_id)
+                project_manager = get_object_or_404(User, id=project_manager_id, is_active=True)
                 project.project_manager = project_manager
                 create_manager_assignment_notification(project, project_manager, 'production', request.user)
             # Save the project

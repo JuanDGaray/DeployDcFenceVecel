@@ -143,6 +143,11 @@ function populateUtils(data) {
         percentageLoansEl.value = utilsData.percentage;
     }
 
+    const percentageLoansEl = document.getElementById("percentage-loans");
+    if (percentageLoansEl && utilsData.percentage != null && utilsData.percentage !== undefined) {
+        percentageLoansEl.value = utilsData.percentage;
+    }
+
 }
 
 function addManualData(data) {
@@ -197,6 +202,7 @@ function toggleCheckboxesInChecklist(data) {
 document.addEventListener("DOMContentLoaded", () => {
     window.budgetInitialLoad = true;
     console.log(dataC)
+    window.budgetInitialLoad = true;
     populateUtils(dataC.utils);
     addManualData(dataC)
     toggleAddHole()
@@ -215,7 +221,13 @@ document.addEventListener("DOMContentLoaded", () => {
     toggleCheckboxes(dataC.utils[0].add_unit_cost_mi);
     updateRowNumbers(laborSection);
     reloadMarginError();
+<<<<<<< HEAD
     if (dataC.utils && dataC.utils[0] && dataC.utils[0].add_loans && typeof reoloadLoans === 'function') {
+=======
+
+    const utils = dataC.utils[0];
+    if (utils.add_loans && typeof reoloadLoans === "function") {
+>>>>>>> rescue-branch
         reoloadLoans();
     }
     window.budgetInitialLoad = false;

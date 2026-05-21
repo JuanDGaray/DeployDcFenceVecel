@@ -132,7 +132,6 @@ function createMaterialRow(data = null) {
     tbodyMaterial.appendChild(newRowMaterial);
     updateSelectOptions();
     updateRowNumbers(materialsSection)
-    reloadMarginError()
 }
 
 // Event listener for adding a new materials row when the button is clicked
@@ -318,9 +317,6 @@ materialsSection.addEventListener("input", function (event) {
             updateRowNumbers(materialsSection)
     }
     updateValuesUI()
-    if (document.getElementById('marginErrorCheck').checked){
-        reloadMarginError()
-    }
 });
 
 
@@ -384,7 +380,6 @@ materialsSection.addEventListener('click', function(event) {
             row.remove();
             updateTotalCost(); // Update total after removal
             updateRowNumbers(materialsSection)
-            reloadMarginError()
         }
     }
     updateValuesUI()
@@ -477,7 +472,6 @@ function updateTotalCost() {
     let miscTotal = 0;
     let deductsTotal = 0;
     let profitTotal = 0;
-    let mairginTotal = 0;
 
     // Calculate labor subtotal
     const laborCostInputs = laborSection.querySelectorAll('input[name="Labor_Cost"]');
@@ -516,18 +510,6 @@ function updateTotalCost() {
     subtotalMiscCost.value = miscTotal.toFixed(2); 
     formatTotalCost(subtotalMiscCost)
 
-    // Calculate margin error
-    if (document.getElementById('marginErrorCheck').checked){
-        const marginErrorSection = document.querySelector('.margin-error-table')
-        const marginErrorInputs = marginErrorSection.querySelectorAll('input[name="marginError_cost"]');
-        const subtotalMarginError =  $$$('total_margin_error_cost');
-        marginErrorInputs.forEach(input => {
-            mairginTotal += parseFloat(input.value) || 0;
-        });
-        subtotalMarginError.value = mairginTotal.toFixed(2); 
-        formatTotalCost(subtotalMarginError)
-    }
-    
 
     // Calculate deducts subtotal
     const deductsCostInputs = deductsSection.querySelectorAll('input[name="deducts_UnitCost"]');
@@ -553,7 +535,7 @@ function updateTotalCost() {
    
 
     // Update the total cost by summing the subtotals
-    total = laborTotal + materialsTotal + contractorTotal + miscTotal + mairginTotal ;
+    total = laborTotal + materialsTotal + contractorTotal + miscTotal;
     totalCostInput.value = total.toFixed(2); 
 
     granTotalInput = $$$('grand_Cost');
@@ -588,7 +570,7 @@ function updateTotalCost() {
     let labelPercentaProfit = $('#percentage-profit'); 
     labelPercentaProfit.textContent = percentageProfit.toFixed(0) + '%';
     
-    validateInputs()
+
     return total
 }
 
@@ -774,10 +756,7 @@ function toggleUtilitiesPerFT(){
         updateTotalCost()
         updateValuesUI()
         updateSelectOptions()
-        updateRowNumbers(materialsSection)
-        console.log("updateTotalCost")
-        reloadMarginError()
-    }
+        updateRowNumbers(materialsSection)}
 
 const elementUtilities = $$$("add-utilities-per-FT");
 elementUtilities.onclick = toggleUtilitiesPerFT;
@@ -1105,11 +1084,6 @@ function addItem(input=null) {
         alert("El ítem ya existe.");
         return;
     }
-    if (!/^[a-zA-Z .&]*$/.test(inputValue)) {
-        alert("The item must only contain letters, spaces, dots (.), or ampersands (&).");
-        return;
-    }
-    
 
     // Agregar el nuevo item al array
     items.push(inputValue.trim().replace(/\s+/g, '-'));
@@ -1254,7 +1228,7 @@ function activeRowProfitManufacturingMW(checkboxAdd){
             const textNode = checkbox?.parentElement;
             const text = textNode ? textNode.textContent.trim().replace(/\s+/g, '-') : "";
             if (checkbox.checked && daysInput && checkboxAdd.checked) {
-                const days = parseFloat(daysInput.value) || 0; 
+                const days = parseInt(daysInput.value) || 0; 
                 addRowProfitManufacturingMW(checkbox, days, text);
             }
         });
@@ -1265,7 +1239,6 @@ function activeRowProfitManufacturingMW(checkboxAdd){
 
 
 function addRowProfitManufacturingMW(checkbox, days, title){
-    console.log(days)
     const tbodyProfits = $$$('profit-section');
     const rowCountProfits = tbodyProfits.querySelectorAll('tr').length; // Correct row count
     const uniqueRowId = `profit-row-manufacturingMW`
@@ -1310,7 +1283,7 @@ function reloadRowProfitManufacturingMW(){
         const textNode = checkbox?.parentElement;
         const text = textNode ? textNode.textContent.trim().replace(/\s+/g, '-') : "";
         if (checkbox.checked && daysInput && checkboxProfit.checked) {
-            const days = parseFloat(daysInput.value) || 0; 
+            const days = parseInt(daysInput.value) || 0; 
             addRowProfitManufacturingMW(checkbox, days, text);
         }
     });
@@ -1361,7 +1334,7 @@ function removeItem(element, value) {
     ];
     ischeckboxMW.checked = false
     updateAddHole()
-    var ischeckboxFtPost = document.querySelectorAll(`.FT\\&Post${value.trim().replace(/\s+/g, '-').replace(/&/g, '\\&')}`);
+    var ischeckboxFtPost = document.querySelectorAll(`.FT\\&Post${value.trim().replace(/\s+/g, '-')}`);
     if (ischeckboxFtPost.length > 0) {
         ischeckboxFtPost.forEach((element) => {
             element.remove();
@@ -1400,7 +1373,6 @@ function removeItem(element, value) {
         toggleCheckboxes(false);
         toggleCheckboxes(true);
     }
-    reloadMarginError()
     updatePorfitInstallations()
     removeAllElemetsByItems(value)
     reloadRowProfitManufacturingMW()
@@ -1411,9 +1383,10 @@ function removeItem(element, value) {
     }
     updateSelectOptions();
     calculateProfitByItem()
+    
+    
     const projectsCountSpan = document.getElementById('projects-count');
     projectsCountSpan.textContent = items.length - 1;
-    validateInputs()
 
 }
 function removeAllElemetsByItems(item){
@@ -1467,28 +1440,6 @@ let costManagement = $('#cost-management')
 let itemSelects = costManagement.querySelectorAll('#itemsSelect');
 let costInputs = costManagement.querySelectorAll('#total_Cost');
 
-function checkItemHasFts(itemName) {
-    // Selecciona todas las filas del cuerpo de la tabla
-    const rows = document.querySelectorAll("#tbodyFt\\&Post tr");
-    let ftsValue = 0;
-    
-    for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        const itemCell = row.querySelector("td:first-child input[type='checkbox']");
-        const ftsInput = row.querySelector("input[name='ft']");
-
-        // Verifica si el nombre del ítem coincide
-        if (itemCell && itemCell.id.includes(itemName)) {
-            // Verifica si el valor en 'Fts' es mayor que 0 (sin importar si está activo o no)
-            if (ftsInput && ftsInput.value && parseFloat(ftsInput.value) > 0) {
-                ftsValue = parseFloat(ftsInput.value);
-                break; // Sale del bucle cuando encuentra el item correcto
-            }
-        }
-    }
-
-    return ftsValue;
-}
 
 function calculateTotalByItem() {
     let itemSelects = costManagement.querySelectorAll('#itemsSelect');
@@ -1536,52 +1487,49 @@ function calculateTotalByItem() {
                     cost = parseFloat(dedusctsCostInput.value)
             }
         }
-        else if (select.closest('#margin-error-section')) {
-            const marginErrorCostInput = select.parentElement.parentElement.parentElement.querySelector("#marginError_cost");
-            if(marginErrorCostInput){
-                cost = parseFloat(marginErrorCostInput.value)
-        }
-    }
+            
         // Sumar el costo al total
         nameDesc = select.parentElement.querySelector("input").value
         totalsByItem[selectedItem] += cost; 
         descriptionByItem[selectedItem]['ID'+(index+1) + '- ' + nameDesc] = cost
+        
+        // Para depuración: mostrar el total actual por cada elemento
     });
-
     // Mostrar todos los totales al final
+    // Obtener la referencia al cuerpo de la tabla
     const tableBody = document.querySelector('#cost_per_items tbody');
+    // Limpiar el contenido de la tabla (en caso de que ya existan datos)
     tableBody.innerHTML = '';
+    // Obtener las claves (nombres de los ítems) y ordenarlas alfabéticamente
     const sortedItems = Object.keys(totalsByItem).sort();
 
+    // Iterar sobre los ítems ordenados
     sortedItems.forEach(item => {
         if (totalsByItem.hasOwnProperty(item)) {
-            const totalCost = totalsByItem[item];
-            const ftsValue = checkItemHasFts(item);
-            console.log('ftsValue', item, ftsValue)
-            const costPerFoot = ftsValue > 0 ? totalCost / ftsValue : 0;
-
-            let row = `
-            <tr>
-                <td class="p-0 px-2">${item}</td>
-                <td class="p-0 px-2">$${totalCost.toFixed(2)}${ftsValue > 0 ? ` ($${costPerFoot.toFixed(2)}/ft)` : ''}</td>
-            </tr>`;
-            
+            // Crear una nueva fila
+            row = `
+            <tr >
+                <td class="p-0  px-2">${item}</td>
+                <td class="p-0  px-2">$${totalsByItem[item].toFixed(2)}</td>
+            </tr>`
+            // Añadir la fila al cuerpo de la tabla
             tableBody.insertAdjacentHTML('beforeend', row);
+            // Añadir las celdas a la fila
+            
 
             Object.entries(descriptionByItem[item]).forEach(([subKey, subValue]) => {
-                if (subKey !== 'Fts') {
                     row = `
                     <tr class="table-secondary p-4" style="font-size:0.8rem">
                         <td colspan="2" class="p-0 border px-4">${subKey} - (${subValue})</td>
                     </tr>`;
-                    tableBody.insertAdjacentHTML('beforeend', row);
-                }
-            });
+                tableBody.insertAdjacentHTML('beforeend', row);
+                });
+                
         }
     });
     calculateProfitByItem()
     calculateProfitAndCostByItem()
-}
+    }
 
 function updateValuesUI() {
     calculateTotalByItem();
@@ -1591,88 +1539,6 @@ function updateValuesUI() {
     }
 
 }
-
-
-function createRowMarginError(data) {
-    const tbodyMarginError = document.getElementById('margin-error-section');
-    const rowCountMarginError = tbodyMarginError.querySelectorAll('tr').length; // Correct row count
-    const newRowMarginError = document.createElement('tr');
-    
-    newRowMarginError.innerHTML = `
-        <td class="text-center p-0"><strong>${rowCountMarginError + 1}</strong></td> <!-- Asegurarse de mostrar la fila correcta -->
-        <td colspan="4" class="p-0">
-            <div class="d-flex align-items-center">
-                <select id="itemsSelect" class="innerSelect me-2" style="width: auto;" readonly>
-                    <option value="${data ? data.item_value : 'GENERAL'}">${data ? data.item_value : 'GENERAL'} </option>
-                </select>
-                <input class="form-control-budget" type="text" id="MarginErrorDescInput" name="MarginError_desc" value="${data ? data.MarginError_description : ''}" readonly>
-            </div>
-        </td>
-        <td class="p-0"><input class="form-control-budget" type="text" name="MarginError_lead-time" value="${data ? data.lead_time : ''}" readonly disabled></td>
-        <td class="p-0" colspan="2">
-            <div class="input-group p-0">
-                <span class="money_simbol_input">$</span>
-                <input class="form-control-budget text-end" type="number" name="marginError_cost" id="marginError_cost" step="0.01" value="${data ? data.MarginError_cost : ''}" readonly>
-            </div>
-        </td>
-    `;
-
-    // Insert the new row at the end of tbodyLabor
-    tbodyMarginError.appendChild(newRowMarginError);
-}
-
-function updateMarginError() {
-    let itemSelects = costManagement.querySelectorAll('#materials-section #itemsSelect');
-    let percentCost = document.getElementById('marginErrorPercentage').value / 100
-    let marginByItem = {}
-    itemSelects.forEach((select, index) => {
-        const selectedItem = select.value;
-        const materialCost = select.parentElement.parentElement.parentElement.querySelector("#materials_Cost").value
-        if (marginByItem[selectedItem] === undefined){
-            marginByItem[selectedItem] = materialCost * percentCost
-        } else {
-            marginByItem[selectedItem] += materialCost * percentCost
-        }
-    })
-    const tbodyMarginError = document.getElementById('margin-error-section');
-    tbodyMarginError.innerHTML = ''
-    for (const [item, margin] of Object.entries(marginByItem)) {
-        const data = {
-            item_value: item,
-            MarginError_description: 'Margin of Error (' + item + ')',
-            MarginError_cost: (margin.toFixed(2)),
-            lead_time: 'inmediate'
-        }
-        createRowMarginError(data) 
-    }
-}
-
-
-function addMarginError(checkbox) {
-    const marginErrorSection = document.querySelector('.margin-error-table');
-    if (checkbox.checked) {
-        console.log('checked');
-        marginErrorSection.classList.remove('d-none');
-        updateMarginError()
-        updateTotalCost()
-        calculateTotalByItem()
-    } else {
-        marginErrorSection.classList.add('d-none');
-    }
-}
-
-function reloadMarginError() {
-    if (document.getElementById('marginErrorCheck').checked){   
-        const checkbox = document.getElementById('marginErrorCheck')
-        checkbox.checked = !checkbox.checked
-        addMarginError(checkbox)
-        checkbox.checked = true
-        addMarginError(checkbox)
-        validateInputs()
-    }
-}
-
-
 
 // Escuchar los cambios en los selects y los costos
 itemSelects.forEach(select => select.addEventListener('change', updateValuesUI));
@@ -1884,7 +1750,6 @@ function calculateProfitByItem() {
     
     itemSelects.forEach((select, index) => {
         const selectedItem = select.value;
-
     
         // Inicializar el total si no existe
         if (!totalsByItem[selectedItem]) {
@@ -1911,6 +1776,7 @@ function calculateProfitByItem() {
         nameDesc = select.parentElement.querySelector("input").value
         totalsByItem[selectedItem] += cost; 
         descriptionByItem[selectedItem]['ID'+(index+1) + '- ' +nameDesc] = cost
+        
     });
     
     // Mostrar todos los totales al final
@@ -1926,13 +1792,11 @@ function calculateProfitByItem() {
     // Iterar sobre los ítems ordenados
     sortedItems.forEach(item => {
         if (totalsByItem.hasOwnProperty(item)) {
-
-            const ftsValue = checkItemHasFts(item);
             // Crear una nueva fila
             row = `
             <tr >
                 <td class="p-0  px-2">${item}</td>
-                <td class="p-0  px-2">$${totalsByItem[item].toFixed(2)}${ftsValue > 0 ? ` ($${(totalsByItem[item]/ftsValue).toFixed(2)}/ft)` : ''}</td>
+                <td class="p-0  px-2">$${totalsByItem[item].toFixed(2)}</td>
             </tr>`
             // Añadir la fila al cuerpo de la tabla
             tableBody.insertAdjacentHTML('beforeend', row);
@@ -2014,13 +1878,6 @@ function calculateProfitAndCostByItem() {
                 cost = parseFloat(deductsCostInput.value) || 0;
             }
             
-        } else if  (select.closest('#margin-error-section')) {
-            // Usar querySelector en lugar de getElementById
-            const marginErrorCostInput = select.parentElement.parentElement.parentElement.querySelector("#marginError_cost");
-            if(marginErrorCostInput){
-                cost = parseFloat(marginErrorCostInput.value) || 0;
-            }
-            
         }
     
         // Sumar el costo al total
@@ -2042,12 +1899,11 @@ function calculateProfitAndCostByItem() {
     // Iterar sobre los ítems ordenados
     sortedItems.forEach(item => {
         if (totalsByItem.hasOwnProperty(item)) {
-            const ftsValue = checkItemHasFts(item);
             // Crear una nueva fila
             row = `
             <tr >
                 <td class="p-0  px-2">${item}</td>
-                <td class="p-0  px-2">$${totalsByItem[item].toFixed(2)}${ftsValue > 0 ? ` ($${(totalsByItem[item]/ftsValue).toFixed(2)}/ft)` : ''}</td>
+                <td class="p-0  px-2">$${totalsByItem[item].toFixed(2)}</td>
             </tr>`
             // Añadir la fila al cuerpo de la tabla
             tableBody.insertAdjacentHTML('beforeend', row);
@@ -2387,10 +2243,6 @@ function getUtilsData() {
     const profitFTTotal = parseFloat(profitTotal.replace(/,/g, ''));
     const costFTTotal = parseFloat(costTotal.replace(/,/g, ''));
 
-    const checkMarginError = $$$("marginErrorCheck").checked;
-    const percentageMarginError =  $$$("marginErrorPercentage").value;
-    
-
     data = {
         dataHolePosts:dataHolePosts,
         dataUnitCostMi:dataUnitCostMi,
@@ -2399,8 +2251,6 @@ function getUtilsData() {
         dataLoans: dataLoans,
         profitTotal:profitFTTotal,
         costTotal:costFTTotal,
-        checkMarginError:checkMarginError,
-        percentageMarginError:percentageMarginError
     }
     return data
 }
@@ -2448,7 +2298,7 @@ function getCostManagementData() {
                 index: index,
                 laborDescription: cells[1]?.querySelector('input[name="Labor_desc"]')?.value || '',
                 costByDay: parseFloat(cells[2]?.querySelector('input[name="Labor_hourly"]')?.value) || 0,
-                days: parseFloat(cells[3]?.querySelector('input[name="Labor_hour"]')?.value) || 0,
+                days: parseInt(cells[3]?.querySelector('input[name="Labor_hour"]')?.value) || 0,
                 leadTime: cells[4]?.querySelector('input[name="Labor_lead-time"]')?.value || '',
                 laborCost: parseFloat(cells[5]?.querySelector('input[name="Labor_Cost"]')?.value) || 0,
                 itemValue: row.querySelector('#itemsSelect')?.value, 
@@ -2464,7 +2314,7 @@ function getCostManagementData() {
             materialsData.push({
                 index: index,
                 materialDescription: cells[1]?.querySelector('input[name="materials_desc"]')?.value || '',
-                quantity: parseFloat(cells[2]?.querySelector('input[name="materials_qt"]')?.value) || 0,
+                quantity: parseInt(cells[2]?.querySelector('input[name="materials_qt"]')?.value) || 0,
                 unitCost: parseFloat(cells[3]?.querySelector('input[name="materials_UnitCost"]')?.value) || 0,
                 leadTime: cells[4]?.querySelector('input[name="materials_lead-time"]')?.value || '',
                 cost: parseFloat(cells[5]?.querySelector('input[name="materials_Cost"]')?.value) || 0,
@@ -2568,10 +2418,7 @@ function getCostManagementData() {
         budgetId = hiddenDataElementCO.getAttribute('data-budget-id');
         } 
 
-    
-
     if (isChangeOrder) {
-        // Llamada para crear una orden de cambio
         fetch(`/projects/${projectId}/new_change_order/${budgetId}`, {
             method: 'POST',
             headers: {
@@ -2580,25 +2427,14 @@ function getCostManagementData() {
             },
             body: JSON.stringify(data),
         })
-        .then((response) => {
-            if (!response.ok) {
-                return response.json().then((errorData) => {
-                    throw new Error(errorData.message || 'Error desconocido al crear la orden de cambio');
-                });
-            }
-            return response.json();
-        })
-        .then(() => { 
-            window.location.href = `/projects/${projectId}/`;
-            closeLoadingOverlay();
+        .then(() => {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.classList.add('d-none');
         })
         .catch((error) => {
-            console.error('Error al crear la orden de cambio:', error.message);
-            alert('The change order could not be created, by internal error: ' + error.message);
-            closeLoadingOverlay();
+            console.error('Error:', error);
         });
     } else if (isModify) {
-        // Llamada para editar un presupuesto
         fetch(`/projects/${projectId}/edit_budget/${budgetId}`, {
             method: 'POST',
             headers: {
@@ -2607,25 +2443,14 @@ function getCostManagementData() {
             },
             body: JSON.stringify(data),
         })
-        .then((response) => {
-            if (!response.ok) {
-                closeLoadingOverlay();
-                return response.json().then((errorData) => {
-                    throw new Error(errorData.message || 'Error desconocido al editar el presupuesto');
-                });
-            }
-            return response.json();
-        })
         .then(() => {
-            closeLoadingOverlay();
+            const loadingOverlay = document.getElementById('loadingOverlay');
             window.location.href = `/projects/${projectId}/`;
+            loadingOverlay.classList.add('d-none');
         })
         .catch((error) => {
-            closeLoadingOverlay();
-            console.error('Error al editar el presupuesto:', error.message);
-            alert('The budget could not be edited, by internal error: ' + error.message);
-        });
-    } else if (!isChangeOrder && !isModify) {
+            console.error('Error:', error);
+        });} else if (!isChangeOrder && !isModify)  {
         // Llamada para crear un presupuesto nuevo
         fetch(`/projects/${projectId}/new_budget/`, {
             method: 'POST',
@@ -2635,37 +2460,19 @@ function getCostManagementData() {
             },
             body: JSON.stringify(data),
         })
-        .then((response) => {
-            if (!response.ok) {
-                closeLoadingOverlay();
-                return response.json().then((errorData) => {
-                    throw new Error(errorData.message || 'Error desconocido al crear el presupuesto');
-                });
-            }
-            return response.json();
-        })
         .then(() => {
-            closeLoadingOverlay();
             window.location.href = `/projects/${projectId}/`;
         })
         .catch((error) => {
-            closeLoadingOverlay();
-            console.error('Error al crear el presupuesto:', error.message);
-            alert('The budget could not be created, by internal error: ' + error.message);
+            console.error('Error:', error);
         });
     }
-}
-function closeLoadingOverlay() {
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    if (!loadingOverlay || loadingOverlay.classList.contains('d-none')) {
-        return;
+
     }
-    loadingOverlay.classList.add('d-none');
-    validateInputs();
-}
+ 
 
 document.getElementById('save-btn').addEventListener('click', function(event) {
-    event.preventDefault();
+    event.preventDefault(); // Evita el envío inmediato del formulario
 
     // Referencia al botón y al overlay de carga
     const saveButton = document.getElementById('save-btn');
@@ -2676,6 +2483,8 @@ document.getElementById('save-btn').addEventListener('click', function(event) {
     
     // Deshabilitar el botón para evitar múltiples envíos
     saveButton.setAttribute('disabled', true);
+    
+    // Llama a la función para manejar los datos
     getCostManagementData();
 });
 
@@ -2705,20 +2514,11 @@ function validateInputs() {
     let allValid = true;
     inputs.forEach(input => {
         if (!input.readOnly) {
-            const closestTable = input.closest('table');
             if (input.value.trim() === '') {
                 input.style.boxShadow = '0px 4px 5px 0px rgba(255, 0, 0, 0.54)';
-                if (closestTable && !closestTable.classList.contains('empty-field-table')) {
-                    closestTable.classList.add('empty-field-table')
-                    
-                }
-                allValid = false;
-
+                allValid = false; // Marcamos que hay un input inválido
             } else {
                 input.style.boxShadow = '';
-                if (closestTable && closestTable.classList.contains('empty-field-table')) {
-                    closestTable.classList.remove('empty-field-table')
-                }
             }
         }
     });
@@ -2862,4 +2662,3 @@ async function fillWithAI(section) {
         loadingOverlay.classList.add('d-none');
     }
 }
-

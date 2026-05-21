@@ -1,134 +1,528 @@
 {% load static %}
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" class="signin-root">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>App: Customers</title>
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <title>Sign in · DC Fence Solutions</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400;700&display=swap">
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css" rel="stylesheet" />
     <style>
-        body {
-            background-image: url('{% static 'img/logoPatron.png' %}'); /* Ruta del logo */
-            background-repeat: repeat; /* Repite el logo en ambos ejes */
-            background-size: cover; /* Ajusta el logo al tamaño de la pantalla */
-            background-position: center; /* Centra el logo en la pantalla */            font-weight: 700; /* Peso del logo */
-            text-align: center; /* Alinear el logo en el centro */
-            padding:0px;
-        }
-        div.blur-container {
-            margin-top: 0;
-            box-shadow: 0 0 5000px 5000px rgb(255 255 255 / 85%);
+        :root {
+            --signin-brand: #0055b9;
+            --signin-brand-dark: #003d85;
+            --signin-surface: #f8fafc;
+            --signin-text: #0f172a;
+            --signin-muted: #64748b;
+            --signin-border: #e2e8f0;
+            --signin-radius: 1rem;
+            --signin-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.15);
         }
 
-        .containerLoading {
-            position: absolute;
-            width: 100vw;
-            background-color: #4747475c;
-            height: -webkit-fill-available;
-            top: 0px;
+        * { box-sizing: border-box; }
+
+        html.signin-root,
+        body.signin-page {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        body.signin-page {
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            color: var(--signin-text);
+            background: var(--signin-surface);
+        }
+
+        .signin-shell {
             display: flex;
-            align-content: center;
-            align-items: center;
-            justify-content: center;}
+            width: 100%;
+            height: 100vh;
+            max-height: 100vh;
+            overflow: hidden;
+        }
 
+        /* Hero panel — exactly viewport height, no spill */
+        .signin-hero {
+            flex: 1 1 50%;
+            position: relative;
+            height: 100%;
+            max-height: 100vh;
+            overflow: hidden;
+            isolation: isolate;
+        }
+
+        .signin-hero .carousel {
+            position: absolute;
+            inset: 0;
+            height: 100%;
+            width: 100%;
+        }
+
+        .signin-hero .carousel-inner,
+        .signin-hero .carousel-item {
+            height: 100%;
+        }
+
+        .signin-hero .carousel-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .signin-hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                135deg,
+                rgba(0, 61, 133, 0.88) 0%,
+                rgba(0, 85, 185, 0.55) 45%,
+                rgba(15, 23, 42, 0.75) 100%
+            );
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .signin-hero-content {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: clamp(1.25rem, 3vw, 2.5rem);
+            color: #fff;
+            pointer-events: none;
+        }
+
+        .signin-hero-logo-wrap {
+            background: #fff;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1.25rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            max-width: min(260px, 90%);
+        }
+
+        .signin-hero-logo {
+            display: block;
+            max-width: 100%;
+            max-height: 52px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .signin-hero-tagline h2 {
+            font-size: clamp(1.5rem, 3vw, 2rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+
+        .signin-hero-tagline p {
+            font-size: 1rem;
+            opacity: 0.9;
+            max-width: 28rem;
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        .signin-hero .carousel-indicators {
+            z-index: 3;
+            margin-bottom: 1.5rem;
+        }
+
+        .signin-hero .carousel-indicators [data-bs-target] {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .signin-hero .carousel-indicators .active {
+            background: #fff;
+            width: 24px;
+            border-radius: 4px;
+        }
+
+        /* Form panel — same viewport height, scroll inside if needed */
+        .signin-panel {
+            flex: 1 1 50%;
+            height: 100%;
+            max-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 1.5rem;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: var(--signin-surface);
+        }
+
+        .signin-card {
+            width: 100%;
+            max-width: 400px;
+            background: #fff;
+            border-radius: var(--signin-radius);
+            box-shadow: var(--signin-shadow);
+            border: 1px solid var(--signin-border);
+            padding: 2rem 2rem 1.75rem;
+            animation: signinFadeUp 0.5s ease-out;
+        }
+
+        @keyframes signinFadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .signin-card-header {
+            text-align: center;
+            margin-bottom: 1.75rem;
+        }
+
+        .signin-card-header .brand-mark {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--signin-brand), var(--signin-brand-dark));
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.35rem;
+            margin-bottom: 1rem;
+        }
+
+        .signin-card-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin: 0 0 0.25rem;
+            color: var(--signin-text);
+        }
+
+        .signin-card-header p {
+            font-size: 0.9rem;
+            color: var(--signin-muted);
+            margin: 0;
+        }
+
+        .signin-field {
+            position: relative;
+            margin-bottom: 1rem;
+        }
+
+        .signin-field .field-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--signin-muted);
+            font-size: 1.1rem;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .signin-field input {
+            width: 100%;
+            padding: 0.85rem 1rem 0.85rem 2.75rem;
+            font-size: 0.95rem;
+            border: 1.5px solid var(--signin-border);
+            border-radius: 0.75rem;
+            background: var(--signin-surface);
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+
+        .signin-field input:focus {
+            outline: none;
+            border-color: var(--signin-brand);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(0, 85, 185, 0.12);
+        }
+
+        .signin-field input::placeholder {
+            color: #94a3b8;
+        }
+
+        .signin-field .toggle-password {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: none;
+            color: var(--signin-muted);
+            padding: 0.25rem;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .signin-field .toggle-password:hover {
+            color: var(--signin-brand);
+        }
+
+        .btn-signin {
+            width: 100%;
+            padding: 0.9rem 1rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 0.75rem;
+            color: #fff;
+            background: linear-gradient(135deg, var(--signin-brand) 0%, var(--signin-brand-dark) 100%);
+            box-shadow: 0 4px 14px rgba(0, 85, 185, 0.35);
+            transition: transform 0.15s, box-shadow 0.2s;
+            margin-top: 0.5rem;
+        }
+
+        .btn-signin:hover {
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(0, 85, 185, 0.4);
+        }
+
+        .btn-signin:active {
+            transform: translateY(0);
+        }
+
+        .signin-hint {
+            font-size: 0.75rem;
+            color: var(--signin-muted);
+            text-align: center;
+            margin-top: 1.25rem;
+            line-height: 1.5;
+        }
+
+        .signin-footer {
+            max-width: 400px;
+            margin-top: 1.5rem;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--signin-muted);
+            line-height: 1.55;
+            animation: signinFadeUp 0.5s ease-out 0.1s both;
+        }
+
+        .signin-footer a {
+            color: var(--signin-brand);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .signin-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .signin-alert {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            left: 1rem;
+            max-width: 380px;
+            margin-left: auto;
+            z-index: 1050;
+            border-radius: 0.75rem;
+            box-shadow: var(--signin-shadow);
+            animation: signinFadeUp 0.35s ease-out;
+        }
+
+        @media (max-width: 991.98px) {
+            body.signin-page {
+                overflow: hidden;
+            }
+
+            .signin-shell {
+                flex-direction: column;
+                height: 100vh;
+                max-height: 100vh;
+            }
+
+            .signin-hero {
+                flex: 0 0 38vh;
+                max-height: 38vh;
+                width: 100%;
+            }
+
+            .signin-hero-content {
+                align-items: center;
+                justify-content: center;
+                padding: 1.25rem;
+            }
+
+            .signin-hero-tagline {
+                display: none;
+            }
+
+            .signin-hero-logo-wrap {
+                max-width: 220px;
+            }
+
+            .signin-panel {
+                flex: 1 1 auto;
+                min-height: 0;
+                max-height: none;
+                padding: 1.25rem 1rem 1.5rem;
+            }
+        }
     </style>
 </head>
-    <body class="bg-white">
-        {% block content %}
-        <div class="containermy-auto d-flex flex-row justify-content-center align-items-center">
-            {% if error %}
-                <div class="alert alert-danger alert-dismissible fade show position-fixed bottom-0 end-0 m-3" role="alert">
-                    {{ error }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endif %}
+<body class="signin-page">
+    {% if error %}
+    <div class="alert alert-danger alert-dismissible signin-alert" role="alert">
+        <i class="bi bi-exclamation-circle me-2"></i>{{ error }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
 
-            <div class="carousel-container w-50 vh-100 position-relative">
-            <div id="carouselExampleSlidesOnly" class="carousel slide" data-bs-ride="carousel">
+    <div class="signin-shell">
+        <aside class="signin-hero">
+            <div id="signinCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="7000">
                 <div class="carousel-indicators">
-                    <button type="button" data-bs-target="#carouselExampleSlidesOnly" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
-                    <button type="button" data-bs-target="#carouselExampleSlidesOnly" data-bs-slide-to="1" aria-label="Slide 2"></button>
-                    <button type="button" data-bs-target="#carouselExampleSlidesOnly" data-bs-slide-to="2" aria-label="Slide 3"></button>
+                    <button type="button" data-bs-target="#signinCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+                    <button type="button" data-bs-target="#signinCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+                    <button type="button" data-bs-target="#signinCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
                 </div>
                 <div class="carousel-inner">
-                  <div class="carousel-item active">
-                    <img src="{% static 'img/fence1.jpg' %}" class="d-block w-100 h-100 object-fit-cover" alt="...">
-                  </div>
-                  <div class="carousel-item">
-                    <img src="{% static 'img/fence2.webp' %}" class="d-block w-100 h-100 object-fit-cover" alt="...">
-                  </div>
-                  <div class="carousel-item">
-                    <img src="{% static 'img/fence3.jpg' %}" class="d-block w-100 h-100 object-fit-cover" alt="...">
-                  </div>
-                </div>
-            </div>
-            <div class="image-overlay position-absolute bottom-0 start-0 w-100 d-flex flex-column justify-content-center align-items-center text-center">
-                <img src="{% static 'img/logoPngsm.png' %}" class="img-fluid mb-5 bg-white bg-opacity-75  rounded-4 px-3 py-1 object-fit-contain" alt="...">
-            </div>
-            </div>
-            <div class="d-flex flex-column justify-content-between align-items-center w-50 h-100">
-                <div class="col-md-8 p-0 blur-container rounded blur-container m-auto" style="max-width: 400px;">
-                    <div class="card shadow-lg">
-                        <h1 class="card-header bg-company text-light text-center">
-                            DC Fence Solutions
-                        </h1>
-                        <div class="card-body text-center">
-                            <form action="/signin/" method="POST" class="form-signin mx-3 my-0">
-                                {% csrf_token %}
-                                <div class="mb-3">
-                                    {{ form.as_p }}
-                                </div>
-                                <button class="btn btn-primary bg-company w-100">Ingresar</button>
-                                <span class="text-muted text-center fs-6 w-100 fw-normal" style="font-size: 6px;">If you are an employee and you don't have an account, please contact the administrator.</span>
-                            </form>
-                        </div>
+                    <div class="carousel-item active">
+                        <img src="{% static 'img/fence1.jpg' %}" alt="Fence project">
+                    </div>
+                    <div class="carousel-item">
+                        <img src="{% static 'img/fence2.webp' %}" alt="Fence installation">
+                    </div>
+                    <div class="carousel-item">
+                        <img src="{% static 'img/fence3.jpg' %}" alt="Commercial fencing">
                     </div>
                 </div>
-                <div class="col-md-8 mx-10 mt-3">
-                <span class="text-muted text-center fs-6 w-100">
-                    <i class="bi bi-info-circle-fill"></i>
-                    <span class="text-justify">
-                        DC Fence Solutions is a company that provides fence solutions to the public. This pages is only for employees, if you are not an employee, please exit or visit the website.
-                        <br>
-                         <a href="https://www.dcfence.org" target="_blank" class="text-decoration-none text-primary fw-bold fs-1"><i class="bi bi-globe"> </i>www.dcfence.org</a>
-                        </span>
-                    </span>
+            </div>
+            <div class="signin-hero-overlay"></div>
+            <div class="signin-hero-content">
+                <div class="signin-hero-logo-wrap">
+                    <img src="{% static 'img/LogoSmLarge.png' %}" alt="DC Fence Solutions" class="signin-hero-logo">
+                </div>
+                <div class="signin-hero-tagline">
+                    <h2>Employee portal</h2>
+                    <p>Manage projects, budgets, production, and customer relationships in one place.</p>
                 </div>
             </div>
-        </div>
-        {% endblock %}
-        
-    </body>
+        </aside>
+
+        <main class="signin-panel">
+            <div class="signin-card">
+                <div class="signin-card-header">
+                    <div class="brand-mark"><i class="bi bi-shield-lock-fill"></i></div>
+                    <h1>Welcome back</h1>
+                    <p>Sign in to your DC Fence account</p>
+                </div>
+
+                <form action="/signin/" method="POST" class="form-signin" novalidate>
+                    {% csrf_token %}
+                    <div class="signin-field">
+                        <i class="bi bi-person field-icon"></i>
+                        <input
+                            type="text"
+                            name="username"
+                            id="id_username"
+                            placeholder="Username"
+                            autocomplete="username"
+                            required
+                            autofocus
+                        >
+                    </div>
+                    <div class="signin-field">
+                        <i class="bi bi-key field-icon"></i>
+                        <input
+                            type="password"
+                            name="password"
+                            id="id_password"
+                            placeholder="Password"
+                            autocomplete="current-password"
+                            required
+                        >
+                        <button type="button" class="toggle-password" aria-label="Show password" data-target="id_password">
+                            <i class="bi bi-eye"></i>
+                        </button>
+                    </div>
+                    <button type="submit" class="btn btn-signin">
+                        Sign in
+                        <i class="bi bi-arrow-right ms-1"></i>
+                    </button>
+                    <p class="signin-hint">
+                        Employees only. Contact your administrator if you need an account.
+                    </p>
+                </form>
+            </div>
+
+            <div class="signin-footer">
+                <i class="bi bi-info-circle me-1"></i>
+                This portal is for DC Fence Solutions staff. Visitors may visit
+                <a href="https://www.dcfence.org" target="_blank" rel="noopener">www.dcfence.org</a>
+            </div>
+        </main>
+    </div>
+
     {% include "loading_component.html" %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const form = document.querySelector('.form-signin');
             const loadingOverlay = document.getElementById('loadingOverlay');
-            
-            loadingOverlay.classList.add('d-none');
-            
-            form.addEventListener('submit', function (event) {
-                if (form.checkValidity()) {
-                    loadingOverlay.classList.remove('d-none');
-                } else {
-                    event.preventDefault();
-                }
-            });
-    
 
-            if (performance.navigation.type === performance.navigation.TYPE_BACK_FORWARD) {
-                loadingOverlay.classList.add('d-none'); // Ocultar el overlay si el navegador volvió atrás
+            if (loadingOverlay) {
+                loadingOverlay.classList.add('d-none');
+            }
+
+            document.querySelectorAll('.toggle-password').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const input = document.getElementById(btn.dataset.target);
+                    const icon = btn.querySelector('i');
+                    const isPassword = input.type === 'password';
+                    input.type = isPassword ? 'text' : 'password';
+                    icon.classList.toggle('bi-eye', !isPassword);
+                    icon.classList.toggle('bi-eye-slash', isPassword);
+                    btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+                });
+            });
+
+            if (form) {
+                form.addEventListener('submit', function (event) {
+                    if (form.checkValidity()) {
+                        if (loadingOverlay) loadingOverlay.classList.remove('d-none');
+                    } else {
+                        event.preventDefault();
+                    }
+                });
+            }
+
+            if (performance.navigation && performance.navigation.type === performance.navigation.TYPE_BACK_FORWARD) {
+                if (loadingOverlay) loadingOverlay.classList.add('d-none');
+            }
+
+            const carouselEl = document.querySelector('#signinCarousel');
+            if (carouselEl) {
+                new bootstrap.Carousel(carouselEl, {
+                    interval: 7000,
+                    wrap: true,
+                    pause: 'hover',
+                });
             }
         });
-        var myCarousel = document.querySelector('#carouselExampleSlidesOnly')
-        var carousel = new bootstrap.Carousel(myCarousel, {
-            interval: 8000,
-            wrap: true,
-            pause: 'hover'
-        })
-    </script>    
+    </script>
+</body>
 </html>

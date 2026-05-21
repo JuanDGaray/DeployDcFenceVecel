@@ -74,7 +74,7 @@
                                 <p class="card-text fs-6 p-0 m-0">{{ user.user.email }}</p>
                             </div>
                             {% if user.user.id != request.user.id and request.user.is_superuser %}
-                                <button class="btn btn-danger btn-sm opacity-50 position-absolute p-0 m-0" style="right: -5px; top: -5px; width: 20px; height: 20px;" onclick="deleteUser({{ user.user.id }})">
+                                <button class="btn btn-danger btn-sm opacity-50 position-absolute p-0 m-0" style="right: -5px; top: -5px; width: 20px; height: 20px;" onclick="confirmDeleteUser({{ user.user.id }}, '{{ user.user.first_name|escapejs }} {{ user.user.last_name|escapejs }}')">
                                     <i class="bi bi-trash p-0 m-0"></i> 
                                 </button>
                             {% endif %}
@@ -112,7 +112,7 @@
                                     <p class="card-text fs-6 m-0">{{ user.user.email }}</p>
                                 </div>
                                 {% if user.user.id != request.user.id and request.user.is_superuser %}
-                                    <button class="btn btn-danger btn-sm opacity-50 position-absolute p-0 m-0" style="right: -5px; top: -5px; width: 20px; height: 20px;" onclick="deleteUser({{ user.user.id }})">
+                                    <button class="btn btn-danger btn-sm opacity-50 position-absolute p-0 m-0" style="right: -5px; top: -5px; width: 20px; height: 20px;" onclick="confirmDeleteUser({{ user.user.id }}, '{{ user.user.first_name|escapejs }} {{ user.user.last_name|escapejs }}')">
                                         <i class="bi bi-trash p-0 m-0"></i> 
                                     </button>
                                 {% endif %} 
@@ -151,7 +151,7 @@
                                     <p class="card-text fs-6 m-0">{{ user.user.email }}</p>
                                 </div>
                                 {% if user.user.id != request.user.id and request.user.is_superuser %}
-                                    <button class="btn btn-danger btn-sm opacity-50 position-absolute p-0 m-0" style="right: -5px; top: -5px; width: 20px; height: 20px;" onclick="deleteUser({{ user.user.id }})">
+                                    <button class="btn btn-danger btn-sm opacity-50 position-absolute p-0 m-0" style="right: -5px; top: -5px; width: 20px; height: 20px;" onclick="confirmDeleteUser({{ user.user.id }}, '{{ user.user.first_name|escapejs }} {{ user.user.last_name|escapejs }}')">
                                         <i class="bi bi-trash p-0 m-0"></i> 
                                     </button>
                                 {% endif %} 
@@ -222,13 +222,72 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold text-danger" id="deleteUserModalLabel">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>Delete team member
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-2">
+                        You are about to remove <strong id="deleteUserName"></strong> from the team.
+                    </p>
+                    <p class="mb-2 text-muted">
+                        This action cannot be undone. The user account will be permanently deleted.
+                    </p>
+                    <div class="alert alert-warning mb-0" role="alert">
+                        <strong>Ownership transfer</strong>
+                        <p class="mb-0 mt-2 small">
+                            All projects, customers, budgets, proposals, invoices, and other records
+                            created or assigned to this user will be transferred to you
+                            (<strong>{{ request.user.first_name }} {{ request.user.last_name }}</strong>).
+                        </p>
+                        <p class="mb-0 mt-2 small">
+                            Pending collaboration requests and notifications for this user will be removed.
+                        </p>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteUserBtn">
+                        <i class="bi bi-trash me-1"></i>Delete and transfer ownership
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+    let pendingDeleteUserId = null;
+
+    function confirmDeleteUser(user_id, user_name) {
+        pendingDeleteUserId = user_id;
+        document.getElementById('deleteUserName').textContent = user_name.trim() || 'this user';
+        const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+        modal.show();
+    }
+
     document.addEventListener("DOMContentLoaded", function() {
+    const confirmDeleteUserBtn = document.getElementById('confirmDeleteUserBtn');
+    if (confirmDeleteUserBtn) {
+        confirmDeleteUserBtn.addEventListener('click', function() {
+            if (!pendingDeleteUserId) return;
+            const userId = pendingDeleteUserId;
+            pendingDeleteUserId = null;
+            const modalEl = document.getElementById('deleteUserModal');
+            bootstrap.Modal.getInstance(modalEl)?.hide();
+            deleteUser(userId);
+        });
+    }
+
     document.getElementById("addUserButton").addEventListener("click", function() {
     const formData = new FormData(document.getElementById("addUserForm"));
 
@@ -259,7 +318,12 @@
     });
     function deleteUser(user_id) {
         const formData = new FormData();
-        formData.append("user_id", user_id);    
+        formData.append("user_id", user_id);
+        const confirmBtn = document.getElementById('confirmDeleteUserBtn');
+        if (confirmBtn) {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting...';
+        }
         ajaxPostRequest("/delete_user/", formData, "{{ csrf_token }}", function(response) {
             console.log('response', response);
             if (response.success) {
@@ -269,6 +333,16 @@
                 }, 1000);
             } else {
                 showAlert(response.error, "danger");
+            }
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="bi bi-trash me-1"></i>Delete and transfer ownership';
+            }
+        }, function(error) {
+            showAlert(error?.error || 'An error occurred while deleting the user.', 'danger');
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="bi bi-trash me-1"></i>Delete and transfer ownership';
             }
         });
     }

@@ -957,6 +957,18 @@ function toggleProfitByDay() {
 }
 
 
+function removeLoanGeneratedRows() {
+    const deductsSection = document.getElementById('deducts-section');
+    if (!deductsSection) return;
+    deductsSection.querySelectorAll('tr').forEach((row) => {
+        const descEl = row.querySelector('[name="deducts_desc"]');
+        const text = descEl ? (descEl.value || descEl.textContent || '') : '';
+        if (text.includes('loans, interest and variable costs')) {
+            row.remove();
+        }
+    });
+}
+
 function reoloadLoans(){
     var checkbox = $$$("cbox4");
     checkbox.checked = false
@@ -982,7 +994,8 @@ function toggleAddLoans() {
     const totalCostByItems = calculateProfitAndCostByItem()
     // If the checkbox is checked, display the loans table and calculate the deductions
     if (checkbox.checked) {
-        table.style.display = "table"; // Show the loans table 
+        table.style.display = "table"; // Show the loans table
+        removeLoanGeneratedRows();
         Object.entries(totalCostByItems).forEach(([key, value], index) => {
             // Calcula el monto de deducción para cada elemento del diccionario
             const deductAmount = (value * percentLabelLoans).toFixed(2);
@@ -1017,11 +1030,9 @@ function toggleAddLoans() {
             deductsSection.appendChild(newRow); // Agrega la nueva fila a la sección de deducciones
         });
     } else {
-        // If the checkbox is unchecked, hide the loans table and remove the deduction row
-        table.style.display = "none";  
-        Object.entries(totalCostByItems).forEach(([key, value], index) => {
-            $$$(`deducts${index}`)?.remove();
-            });
+        // If the checkbox is unchecked, hide the loans table and remove loan deduction rows
+        table.style.display = "none";
+        removeLoanGeneratedRows();
     }
     calculateTotalByItem()
     calculateProfitAndCostByItem()
@@ -1572,7 +1583,7 @@ function calculateTotalByItem() {
 function updateValuesUI() {
     calculateTotalByItem();
     var checkbox = $$$("cbox4");
-    if (checkbox.checked == true){
+    if (checkbox.checked == true && !window.budgetInitialLoad){
         reoloadLoans();
     }
 
