@@ -2,6 +2,29 @@ const $ = el => document.querySelector(el)
 const $$ = el => document.querySelectorAll(el)
 const $$$ = el => document.getElementById(el)
 
+/** Loan rate as decimal (0.5 = 50%). Values > 1 are treated as whole percent (50 → 0.5). */
+function normalizeLoanPercentage(raw) {
+    if (raw === null || raw === undefined || raw === '') return null;
+    let pct = parseFloat(String(raw).replace(',', '.'));
+    if (Number.isNaN(pct)) return null;
+    if (pct > 1) pct = pct / 100;
+    return pct;
+}
+
+function getLoanPercentage() {
+    const el = document.getElementById('percentage-loans');
+    if (!el) return 0;
+    const pct = normalizeLoanPercentage(el.value);
+    return pct === null ? 0 : pct;
+}
+
+function setLoanPercentageValue(raw) {
+    const el = document.getElementById('percentage-loans');
+    if (!el) return;
+    const pct = normalizeLoanPercentage(raw);
+    if (pct !== null) el.value = pct;
+}
+
 
 function createLaborRow(data = null) {
     const tbodyLabor = document.getElementById('labor-section');
@@ -950,10 +973,117 @@ function removeLoanGeneratedRows() {
 
 function reoloadLoans(){
     var checkbox = $$$("cbox4");
-    checkbox.checked = false
-    toggleAddLoans()
-    checkbox.checked = true
-    toggleAddLoans()
+    if (!checkbox) return;
+    var wasChecked = checkbox.checked;
+    checkbox.checked = false;
+    toggleAddLoans();
+    if (wasChecked) {
+        checkbox.checked = true;
+        toggleAddLoans();
+    }
+    calculateTotalByItem();
+    calculateProfitAndCostByItem();
+    updateTotalCost();
+}
+
+/** Apply loans after budget data is loaded (retries until cost bases exist). */
+function syncBudgetLoansOnLoad(utilsData, attempt = 0) {
+    const MAX_ATTEMPTS = 25;
+    if (!utilsData || !utilsData.add_loans) {
+        window.budgetInitialLoad = false;
+        return;
+    }
+
+    setLoanPercentageValue(utilsData.percentage);
+
+    const checkbox = document.getElementById('cbox4');
+    const loansTable = document.getElementById('loans-to-the-project');
+    if (!checkbox) {
+        window.budgetInitialLoad = false;
+        return;
+    }
+
+    checkbox.checked = true;
+    if (loansTable) loansTable.style.display = 'table';
+
+    let totals = {};
+    if (typeof calculateProfitAndCostByItem === 'function') {
+        totals = calculateProfitAndCostByItem() || {};
+    }
+    const hasBase = Object.values(totals).some((v) => Number(v) > 0);
+
+    if (!hasBase && attempt < MAX_ATTEMPTS) {
+        setTimeout(() => syncBudgetLoansOnLoad(utilsData, attempt + 1), 50);
+        return;
+    }
+
+    window.budgetInitialLoad = false;
+    reoloadLoans();
+}
+
+function removeMarginErrorRows() {
+    document.querySelectorAll(
+        '#misc-section tr.margin-error-item, #materials-section tr.margin-error-item'
+    ).forEach((row) => row.remove());
+}
+
+function addMarginError(checkbox) {
+    removeMarginErrorRows();
+    const tableWrapper = document.querySelector('.margin-error-table');
+    if (tableWrapper) {
+        tableWrapper.classList.toggle('d-none', !checkbox.checked);
+    }
+    if (!checkbox || !checkbox.checked) {
+        if (typeof updateValuesUI === 'function') updateValuesUI();
+        return;
+    }
+
+    const pctInput = document.getElementById('marginErrorPercentage');
+    const pct = parseFloat(pctInput?.value) || 0;
+    if (pct <= 0) return;
+
+    let materialsBase = 0;
+    document.querySelectorAll('#materials-section tr').forEach((row) => {
+        if (row.classList.contains('margin-error-item')) return;
+        const costInput = row.querySelector('#materials_Cost');
+        if (costInput) materialsBase += parseFloat(costInput.value) || 0;
+    });
+
+    const amount = (materialsBase * pct / 100).toFixed(2);
+    const miscSection = document.getElementById('misc-section');
+    if (!miscSection) return;
+
+    const rowCount = miscSection.querySelectorAll('tr').length;
+    const newRow = document.createElement('tr');
+    newRow.className = 'align-middle generated-by-utils margin-error-item';
+    newRow.innerHTML = `
+        <td class="text-center p-0"><strong>${rowCount + 1}</strong></td>
+        <td colspan="4" class="p-0">
+            <div class="d-flex align-items-center">
+                <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
+                    <option value="GENERAL">GENERAL</option>
+                </select>
+                <input class="form-control-budget" type="text" name="misc_desc" value="Margen de error">
+            </div>
+        </td>
+        <td class="p-0"><input class="form-control-budget" type="text" name="misc_lead-time" value="Immediate"></td>
+        <td class="p-0">
+            <div class="input-group p-0">
+                <span class="money_simbol_input">$</span>
+                <input class="form-control-budget text-end" type="number" name="misc_UnitCost" id="misc_UnitCost" step="0.01" value="${amount}" readonly>
+            </div>
+        </td>
+        <td class="p-0 text-center" style="width:0px"></td>
+    `;
+    miscSection.appendChild(newRow);
+    if (typeof updateSelectOptions === 'function') updateSelectOptions();
+    if (typeof updateValuesUI === 'function') updateValuesUI();
+}
+
+function reloadMarginError() {
+    const checkbox = document.getElementById('marginErrorCheck');
+    if (!checkbox) return;
+    addMarginError(checkbox);
 }
 
 
@@ -966,7 +1096,7 @@ function toggleAddLoans() {
     var checkbox = $$$("cbox4"); // Checkbox for activating/deactivating loans
     var table = $$$("loans-to-the-project"); // The loans table element
     var totalCostElement = updateTotalCost() // Total cost of the project
-    var percentLabelLoans = parseFloat($$$("percentage-loans").value) || 0; // Percentage of loans
+    var percentLabelLoans = getLoanPercentage();
     var deductsSection = $$$("deducts-section"); // The section where deductions are displayed
     const tbodydeducts = $$$('deducts-section'); // Deductions section (table body)
     const rowCountdeducts = tbodydeducts.querySelectorAll('tr').length; // Count of existing rows in the deductions section
@@ -1022,9 +1152,12 @@ function toggleAddLoans() {
 
 
 //to change percentLabelLoan update the deductAmount
-$$$("percentage-loans").addEventListener('input', function() {
-    reoloadLoans();
-});
+const percentageLoansInput = document.getElementById('percentage-loans');
+if (percentageLoansInput) {
+    percentageLoansInput.addEventListener('input', function() {
+        reoloadLoans();
+    });
+}
 
 function toggleUnitCostMW() {
     // Retrieve the checkbox, table, and input values
@@ -1544,7 +1677,11 @@ function updateValuesUI() {
 itemSelects.forEach(select => select.addEventListener('change', updateValuesUI));
 costInputs.forEach(input => input.addEventListener('input', updateValuesUI));
 
-updateValuesUI()
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof window.dataC === 'undefined' && typeof dataC === 'undefined') {
+        updateValuesUI();
+    }
+});
 
 function checkManufacturingCosts(checkbox) {
 const isChecked = checkbox.checked;
@@ -2197,7 +2334,7 @@ function getUtilsData() {
     // Obtener el valor del porcentaje
     const percentageInput = loansTable.querySelector("#percentage-loans");
     if (percentageInput) {
-        dataLoansToProject.percentage =  parseFloat(percentageInput.value) || 0.00;
+        dataLoansToProject.percentage = getLoanPercentage();
     }
     
     const dataHolePosts = {

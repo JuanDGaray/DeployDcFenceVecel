@@ -12,11 +12,25 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-load_dotenv()
 import json
+from django.core.exceptions import ImproperlyConfigured
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Always load .env from project root (avoids intermittent missing vars when cwd differs)
+ENV_FILE = BASE_DIR / '.env'
+load_dotenv(ENV_FILE)
+
+
+def _env(name):
+    """Read required environment variable; fail at startup with a clear message."""
+    value = (os.environ.get(name) or '').strip()
+    if not value:
+        raise ImproperlyConfigured(
+            f'{name} is not set. Add it to {ENV_FILE} at the project root.'
+        )
+    return value
 
 
 # Quick-start development settings - unsuitable for production
@@ -80,19 +94,25 @@ WSGI_APPLICATION = 'dcfence.wsgi.application'
 
 # # # Database
 # # # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
+SUPABASE_HOST = _env('SUPABASE_HOST')
+SUPABASE_PASSWORD = _env('SUPABASE_PASSWORD')
+
 DATABASES = {
     'default': {
-         'ENGINE': 'django.db.backends.postgresql',
-          'NAME': 'postgres',
-          'USER': 'postgres.tlxqprpsepzdgnupyroa',
-          'HOST': os.environ.get("SUPABASE_HOST"),
-          'PASSWORD': os.environ.get("SUPABASE_PASSWORD"),
-          'PORT': '6543',
-          'OPTIONS': {
-             'sslmode': 'verify-full',
-             'sslrootcert': os.path.join(BASE_DIR, 'prod-ca-2021.crt'),
-          },
-      }
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'postgres',
+        'USER': 'postgres.tlxqprpsepzdgnupyroa',
+        'HOST': SUPABASE_HOST,
+        'PASSWORD': SUPABASE_PASSWORD,
+        'PORT': '6543',
+        'CONN_MAX_AGE': 60,
+        'CONN_HEALTH_CHECKS': True,
+        'OPTIONS': {
+            'sslmode': 'verify-full',
+            'sslrootcert': os.path.join(BASE_DIR, 'prod-ca-2021.crt'),
+            'connect_timeout': 10,
+        },
+    }
 }
 
 #Database local

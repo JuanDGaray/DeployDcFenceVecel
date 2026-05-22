@@ -151,10 +151,14 @@
         </button>           
     </div>
 </div>
+<script>
+    window.dataC = {{ data|safe }};
+    window.budgetInitialLoad = true;
+</script>
 <script src="{% static 'js/new_budgetScripts.js' %}"></script>
 <script src="{% static 'js/addDetailsBudget.js' %}"></script>
 <script>
-    const dataC = {{ data|safe }};
+    const dataC = window.dataC;
     const toggleButton = document.getElementById('toggle-button');
     const toolsContainer = document.getElementById('tools-container');
     toggleButton.addEventListener('click', () => {

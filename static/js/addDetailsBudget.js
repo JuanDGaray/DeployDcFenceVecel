@@ -71,7 +71,11 @@ function populateUtils(data) {
     utilsData.cost_data.forEach(entry => addItem(entry.item));
     document.getElementById("assistantCostByDay").value = utilsData.data_unit_cost_mw[0].value;;
     document.getElementById("welderCostByDay").value = utilsData.data_unit_cost_mw[1].value;
-    
+
+    const marginErrorCheck = document.getElementById("marginErrorCheck");
+    const marginErrorPercentage = document.getElementById("marginErrorPercentage");
+    if (marginErrorCheck) marginErrorCheck.checked = utilsData.margin_error_check;
+    if (marginErrorPercentage) marginErrorPercentage.value = utilsData.percentage_margin_error;
 
     document.getElementById("Labor_gas").value = utilsData.manufacturing_data.Gas  || 0;
     document.getElementById("Labor_water").value = utilsData.manufacturing_data.Water  || 0;
@@ -91,8 +95,6 @@ function populateUtils(data) {
                 const element = document.getElementById(key); // Busca el elemento en el DOM
     
                 if (element) {
-                    console.log(`Elemento encontrado para ID: ${key}`);
-
                     const ft = entry.ft || 0;
                     const posts = entry.posts || 0;
                     const Multiplier = entry.Multiplier || 0;
@@ -106,9 +108,8 @@ function populateUtils(data) {
                     }
                     if (postsInput) {
                         postsInput.value = posts;
-                        MultiplierInput.value = Multiplier
+                        if (MultiplierInput) MultiplierInput.value = Multiplier;
                     }
-                    console.warn(`No se encontró ningún elemento con ID: ${key}`);
                 }
             });
         } else {
@@ -137,12 +138,32 @@ function populateUtils(data) {
     document.getElementById("add-utilities-per-FT").checked = utilsData.add_utilities_checked;
     document.getElementById("add-removal-per-FT").checked = utilsData.add_removal_checked;
     document.getElementById("cboxMWadd").checked = utilsData.add_data_profit_by_daymw;
+    if (typeof setLoanPercentageValue === 'function') {
+        setLoanPercentageValue(utilsData.percentage);
+    }
     document.getElementById("cbox4").checked = utilsData.add_loans;
-    const percentageLoansEl = document.getElementById("percentage-loans");
-    if (percentageLoansEl && utilsData.percentage != null && utilsData.percentage !== '') {
-        percentageLoansEl.value = utilsData.percentage;
+
+}
+
+function finishBudgetInitialLoad(utils) {
+    try {
+        if (typeof reloadMarginError === 'function') {
+            reloadMarginError();
+        }
+    } catch (err) {
+        console.warn('Margin error setup skipped:', err);
     }
 
+    if (typeof syncBudgetLoansOnLoad === 'function') {
+        syncBudgetLoansOnLoad(utils);
+    } else {
+        window.budgetInitialLoad = false;
+    }
+}
+
+function isLoanDeductRow(deduct) {
+    const desc = (deduct.deduct_description || '').toLowerCase();
+    return desc.includes('loans, interest and variable costs');
 }
 
 function addManualData(data) {
@@ -166,7 +187,7 @@ function addManualData(data) {
         createMiscRow(misc)
     });
 
-    const filteredDeducts = data.deducts.filter(deduct => !deduct.is_generated_by_utils);
+    const filteredDeducts = data.deducts.filter((deduct) => !isLoanDeductRow(deduct));
     filteredDeducts.forEach((deduct, index) => {
         createDeductsRow(deduct)
     });
@@ -195,10 +216,12 @@ function toggleCheckboxesInChecklist(data) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+    const budgetData = window.dataC || (typeof dataC !== 'undefined' ? dataC : null);
+    if (!budgetData) return;
+
     window.budgetInitialLoad = true;
-    console.log(dataC)
-    populateUtils(dataC.utils);
-    addManualData(dataC)
+    populateUtils(budgetData.utils);
+    addManualData(budgetData)
     toggleAddHole()
     toggleUtilitiesPerFT()
     toggleTable()
@@ -208,15 +231,11 @@ document.addEventListener("DOMContentLoaded", () => {
     activeRowProfitManufacturingMW(this)
     toggleRemmovalPerFT()
     useDaysInMF()
-    toggleCheckboxesInChecklist(dataC.materials)
+    toggleCheckboxesInChecklist(budgetData.materials)
     reloadRowProfitManufacturingMW()
     updatePorfitInstallations()
     toggleCheckboxes(false);
-    toggleCheckboxes(true);
+    toggleCheckboxes(budgetData.utils[0].add_unit_cost_mi);
     updateRowNumbers(laborSection);
-    reloadMarginError();
-    if (dataC.utils && dataC.utils[0] && dataC.utils[0].add_loans && typeof reoloadLoans === 'function') {
-        reoloadLoans();
-    }
-    window.budgetInitialLoad = false;
+    finishBudgetInitialLoad(budgetData.utils[0]);
 });

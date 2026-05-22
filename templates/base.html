@@ -6,9 +6,12 @@
     <title>{% block title %}DC FENCE | Backoffice{% endblock %}</title>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'css/app-shell.css' %}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.3.3/js/bootstrap.bundle.min.js"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@300;400;700&display=swap">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="icon" type="image/png" href="{% static 'img/LogoSmLarge.png' %}?v=1">
     <link rel="apple-touch-icon" href="{% static 'img/LogoSmLarge.png' %}?v=1">
@@ -19,55 +22,52 @@
 <div id="loadingOverlay"  class="containerLoading d-none" >
     <img src="{% static 'img/loading.gif' %}" alt="Cargando" class="img-fluid rounded-1" style="width: 100px; height: auto;">
 </div>
-<body class="bg-white">
+<body class="app-body">
     <div id="alert-container"></div>
     <script src="{% static 'js/baseScripts.js' %}"></script>
     {% csrf_token %}
-    <div class="container-fluid ">
-        <div class="row">
-            <div class='position-fixed start-0 top-0 w-25 vh-100 z-3' id="notifications" style="height: 100vh; background-color:rgba(155, 155, 155, 0.89); backdrop-filter: blur(5px); margin-left: 70px; transform: translateX(-100%);">
-                <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
-                    <h6 class="text-center fs-5 fw-bold m-0">Notifications <span class="spinner-border spinner-border-sm m-auto text-light" id="spinner-notifications""></span></h6>
-                    <button class="btn btn-sm btn-outline-light" onclick="deleteAllNotifications()" id="clearAllBtn" style="display: none;">
-                        <i class="bi bi-trash"></i> Clear All
-                    </button>
-                </div>
-            </div>
-            <div class="d-flex flex-column justify-content-between col-sm-auto bg-light sticky-top border-end p-0 z-3"   style="height: 100vh;">
-                    <ul class="nav nav-pills nav-flush flex-sm-column flex-row flex-nowrap text-center align-items-center p-0">
-                        <li>
-                            <a href="/" class="nav-link p-2 m-2" style="border-radius: 100%; background-color:#0056b8;"   >
-                                <img src="{% static 'img/LogoSmLarge.png' %}?v=1" alt="Logo" class="img-fluid rounded-1" style="width: 28px; height: 28px;">
-                            </a>
-                        </li>
-                        <li>
-                            <button class="nav-link " aria-current="page" onclick="notificationsToggle()">
-                            <div class="position-relative">
-                                <i class=" btn btn-pri bi bi-bell-fill fs-6 text-light bg-secondary"></i>
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-primary" style="font-size: 0.8rem; transform: translate(-50%, -50%);" id="notification-count">0</span>
-                            </div>
-                            </button>
-                        </li>
-                    </ul>
-                    <ul class="nav nav-pills nav-flush flex-sm-column flex-row flex-nowrap text-center align-items-center mt-auto mb-auto p-0">
+
+    <div class="app-notifications-panel" id="notifications" aria-hidden="true">
+        <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+            <h6 class="text-center fs-6 fw-semibold m-0">Notifications <span class="spinner-border spinner-border-sm text-light" id="spinner-notifications"></span></h6>
+            <button class="btn btn-sm btn-outline-light" onclick="deleteAllNotifications()" id="clearAllBtn" style="display: none;">
+                <i class="bi bi-trash"></i> Clear All
+            </button>
+        </div>
+    </div>
+
+    <aside class="app-sidebar" id="app-sidebar" aria-label="Main navigation">
+        <div class="app-sidebar__top">
+            <a href="/" class="app-sidebar__brand" title="DC Fence — Home">
+                <img src="{% static 'img/LogoSmLarge.png' %}?v=2" alt="DC Fence">
+            </a>
+            <button type="button" class="app-sidebar__notif-btn" aria-label="Notifications" onclick="notificationsToggle()">
+                <span class="position-relative d-inline-flex">
+                    <i class="bi bi-bell-fill"></i>
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill" id="notification-count">0</span>
+                </span>
+            </button>
+        </div>
+
+        <ul class="app-sidebar__nav nav nav-pills nav-flush">
                         <li class="nav-item">
-                            <a href="/projects" class="nav-link central {% if view == 'projects'%} active-nav text-primary{% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Projects">
-                                <i class="bi bi-bounding-box fs-4 text-secondary"></i>
+                            <a href="/projects" class="nav-link central app-nav-item {% if view == 'projects'%} active-nav{% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Projects">
+                                <i class="bi bi-bounding-box"></i>
                             </a>
                         </li>
                         <li>
-                            <a href="/metrics" class="nav-link central {% if view == 'metrics'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Metrics">
-                                <i class="bi-speedometer2 fs-4 text-secondary"></i>
+                            <a href="/metrics" class="nav-link central app-nav-item {% if view == 'metrics'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Metrics">
+                                <i class="bi bi-speedometer2"></i>
                             </a>
                         </li>
                         <li>
-                            <a href="/email_tracking_dashboard/" class="nav-link central {% if view == 'email_tracking'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Email Tracking">
-                                <i class="bi bi-envelope-check fs-4 text-secondary"></i>
+                            <a href="/email_tracking_dashboard/" class="nav-link central app-nav-item {% if view == 'email_tracking'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Email Tracking">
+                                <i class="bi bi-envelope-check"></i>
                             </a>
                         </li>
                         <li>
-                            <a href="/customers" class="nav-link central {% if view == 'costumer'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Customers">
-                                <i class="bi bi-person-lines-fill fs-4 text-secondary"></i>
+                            <a href="/customers" class="nav-link central app-nav-item {% if view == 'costumer'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Customers">
+                                <i class="bi bi-person-lines-fill"></i>
                             </a>
                         </li>
                         {% comment %} <li>
@@ -83,62 +83,46 @@
                     {% endcomment %}
                     <li>
                         {% if user.groups.first.name == 'ADMIN' %}
-                        <a href="/accounting" class="nav-link central {% if view == 'accounting'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Accounting">
-                            <div class="position-relative">
-                                <i class="bi bi-calculator-fill fs-4 text-secondary"></i>
-                                {% comment %} <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem; transform: translate(-50%, -50%);">NEW</span> {% endcomment %}
-                            </div>
+                        <a href="/accounting" class="nav-link central app-nav-item {% if view == 'accounting'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Accounting">
+                            <i class="bi bi-calculator-fill"></i>
                         </a>
                         {% endif %}
                     </li>
                     <li>
                         {% if user.groups.first.name == 'ADMIN' %}
-                        <a href="/admin/completed-projects/" class="nav-link central {% if view == 'admin_dashboard'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Dashboard Admin">
-                            <div class="position-relative">
-                                <i class="bi bi-graph-up-arrow fs-4 text-secondary"></i>
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning" style="font-size: 0.6rem; transform: translate(-50%, -50%);">ADMIN</span>
-                            </div>
+                        <a href="/admin/completed-projects/" class="nav-link central app-nav-item {% if view == 'admin_dashboard'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Dashboard Admin">
+                            <span class="position-relative d-inline-flex">
+                                <i class="bi bi-graph-up-arrow"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-warning" style="font-size: 0.55rem;">ADM</span>
+                            </span>
                         </a>
                         {% endif %}
                     </li>
                     <li>
                         {% if user.groups.first.name == 'PRODUCTION' or user.groups.first.name == 'ADMIN' %}
-                        <a href="/production" class="nav-link central {% if view == 'production'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Production">
-                            <i class="bi bi-wrench-adjustable-circle-fill fs-4 text-secondary"></i>
+                        <a href="/production" class="nav-link central app-nav-item {% if view == 'production'%} active-nav {% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Production">
+                            <i class="bi bi-wrench-adjustable-circle-fill"></i>
                         </a>
                         {% endif %}
                     </li>
-                    </ul>
-                    <ul class="nav nav-pills nav-flush flex-sm-column flex-row flex-nowrap text-center align-items-center p-0">
-                        <li>
-                            <a href="/settings" class="nav-link settings" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Settings">
-                                <i class="fs-4 bi bi-gear-fill text-secondary px-2 py-1 rounded-5"></i>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="/home" class="nav-link central mb-2 mx-0 p-0 {% if view == 'my-profile'%} active-nav text-primary{% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="{{ user.first_name }} {{ user.last_name }} - {{ user.groups.first.name }}">
-                                <span
-                                    class="customer-avatar text-light rounded-circle m-0"
-                                    style="font-size: 1.5rem; font-weight: bold; width: 36px; height: 36px;">
-                                    {{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}
-                                </span>
-                            </a>    
-                        </li>
-                        {% comment %}
-                       
-                        {% endcomment %}
-                    </ul>
-                    
-            </div>
-                <div class="col-sm p-0 min-vh-100 overflow-hidden">
-                    
-                {% block content %}
+        </ul>
 
-                {% endblock %}
-                </div>
-            </div>
+        <div class="app-sidebar__bottom">
+            <a href="/settings" class="nav-link settings" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="Settings">
+                <i class="bi bi-gear-fill fs-5"></i>
+            </a>
+            <a href="/home" class="nav-link central app-nav-item p-0 {% if view == 'my-profile'%} active-nav{% endif%}" data-bs-toggle="tooltip" data-bs-placement="right" data-bs-custom-class="custom-tooltip" data-bs-title="{{ user.first_name }} {{ user.last_name }} — {{ user.groups.first.name }}">
+                <span class="customer-avatar text-light rounded-circle" style="font-size: 0.85rem; font-weight: 700; width: 40px; height: 40px;">
+                    {{ user.first_name|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}
+                </span>
+            </a>
         </div>
-    </div>
+    </aside>
+
+    <main class="app-main">
+        {% block content %}
+        {% endblock %}
+    </main>
 </body>
 {% include "bubbleIAChat.html" %} 
 
@@ -185,12 +169,9 @@
 <script>
     function notificationsToggle() {
         const notifications = document.getElementById('notifications');
-        if (notifications.style.transform === 'translateX(-100%)') {
-            notifications.style.transform = 'translateX(0%)';
-        } else {
-            notifications.style.transform = 'translateX(-100%)';
-        }
-        notifications.style.transition = 'transform 0.3s ease-in-out';
+        if (!notifications) return;
+        const isOpen = notifications.classList.toggle('is-open');
+        notifications.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
     }
 
     document.addEventListener('DOMContentLoaded', function () {
