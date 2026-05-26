@@ -16,11 +16,14 @@ function updateTableMi(data) {
     });
 }
 
+function normalizeManufacturingItemId(item) {
+    return String(item || '').trim().toUpperCase().replace(/\s+/g, '-');
+}
+
 function updateManufacturingTable(data) {
     data.forEach(entry => {
-        // Escape special characters in the item name for the selector
-        const escapedItem = entry.item.trim().replace(/[&]/g, '\\&').replace(/\s+/g, '-');
-        const row = document.querySelector(`#manufacturing-${escapedItem}`);
+        const itemId = normalizeManufacturingItemId(entry.item);
+        const row = document.getElementById(`manufacturing-${itemId}`);
         if (row) {
             const daysInput = row.querySelector(`input[type="number"]`);
             if (daysInput) {
@@ -37,9 +40,8 @@ function updateManufacturingTable(data) {
 
 function updateManufacturingMWTable(data) {
     data.forEach(entry => {
-        // Escape special characters in the item name for the selector
-        const escapedItem = entry.item.trim().replace(/[&]/g, '\\&').replace(/\s+/g, '-');
-        const row = document.querySelector(`#manufacturingMW-${escapedItem}`);
+        const itemId = normalizeManufacturingItemId(entry.item);
+        const row = document.getElementById(`manufacturingMW-${itemId}`);
         if (row) {
             // Actualiza el campo de qtyWLD si existe
             const qtyWLDInput = row.querySelector(`input.qtyWLD-manufacturingMW`);
