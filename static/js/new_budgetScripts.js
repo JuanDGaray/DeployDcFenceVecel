@@ -2282,6 +2282,8 @@ function getUtilsData() {
 
     const adddataProfitByDayMW  = document.getElementById('cboxMWadd').checked;
     const valueProfitByDayMW = document.getElementById('profitByDay').value;
+    const marginErrorCheck = document.getElementById('marginErrorCheck')?.checked || false;
+    const marginErrorPercentage = parseFloat(document.getElementById('marginErrorPercentage')?.value) || 5;
 
     const dataProfitByDay = {
         days: 0,
@@ -2386,6 +2388,8 @@ function getUtilsData() {
         dataUnitCostMW:dataUnitCostMW,
         dataProfitByDay: dataProfitByDayTotal,
         dataLoans: dataLoans,
+        checkMarginError: marginErrorCheck,
+        percentageMarginError: marginErrorPercentage,
         profitTotal:profitFTTotal,
         costTotal:costFTTotal,
     }

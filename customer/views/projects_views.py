@@ -1321,6 +1321,8 @@ def save_budget_data_from_dict(dataBudget,data):
             util_data_MW = util_data['dataUnitCostMW']
             util_data_Pday = util_data['dataProfitByDay']
             util_data_loans = util_data['dataLoans']
+            margin_error_check = bool(util_data.get('checkMarginError', False))
+            percentage_margin_error = util_data.get('percentageMarginError', 5)
             BudgetEstimateUtil.objects.create(
                 budget=budget,
                 add_post_and_hole = util_data_hole.get('addTotalFtPosts'),
@@ -1353,8 +1355,8 @@ def save_budget_data_from_dict(dataBudget,data):
                 # Información de préstamos
                 add_loans = util_data_loans.get('addLoans'),
                 percentage = util_data_loans.get('dataLoansToProject', {}).get('percentage', 0),
-                margin_error_check = util_data.get('checkMarginError'),
-                percentage_margin_error = util_data.get('percentageMarginError'),
+                margin_error_check = margin_error_check,
+                percentage_margin_error = percentage_margin_error,
             )
             
             
