@@ -493,6 +493,7 @@ function updateTotalCost() {
     let materialsTotal = 0;
     let contractorTotal = 0;
     let miscTotal = 0;
+    let marginErrorTotal = 0;
     let deductsTotal = 0;
     let profitTotal = 0;
 
@@ -533,6 +534,17 @@ function updateTotalCost() {
     subtotalMiscCost.value = miscTotal.toFixed(2); 
     formatTotalCost(subtotalMiscCost)
 
+    // Calculate margin error subtotal
+    const marginErrorCostInputs = document.querySelectorAll('#margin-error-section input[name="margin_error_cost"]');
+    const subtotalMarginErrorCost = $$$('total_margin_error_cost');
+    marginErrorCostInputs.forEach(input => {
+        marginErrorTotal += parseFloat(input.value) || 0;
+    });
+    if (subtotalMarginErrorCost) {
+        subtotalMarginErrorCost.value = marginErrorTotal.toFixed(2);
+        formatTotalCost(subtotalMarginErrorCost);
+    }
+
 
     // Calculate deducts subtotal
     const deductsCostInputs = deductsSection.querySelectorAll('input[name="deducts_UnitCost"]');
@@ -558,7 +570,7 @@ function updateTotalCost() {
    
 
     // Update the total cost by summing the subtotals
-    total = laborTotal + materialsTotal + contractorTotal + miscTotal;
+    total = laborTotal + materialsTotal + contractorTotal + miscTotal + marginErrorTotal;
     totalCostInput.value = total.toFixed(2); 
 
     granTotalInput = $$$('grand_Cost');
@@ -1023,24 +1035,31 @@ function syncBudgetLoansOnLoad(utilsData, attempt = 0) {
 
 function removeMarginErrorRows() {
     document.querySelectorAll(
-        '#misc-section tr.margin-error-item, #materials-section tr.margin-error-item'
+        '#margin-error-section tr.margin-error-item, #misc-section tr.margin-error-item, #materials-section tr.margin-error-item'
     ).forEach((row) => row.remove());
 }
 
 function addMarginError(checkbox) {
     removeMarginErrorRows();
     const tableWrapper = document.querySelector('.margin-error-table');
+    const marginErrorSection = document.getElementById('margin-error-section');
+    const totalMarginErrorCost = document.getElementById('total_margin_error_cost');
     if (tableWrapper) {
         tableWrapper.classList.toggle('d-none', !checkbox.checked);
     }
     if (!checkbox || !checkbox.checked) {
+        if (totalMarginErrorCost) totalMarginErrorCost.value = '0.00';
         if (typeof updateValuesUI === 'function') updateValuesUI();
         return;
     }
 
     const pctInput = document.getElementById('marginErrorPercentage');
     const pct = parseFloat(pctInput?.value) || 0;
-    if (pct <= 0) return;
+    if (pct <= 0) {
+        if (totalMarginErrorCost) totalMarginErrorCost.value = '0.00';
+        if (typeof updateValuesUI === 'function') updateValuesUI();
+        return;
+    }
 
     let materialsBase = 0;
     document.querySelectorAll('#materials-section tr').forEach((row) => {
@@ -1050,10 +1069,9 @@ function addMarginError(checkbox) {
     });
 
     const amount = (materialsBase * pct / 100).toFixed(2);
-    const miscSection = document.getElementById('misc-section');
-    if (!miscSection) return;
+    if (!marginErrorSection) return;
 
-    const rowCount = miscSection.querySelectorAll('tr').length;
+    const rowCount = marginErrorSection.querySelectorAll('tr').length;
     const newRow = document.createElement('tr');
     newRow.className = 'align-middle generated-by-utils margin-error-item';
     newRow.innerHTML = `
@@ -1063,20 +1081,25 @@ function addMarginError(checkbox) {
                 <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
                     <option value="GENERAL">GENERAL</option>
                 </select>
-                <input class="form-control-budget" type="text" name="misc_desc" value="Margen de error">
+                <input class="form-control-budget" type="text" name="margin_error_desc" value="Margin Error">
             </div>
         </td>
-        <td class="p-0"><input class="form-control-budget" type="text" name="misc_lead-time" value="Immediate"></td>
+        <td class="p-0"><input class="form-control-budget" type="text" name="margin_error_lead-time" value="Immediate"></td>
         <td class="p-0">
             <div class="input-group p-0">
                 <span class="money_simbol_input">$</span>
-                <input class="form-control-budget text-end" type="number" name="misc_UnitCost" id="misc_UnitCost" step="0.01" value="${amount}" readonly>
+                <input class="form-control-budget text-end" type="number" name="margin_error_cost" id="margin_error_cost" step="0.01" value="${amount}" readonly>
             </div>
         </td>
         <td class="p-0 text-center" style="width:0px"></td>
     `;
-    miscSection.appendChild(newRow);
+    marginErrorSection.appendChild(newRow);
+    if (totalMarginErrorCost) {
+        totalMarginErrorCost.value = amount;
+        formatTotalCost(totalMarginErrorCost);
+    }
     if (typeof updateSelectOptions === 'function') updateSelectOptions();
+    updateRowNumbers(marginErrorSection);
     if (typeof updateValuesUI === 'function') updateValuesUI();
 }
 
@@ -1088,7 +1111,7 @@ function reloadMarginError() {
 
 function isMarginErrorDescription(description) {
     const normalized = String(description || '').toLowerCase();
-    return normalized.includes('margin of error') || normalized.includes('margen de error');
+    return normalized.includes('margin of error') || normalized.includes('margin error') || normalized.includes('margen de error');
 }
 
 
@@ -1618,6 +1641,11 @@ function calculateTotalByItem() {
             if(miscCostInput){
                 cost = parseFloat(miscCostInput.value)
             }
+        } else if (select.closest('#margin-error-section')) {
+            const marginErrorCostInput = select.parentElement.parentElement.parentElement.querySelector("#margin_error_cost");
+            if(marginErrorCostInput){
+                cost = parseFloat(marginErrorCostInput.value)
+            }
         }
         else if (select.closest('#deducts-section')) {
                 const dedusctsCostInput = select.parentElement.parentElement.parentElement.querySelector("#deducts_item");
@@ -2003,6 +2031,12 @@ function calculateProfitAndCostByItem() {
             const miscCostInput = select.parentElement.parentElement.parentElement.querySelector("#misc_UnitCost");
             if(miscCostInput){
                 cost = parseFloat(miscCostInput.value) || 0
+                totalCostWithoutDeductionsByItem[selectedItem] += cost;
+            }
+        } else if (select.closest('#margin-error-section')) {
+            const marginErrorCostInput = select.parentElement.parentElement.parentElement.querySelector("#margin_error_cost");
+            if(marginErrorCostInput){
+                cost = parseFloat(marginErrorCostInput.value) || 0
                 totalCostWithoutDeductionsByItem[selectedItem] += cost;
             }
             
