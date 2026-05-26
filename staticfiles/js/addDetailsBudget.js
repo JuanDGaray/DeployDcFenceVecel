@@ -168,6 +168,11 @@ function isLoanDeductRow(deduct) {
     return desc.includes('loans, interest and variable costs');
 }
 
+function isMarginErrorMiscRow(misc) {
+    const desc = String(misc?.misc_description || misc?.description || '').toLowerCase();
+    return desc.includes('margin of error') || desc.includes('margen de error');
+}
+
 function addManualData(data) {
     const filteredLabors = data.labors.filter(labor => !labor.is_generated_by_utils);
     filteredLabors.forEach((material, index) => {
@@ -184,7 +189,9 @@ function addManualData(data) {
         createContractorRow(contractor)
     });
 
-    const filteredMisc = data.misc_data.filter(misc => !misc.is_generated_by_utils);
+    const filteredMisc = data.misc_data.filter(
+        misc => !misc.is_generated_by_utils && !isMarginErrorMiscRow(misc)
+    );
     filteredMisc.forEach((misc, index) => {
         createMiscRow(misc)
     });

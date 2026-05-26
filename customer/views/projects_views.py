@@ -1291,6 +1291,10 @@ def save_budget_data_from_dict(dataBudget,data):
     :return: El objeto BudgetEstimate creado
     """
     try:
+        def is_margin_error_misc(misc):
+            description = str(misc.get('description', '') or '').lower()
+            return 'margin of error' in description or 'margen de error' in description
+
         related_budget = None
         if dataBudget.get('related_budget'):
             related_budget = dataBudget.get('related_budget')  # Ajusta esto si necesitas buscar un objeto relacionado
@@ -1402,6 +1406,8 @@ def save_budget_data_from_dict(dataBudget,data):
         if 'miscData' in data:
             misc_data =  data['miscData']   
             for misc in misc_data:
+                if is_margin_error_misc(misc):
+                    continue
                 BudgetEstimateMiscData.objects.create(
                     budget=budget,
                     misc_description=misc.get('description'),

@@ -1086,6 +1086,11 @@ function reloadMarginError() {
     addMarginError(checkbox);
 }
 
+function isMarginErrorDescription(description) {
+    const normalized = String(description || '').toLowerCase();
+    return normalized.includes('margin of error') || normalized.includes('margen de error');
+}
+
 
 // Function to toggle the visibility of the loans section
 
@@ -2486,9 +2491,13 @@ function getCostManagementData() {
     document.querySelectorAll('#misc-section tr').forEach((row, index) => {
         const cells = row.querySelectorAll('td');
         if (cells.length > 0) {
+            const description = cells[1]?.querySelector('input[name="misc_desc"]')?.value || '';
+            if (row.classList.contains('margin-error-item') || isMarginErrorDescription(description)) {
+                return;
+            }
             miscData.push({
                 index: index,
-                description: cells[1]?.querySelector('input[name="misc_desc"]')?.value || '',
+                description: description,
                 leadTime: cells[2]?.querySelector('input[name="misc_lead-time"]')?.value || '',
                 miscCost: cells[3]?.querySelector('input[name="misc_UnitCost"]')?.value || '',
                 itemValue: row.querySelector('#itemsSelect')?.value, 
