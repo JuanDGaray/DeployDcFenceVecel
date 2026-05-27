@@ -487,7 +487,7 @@ function updateProfit() {
 }
 
   
-function updateTotalCost() {
+function updateTotalCost(skipSummaryRefresh) {
     validateInputs()
     let laborTotal = 0;
     let materialsTotal = 0;
@@ -538,7 +538,7 @@ function updateTotalCost() {
     const marginErrorCostInputs = document.querySelectorAll('#margin-error-section input[name="margin_error_cost"]');
     const subtotalMarginErrorCost = $$$('total_margin_error_cost');
     marginErrorCostInputs.forEach(input => {
-        marginErrorTotal += parseFloat(input.value) || 0;
+        marginErrorTotal += parseMoneyInputValue(input.value);
     });
     if (subtotalMarginErrorCost) {
         subtotalMarginErrorCost.value = marginErrorTotal.toFixed(2);
@@ -578,22 +578,12 @@ function updateTotalCost() {
     granTotalInput.value = granTotalCosto.toFixed(2);         
     formatTotalCost(granTotalCosto)
 
-        // Actualizar el total de costos
-    let labelTotalCostInput = $('#totalCostByItems');  // Elemento para el total de costos
-    labelTotalCostInput.innerHTML = granTotalCosto.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-
-
-    // Actualizar el total de ganancias
-    let labelTotalProfitInput = $('#totalProfitByItems');  // Elemento para el total de ganancias
-    labelTotalProfitInput.innerHTML = profitTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-
-
-    // Actualizar el total de costos y ganancias combinados
-    let labelTotalCostProfitInput = $('#totalCostProfitByItems');  // Elemento para el total combinado
-    let totalProfit = profitTotal + granTotalCosto;
-    labelTotalCostProfitInput.innerHTML = totalProfit.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    // Per-item summary footers are synced from calculateTotalByItem (not granTotalCosto).
+    if (!skipSummaryRefresh && !window.budgetInitialLoad && typeof calculateTotalByItem === 'function') {
+        calculateTotalByItem();
+    }
     let Value_Project = $('#Value_Project'); 
-    Value_Project.value = totalProfit;
+    Value_Project.value = (profitTotal + granTotalCosto).toFixed(2);
     formatTotalCost(Value_Project)
 
 
@@ -986,9 +976,18 @@ function removeLoanGeneratedRows() {
     });
 }
 
+function getLoanBaseByItem() {
+    const result = typeof calculateProfitAndCostByItem === 'function'
+        ? calculateProfitAndCostByItem()
+        : null;
+    if (!result) return {};
+    return result.totalCostWithoutDeductionsByItem || result;
+}
+
 function reoloadLoans(){
     var checkbox = $$$("cbox4");
     if (!checkbox) return;
+    window._reloadingLoans = true;
     var wasChecked = checkbox.checked;
     checkbox.checked = false;
     toggleAddLoans();
@@ -996,9 +995,7 @@ function reoloadLoans(){
         checkbox.checked = true;
         toggleAddLoans();
     }
-    calculateTotalByItem();
-    calculateProfitAndCostByItem();
-    updateTotalCost();
+    window._reloadingLoans = false;
 }
 
 /** Apply loans after budget data is loaded (retries until cost bases exist). */
@@ -1006,6 +1003,11 @@ function syncBudgetLoansOnLoad(utilsData, attempt = 0) {
     const MAX_ATTEMPTS = 25;
     if (!utilsData || !utilsData.add_loans) {
         window.budgetInitialLoad = false;
+        if (typeof updateValuesUI === 'function') {
+            updateValuesUI();
+        } else if (typeof updateTotalCost === 'function') {
+            updateTotalCost();
+        }
         return;
     }
 
@@ -1021,10 +1023,7 @@ function syncBudgetLoansOnLoad(utilsData, attempt = 0) {
     checkbox.checked = true;
     if (loansTable) loansTable.style.display = 'table';
 
-    let totals = {};
-    if (typeof calculateProfitAndCostByItem === 'function') {
-        totals = calculateProfitAndCostByItem() || {};
-    }
+    const totals = getLoanBaseByItem();
     const hasBase = Object.values(totals).some((v) => Number(v) > 0);
 
     if (!hasBase && attempt < MAX_ATTEMPTS) {
@@ -1033,7 +1032,14 @@ function syncBudgetLoansOnLoad(utilsData, attempt = 0) {
     }
 
     window.budgetInitialLoad = false;
-    reoloadLoans();
+    if (typeof updateValuesUI === 'function') {
+        updateValuesUI();
+    } else {
+        reoloadLoans();
+        if (typeof updateTotalCost === 'function') {
+            updateTotalCost();
+        }
+    }
 }
 
 function removeMarginErrorRows() {
@@ -1042,7 +1048,60 @@ function removeMarginErrorRows() {
     ).forEach((row) => row.remove());
 }
 
-function addMarginError(checkbox) {
+function getMaterialsMarginByItem() {
+    const marginByItem = {};
+    const pct = parseFloat(document.getElementById('marginErrorPercentage')?.value) || 0;
+    if (pct <= 0) return marginByItem;
+
+    const percentCost = pct / 100;
+    const materialsSection = document.getElementById('materials-section');
+    if (!materialsSection) return marginByItem;
+
+    materialsSection.querySelectorAll('tr').forEach((row) => {
+        if (row.classList.contains('margin-error-item')) return;
+
+        const select = row.querySelector('#itemsSelect');
+        const costInput = row.querySelector('#materials_Cost');
+        if (!select || !costInput) return;
+
+        const itemName = select.value;
+        const materialCost = parseFloat(costInput.value) || 0;
+        if (!marginByItem[itemName]) {
+            marginByItem[itemName] = 0;
+        }
+        marginByItem[itemName] += materialCost * percentCost;
+    });
+
+    return marginByItem;
+}
+
+function appendMarginErrorRow(marginErrorSection, rowIndex, itemName, marginAmount) {
+    const amount = marginAmount.toFixed(2);
+    const newRow = document.createElement('tr');
+    newRow.className = 'align-middle generated-by-utils margin-error-item';
+    newRow.innerHTML = `
+        <td class="text-center p-0"><strong>${rowIndex}</strong></td>
+        <td colspan="4" class="p-0">
+            <div class="d-flex align-items-center">
+                <select id="itemsSelect" class="innerSelect me-2" style="width: auto;" readonly disabled>
+                    <option value="${itemName}">${itemName}</option>
+                </select>
+                <input class="form-control-budget" type="text" name="margin_error_desc" value="Margin of Error (${itemName})" readonly disabled>
+            </div>
+        </td>
+        <td class="p-0"><input class="form-control-budget" type="text" name="margin_error_lead-time" value="Immediate" readonly disabled></td>
+        <td class="p-0">
+            <div class="input-group p-0">
+                <span class="money_simbol_input">$</span>
+                <input class="form-control-budget text-end" type="number" name="margin_error_cost" step="0.01" value="${amount}" readonly disabled>
+            </div>
+        </td>
+        <td class="p-0 text-center" style="width:0px"></td>
+    `;
+    marginErrorSection.appendChild(newRow);
+}
+
+function addMarginError(checkbox, silentUpdate) {
     removeMarginErrorRows();
     const tableWrapper = document.querySelector('.margin-error-table');
     const marginErrorSection = document.getElementById('margin-error-section');
@@ -1052,64 +1111,45 @@ function addMarginError(checkbox) {
     }
     if (!checkbox || !checkbox.checked) {
         if (totalMarginErrorCost) totalMarginErrorCost.value = '0.00';
-        if (typeof updateValuesUI === 'function') updateValuesUI();
+        if (!silentUpdate && typeof updateValuesUI === 'function') updateValuesUI();
         return;
     }
 
-    const pctInput = document.getElementById('marginErrorPercentage');
-    const pct = parseFloat(pctInput?.value) || 0;
-    if (pct <= 0) {
-        if (totalMarginErrorCost) totalMarginErrorCost.value = '0.00';
-        if (typeof updateValuesUI === 'function') updateValuesUI();
-        return;
-    }
-
-    let materialsBase = 0;
-    document.querySelectorAll('#materials-section tr').forEach((row) => {
-        if (row.classList.contains('margin-error-item')) return;
-        const costInput = row.querySelector('#materials_Cost');
-        if (costInput) materialsBase += parseFloat(costInput.value) || 0;
-    });
-
-    const amount = (materialsBase * pct / 100).toFixed(2);
     if (!marginErrorSection) return;
 
-    const rowCount = marginErrorSection.querySelectorAll('tr').length;
-    const newRow = document.createElement('tr');
-    newRow.className = 'align-middle generated-by-utils margin-error-item';
-    newRow.innerHTML = `
-        <td class="text-center p-0"><strong>${rowCount + 1}</strong></td>
-        <td colspan="4" class="p-0">
-            <div class="d-flex align-items-center">
-                <select id="itemsSelect" class="innerSelect me-2" style="width: auto;">
-                    <option value="GENERAL">GENERAL</option>
-                </select>
-                <input class="form-control-budget" type="text" name="margin_error_desc" value="Margin Error">
-            </div>
-        </td>
-        <td class="p-0"><input class="form-control-budget" type="text" name="margin_error_lead-time" value="Immediate"></td>
-        <td class="p-0">
-            <div class="input-group p-0">
-                <span class="money_simbol_input">$</span>
-                <input class="form-control-budget text-end" type="number" name="margin_error_cost" id="margin_error_cost" step="0.01" value="${amount}" readonly>
-            </div>
-        </td>
-        <td class="p-0 text-center" style="width:0px"></td>
-    `;
-    marginErrorSection.appendChild(newRow);
+    const marginByItem = getMaterialsMarginByItem();
+    let rowIndex = 0;
+    let totalAmount = 0;
+
+    Object.entries(marginByItem)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .forEach(([itemName, margin]) => {
+            if (margin <= 0) return;
+            rowIndex += 1;
+            totalAmount += margin;
+            appendMarginErrorRow(marginErrorSection, rowIndex, itemName, margin);
+        });
+
     if (totalMarginErrorCost) {
-        totalMarginErrorCost.value = amount;
+        totalMarginErrorCost.value = totalAmount.toFixed(2);
         formatTotalCost(totalMarginErrorCost);
     }
-    if (typeof updateSelectOptions === 'function') updateSelectOptions();
+
     updateRowNumbers(marginErrorSection);
-    if (typeof updateValuesUI === 'function') updateValuesUI();
+
+    if (silentUpdate) return;
+
+    if (typeof updateValuesUI === 'function') {
+        updateValuesUI();
+    } else if (typeof updateTotalCost === 'function') {
+        updateTotalCost();
+    }
 }
 
 function reloadMarginError() {
     const checkbox = document.getElementById('marginErrorCheck');
     if (!checkbox) return;
-    addMarginError(checkbox);
+    addMarginError(checkbox, true);
 }
 
 function isMarginErrorDescription(description) {
@@ -1131,7 +1171,7 @@ function toggleAddLoans() {
     var deductsSection = $$$("deducts-section"); // The section where deductions are displayed
     const tbodydeducts = $$$('deducts-section'); // Deductions section (table body)
     const rowCountdeducts = tbodydeducts.querySelectorAll('tr').length; // Count of existing rows in the deductions section
-    const totalCostByItems = calculateProfitAndCostByItem()
+    const totalCostByItems = getLoanBaseByItem();
     // If the checkbox is checked, display the loans table and calculate the deductions
     if (checkbox.checked) {
         removeLoanGeneratedRows();
@@ -1174,10 +1214,10 @@ function toggleAddLoans() {
         table.style.display = "none";
         removeLoanGeneratedRows();
     }
-    calculateTotalByItem()
-    calculateProfitAndCostByItem()
-    updateTotalCost()
-    updateRowNumbers(deductsSection)
+    updateRowNumbers(deductsSection);
+    if (!window._reloadingLoans && !window.budgetInitialLoad && typeof updateValuesUI === 'function') {
+        updateValuesUI();
+    }
 }
 
 
@@ -1572,6 +1612,8 @@ function removeAllElemetsByItems(item){
 function updateSelectOptions() {
     const selects = document.querySelectorAll(".innerSelect");
     selects.forEach(select => {
+        if (select.closest('#margin-error-section')) return;
+
         const selectedValue = select.value;
         select.innerHTML = ""; 
         
@@ -1631,6 +1673,89 @@ function formatSubtotalWithFtPerFoot(total, itemName) {
     return `$${total.toFixed(2)}`;
 }
 
+function parseMoneyInputValue(value) {
+    if (value === null || value === undefined) return 0;
+    const normalized = String(value).replace(/,/g, '');
+    const num = parseFloat(normalized);
+    return Number.isNaN(num) ? 0 : num;
+}
+
+function getRowCostFromSelect(select) {
+    const row = select.closest('tr');
+    if (!row) return 0;
+
+    if (select.closest('#materials-section')) {
+        return parseMoneyInputValue(row.querySelector('#materials_Cost')?.value);
+    }
+    if (select.closest('#contractor-section')) {
+        return parseMoneyInputValue(row.querySelector('#contractor_UnitCost')?.value);
+    }
+    if (select.closest('#labor-section')) {
+        return parseMoneyInputValue(row.querySelector('#Labor_Cost')?.value);
+    }
+    if (select.closest('#misc-section')) {
+        return parseMoneyInputValue(row.querySelector('#misc_UnitCost')?.value);
+    }
+    if (select.closest('#margin-error-section')) {
+        return parseMoneyInputValue(row.querySelector('input[name="margin_error_cost"]')?.value);
+    }
+    if (select.closest('#deducts-section')) {
+        return parseMoneyInputValue(row.querySelector('#deducts_item')?.value);
+    }
+    if (select.closest('#profit-section')) {
+        return parseMoneyInputValue(row.querySelector('#profit_item')?.value);
+    }
+    return 0;
+}
+
+function sumItemTotals(totalsByItem) {
+    return Object.values(totalsByItem || {}).reduce((sum, value) => sum + (parseFloat(value) || 0), 0);
+}
+
+function setCurrencyFooter(elementId, amount) {
+    const el = document.getElementById(elementId);
+    if (el) {
+        el.innerHTML = amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    }
+}
+
+function syncSummaryTableFooters(costTotals, profitTotals, sellingTotals) {
+    setCurrencyFooter('totalCostByItems', sumItemTotals(costTotals));
+    setCurrencyFooter('totalProfitByItems', sumItemTotals(profitTotals));
+    setCurrencyFooter('totalCostProfitByItems', sumItemTotals(sellingTotals));
+}
+
+function getRowDescriptionFromSelect(select) {
+    const row = select.closest('tr');
+    if (!row) return '';
+
+    if (select.closest('#margin-error-section')) {
+        return row.querySelector('input[name="margin_error_desc"]')?.value?.trim() || 'Margin of Error';
+    }
+    if (select.closest('#materials-section')) {
+        return row.querySelector('input[name="materials_desc"]')?.value?.trim() || '';
+    }
+    if (select.closest('#labor-section')) {
+        return row.querySelector('input[name="Labor_desc"]')?.value?.trim() || '';
+    }
+    if (select.closest('#contractor-section')) {
+        return row.querySelector('input[name="contractor_desc"]')?.value?.trim() || '';
+    }
+    if (select.closest('#misc-section')) {
+        return row.querySelector('input[name="misc_desc"]')?.value?.trim() || '';
+    }
+    if (select.closest('#deducts-section')) {
+        return row.querySelector('input[name="deducts_desc"]')?.value?.trim()
+            || row.querySelector('textarea[name="deducts_desc"]')?.value?.trim()
+            || '';
+    }
+    if (select.closest('#profit-section')) {
+        return row.querySelector('input[name="profit_desc"]')?.value?.trim() || '';
+    }
+
+    return select.parentElement?.querySelector('input')?.value?.trim() || '';
+}
+
 function calculateTotalByItem() {
     let itemSelects = costManagement.querySelectorAll('#itemsSelect');
     validateInputs()
@@ -1648,45 +1773,10 @@ function calculateTotalByItem() {
             descriptionByItem[selectedItem] = {};
         }
 
-        let cost = 0;
-
-        if (select.closest('#materials-section')) {
-            const materialCostInput = select.parentElement.parentElement.parentElement.querySelector("#materials_Cost");
-            if(materialCostInput){
-                cost = parseFloat(materialCostInput.value)
-            }
-        } else if (select.closest('#contractor-section')) {
-            const contractorCostInput = select.parentElement.parentElement.parentElement.querySelector("#contractor_UnitCost");
-            if(contractorCostInput){
-                cost = parseFloat(contractorCostInput.value)
-            }
-        } else if (select.closest('#labor-section')) {
-            const laborCostInput = select.parentElement.parentElement.parentElement.querySelector("#Labor_Cost");
-            if(laborCostInput){
-                cost = parseFloat(laborCostInput.value)
-            }
-        } else if (select.closest('#misc-section')) {
-            const miscCostInput = select.parentElement.parentElement.parentElement.querySelector("#misc_UnitCost");
-            if(miscCostInput){
-                cost = parseFloat(miscCostInput.value)
-            }
-        } else if (select.closest('#margin-error-section')) {
-            const marginErrorCostInput = select.parentElement.parentElement.parentElement.querySelector("#margin_error_cost");
-            if(marginErrorCostInput){
-                cost = parseFloat(marginErrorCostInput.value)
-            }
-        }
-        else if (select.closest('#deducts-section')) {
-                const dedusctsCostInput = select.parentElement.parentElement.parentElement.querySelector("#deducts_item");
-                if(dedusctsCostInput){
-                    cost = parseFloat(dedusctsCostInput.value)
-            }
-        }
-            
-        // Sumar el costo al total
-        nameDesc = select.parentElement.querySelector("input").value
-        totalsByItem[selectedItem] += cost; 
-        descriptionByItem[selectedItem]['ID'+(index+1) + '- ' + nameDesc] = cost
+        const cost = getRowCostFromSelect(select);
+        const nameDesc = getRowDescriptionFromSelect(select);
+        totalsByItem[selectedItem] += cost;
+        descriptionByItem[selectedItem]['ID' + (index + 1) + '- ' + nameDesc] = cost;
         
         // Para depuración: mostrar el total actual por cada elemento
     });
@@ -1720,17 +1810,26 @@ function calculateTotalByItem() {
             });
         }
     });
-    calculateProfitByItem()
-    calculateProfitAndCostByItem()
+
+    const profitTotals = calculateProfitByItem();
+    const sellingResult = calculateProfitAndCostByItem();
+    syncSummaryTableFooters(totalsByItem, profitTotals, sellingResult.totalsByItem);
+    return totalsByItem;
     }
 
 function updateValuesUI() {
-    calculateTotalByItem();
+    const marginCheckbox = document.getElementById('marginErrorCheck');
+    if (marginCheckbox?.checked) {
+        addMarginError(marginCheckbox, true);
+    }
     var checkbox = $$$("cbox4");
-    if (checkbox.checked == true && !window.budgetInitialLoad){
+    if (checkbox?.checked && !window.budgetInitialLoad) {
         reoloadLoans();
     }
-
+    calculateTotalByItem();
+    if (typeof updateTotalCost === 'function') {
+        updateTotalCost(true);
+    }
 }
 
 // Escuchar los cambios en los selects y los costos
@@ -2005,6 +2104,7 @@ function calculateProfitByItem() {
                 });
         }
     });
+    return totalsByItem;
     }
 function calculateProfitAndCostByItem() {
     let itemSelects = $$('#itemsSelect');
@@ -2029,59 +2129,18 @@ function calculateProfitAndCostByItem() {
             totalCostWithoutDeductionsByItem[selectedItem] = 0;
         }
     
-        let cost = 0; 
-        if (select.closest('#materials-section')) {
-            // Usar querySelector en lugar de getElementById
-            const materialCostInput = select.parentElement.parentElement.parentElement.querySelector("#materials_Cost");
-            if(materialCostInput){
-                cost = parseFloat(materialCostInput.value) || 0;
-                totalCostWithoutDeductionsByItem[selectedItem] += cost;
-            }
-        } else if (select.closest('#contractor-section')) {
-            const contractorCostInput = select.parentElement.parentElement.parentElement.querySelector("#contractor_UnitCost");
-            if(contractorCostInput){
-                cost = parseFloat(contractorCostInput.value) || 0; // Convertir a número
-                totalCostWithoutDeductionsByItem[selectedItem] += cost;
-            }
-        } else if (select.closest('#labor-section')) {
-            const laborCostInput = select.parentElement.parentElement.parentElement.querySelector("#Labor_Cost");
-            if(laborCostInput){
-                cost = parseFloat(laborCostInput.value) || 0
-                totalCostWithoutDeductionsByItem[selectedItem] += cost;
-            }
-        } else if (select.closest('#misc-section')) {
-            const miscCostInput = select.parentElement.parentElement.parentElement.querySelector("#misc_UnitCost");
-            if(miscCostInput){
-                cost = parseFloat(miscCostInput.value) || 0
-                totalCostWithoutDeductionsByItem[selectedItem] += cost;
-            }
-        } else if (select.closest('#margin-error-section')) {
-            const marginErrorCostInput = select.parentElement.parentElement.parentElement.querySelector("#margin_error_cost");
-            if(marginErrorCostInput){
-                cost = parseFloat(marginErrorCostInput.value) || 0
-                // Margin Error is part of total price, but must not increase Loans base.
-            }
-            
-        } else if  (select.closest('#profit-section')) {
-            // Usar querySelector en lugar de getElementById
-            const profitCostInput = select.parentElement.parentElement.parentElement.querySelector("#profit_item");
-            if(profitCostInput){
-                cost = parseFloat(profitCostInput.value) || 0;
-            }
-            
-        } else if  (select.closest('#deducts-section')) {
-            // Usar querySelector en lugar de getElementById
-            const deductsCostInput = select.parentElement.parentElement.parentElement.querySelector("#deducts_item");
-            if(deductsCostInput){
-                cost = parseFloat(deductsCostInput.value) || 0;
-            }
-            
+        const cost = getRowCostFromSelect(select);
+        const nameDesc = getRowDescriptionFromSelect(select);
+
+        if (select.closest('#materials-section')
+            || select.closest('#contractor-section')
+            || select.closest('#labor-section')
+            || select.closest('#misc-section')) {
+            totalCostWithoutDeductionsByItem[selectedItem] += cost;
         }
-    
-        // Sumar el costo al total
-        nameDesc = select.parentElement.querySelector("input").value
-        totalsByItem[selectedItem] += cost; 
-        descriptionByItem[selectedItem]['ID'+(index+1)+'- '+nameDesc] = cost
+
+        totalsByItem[selectedItem] += cost;
+        descriptionByItem[selectedItem]['ID' + (index + 1) + '- ' + nameDesc] = cost;
     });
     
     // Mostrar todos los totales al final
@@ -2113,7 +2172,10 @@ function calculateProfitAndCostByItem() {
                 });
         }
     });
-    return totalCostWithoutDeductionsByItem
+    return {
+        totalCostWithoutDeductionsByItem,
+        totalsByItem,
+    };
     }
 
 

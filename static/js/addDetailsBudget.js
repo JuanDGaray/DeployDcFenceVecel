@@ -158,8 +158,14 @@ function finishBudgetInitialLoad(utils) {
 
     if (typeof syncBudgetLoansOnLoad === 'function') {
         syncBudgetLoansOnLoad(utils);
-    } else {
-        window.budgetInitialLoad = false;
+        return;
+    }
+
+    window.budgetInitialLoad = false;
+    if (typeof updateValuesUI === 'function') {
+        updateValuesUI();
+    } else if (typeof updateTotalCost === 'function') {
+        updateTotalCost();
     }
 }
 
