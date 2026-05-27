@@ -2037,7 +2037,7 @@ function calculateProfitAndCostByItem() {
             const marginErrorCostInput = select.parentElement.parentElement.parentElement.querySelector("#margin_error_cost");
             if(marginErrorCostInput){
                 cost = parseFloat(marginErrorCostInput.value) || 0
-                totalCostWithoutDeductionsByItem[selectedItem] += cost;
+                // Margin Error is part of total price, but must not increase Loans base.
             }
             
         } else if  (select.closest('#profit-section')) {
