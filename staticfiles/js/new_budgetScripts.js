@@ -644,6 +644,9 @@ function updateAddHole(){
         addremovalperFT.checked = true
         toggleRemmovalPerFT()
     }
+    if (typeof updateValuesUI === 'function') {
+        updateValuesUI();
+    }
 }
 
 function updateMultp(){
@@ -1601,6 +1604,32 @@ let costManagement = $('#cost-management')
 let itemSelects = costManagement.querySelectorAll('#itemsSelect');
 let costInputs = costManagement.querySelectorAll('#total_Cost');
 
+function checkItemHasFts(itemName) {
+    const rows = document.querySelectorAll("#tbodyFt\\&Post tr");
+    let ftsValue = 0;
+
+    rows.forEach(row => {
+        const itemCell = row.querySelector("td:first-child input[type='checkbox']");
+        const ftsInput = row.querySelector("input[name='ft']");
+
+        if (itemCell && itemCell.id.includes(itemName)) {
+            if (ftsInput && ftsInput.value) {
+                ftsValue = parseFloat(ftsInput.value);
+            }
+        }
+    });
+
+    return ftsValue;
+}
+
+function formatSubtotalWithFtPerFoot(total, itemName) {
+    const ftsValue = checkItemHasFts(itemName);
+    if (ftsValue > 0) {
+        const perFoot = total / ftsValue;
+        return `$${total.toFixed(2)} ($${perFoot.toFixed(2)}/ft)`;
+    }
+    return `$${total.toFixed(2)}`;
+}
 
 function calculateTotalByItem() {
     let itemSelects = costManagement.querySelectorAll('#itemsSelect');
@@ -1672,25 +1701,23 @@ function calculateTotalByItem() {
     // Iterar sobre los ítems ordenados
     sortedItems.forEach(item => {
         if (totalsByItem.hasOwnProperty(item)) {
-            // Crear una nueva fila
+            const totalCost = totalsByItem[item];
             row = `
             <tr >
                 <td class="p-0  px-2">${item}</td>
-                <td class="p-0  px-2">$${totalsByItem[item].toFixed(2)}</td>
+                <td class="p-0  px-2">${formatSubtotalWithFtPerFoot(totalCost, item)}</td>
             </tr>`
-            // Añadir la fila al cuerpo de la tabla
             tableBody.insertAdjacentHTML('beforeend', row);
-            // Añadir las celdas a la fila
-            
 
             Object.entries(descriptionByItem[item]).forEach(([subKey, subValue]) => {
+                if (subKey !== 'Fts') {
                     row = `
                     <tr class="table-secondary p-4" style="font-size:0.8rem">
                         <td colspan="2" class="p-0 border px-4">${subKey} - (${subValue})</td>
                     </tr>`;
-                tableBody.insertAdjacentHTML('beforeend', row);
-                });
-                
+                    tableBody.insertAdjacentHTML('beforeend', row);
+                }
+            });
         }
     });
     calculateProfitByItem()
@@ -1962,17 +1989,13 @@ function calculateProfitByItem() {
     // Iterar sobre los ítems ordenados
     sortedItems.forEach(item => {
         if (totalsByItem.hasOwnProperty(item)) {
-            // Crear una nueva fila
             row = `
             <tr >
                 <td class="p-0  px-2">${item}</td>
-                <td class="p-0  px-2">$${totalsByItem[item].toFixed(2)}</td>
+                <td class="p-0  px-2">${formatSubtotalWithFtPerFoot(totalsByItem[item], item)}</td>
             </tr>`
-            // Añadir la fila al cuerpo de la tabla
             tableBody.insertAdjacentHTML('beforeend', row);
-            // Añadir las celdas a la fila
-            
-    
+
             Object.entries(descriptionByItem[item]).forEach(([subKey, subValue]) => {
                     row = `
                     <tr class="table-secondary p-4" style="font-size:0.8rem">
@@ -1980,7 +2003,6 @@ function calculateProfitByItem() {
                     </tr>`;
                 tableBody.insertAdjacentHTML('beforeend', row);
                 });
-                
         }
     });
     }
@@ -2075,17 +2097,13 @@ function calculateProfitAndCostByItem() {
     // Iterar sobre los ítems ordenados
     sortedItems.forEach(item => {
         if (totalsByItem.hasOwnProperty(item)) {
-            // Crear una nueva fila
             row = `
             <tr >
                 <td class="p-0  px-2">${item}</td>
-                <td class="p-0  px-2">$${totalsByItem[item].toFixed(2)}</td>
+                <td class="p-0  px-2">${formatSubtotalWithFtPerFoot(totalsByItem[item], item)}</td>
             </tr>`
-            // Añadir la fila al cuerpo de la tabla
             tableBody.insertAdjacentHTML('beforeend', row);
-            // Añadir las celdas a la fila
-            
-    
+
             Object.entries(descriptionByItem[item]).forEach(([subKey, subValue]) => {
                     row = `
                     <tr class="table-secondary p-4" style="font-size:0.8rem">
@@ -2093,7 +2111,6 @@ function calculateProfitAndCostByItem() {
                     </tr>`;
                 tableBody.insertAdjacentHTML('beforeend', row);
                 });
-                
         }
     });
     return totalCostWithoutDeductionsByItem
