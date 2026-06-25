@@ -109,6 +109,7 @@ urlpatterns = [
     path('project/<int:project_id>/history/', project_history, name='project_history'), 
     path('active_users/', views.active_users_view, name='active_users'),
     path('users/<int:user_id>/', views.user_detail_view, name='user_detail'),
+    path('users/<int:user_id>/activity/', views.user_activity_history_api, name='user_activity_history'),
     path('projects/<int:project_id>/get_activity_and_comments/', views.get_activity_project_and_comments, name='get_activity_project_and_comments'),
     path('get_users_for_mentions/', views.get_users_for_mentions, name='get_users_for_mentions'),
     path('notifications/<int:notification_id>/delete/', views.delete_notification, name='delete_notification'),

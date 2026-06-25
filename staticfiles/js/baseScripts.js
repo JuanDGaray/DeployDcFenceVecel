@@ -27,21 +27,43 @@ function showAlert(message, type) {
 }
 
 
+function parseFetchJson(response) {
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+    return response.text().then(() => {
+      const error = new Error('Server returned a non-JSON response');
+      error.status = response.status;
+      error.nonJson = true;
+      throw error;
+    });
+  }
+  return response.json().then((data) => {
+    if (!response.ok) {
+      const error = new Error(data.message || data.error || 'Request failed');
+      error.status = response.status;
+      Object.assign(error, data);
+      throw error;
+    }
+    return data;
+  });
+}
+
 function ajaxGetRequest(url, successCallback, errorCallback) {
-  fetch(url)
-    .then(response => {
-      if (!response.ok) {
-        return response.json().then(errData => {
-          throw { status: response.status, ...errData };
-        });
-      }
-      return response.json();
-    })
-    .then(data => {
+  fetch(url, {
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+  })
+    .then(parseFetchJson)
+    .then((data) => {
       successCallback(data);
     })
-    .catch(error => {
-      console.error('Error:', error);
+    .catch((error) => {
+      if (!error.nonJson) {
+        console.error('Error:', error);
+      }
       if (errorCallback) {
         errorCallback(error);
       }
@@ -58,26 +80,23 @@ function ajaxPostRequest(url, data, csrfToken, successCallback, errorCallback) {
     headers['Content-Type'] = 'application/json';
   }
   console.log('data', data);
+  headers.Accept = 'application/json';
+  headers['X-Requested-With'] = 'XMLHttpRequest';
+
   fetch(url, {
     method: 'POST',
+    credentials: 'same-origin',
     body: isFormData ? data : JSON.stringify(data),
     headers: headers,
   })
-    .then(response => {
-      console.log('response', response);
-      if (!response.ok) {
-        return response.json().then(errData => {
-          console.log('errData', errData);
-          throw { status: response.status, ...errData };
-        });
-      }
-      return response.json();
-    })
-    .then(data => {
+    .then(parseFetchJson)
+    .then((data) => {
       successCallback(data);
     })
-    .catch(error => {
-      console.error("Ajax Error:", error);
+    .catch((error) => {
+      if (!error.nonJson) {
+        console.error('Ajax Error:', error);
+      }
       if (errorCallback) errorCallback(error);
     });
 }

@@ -290,8 +290,12 @@ from django.utils.timezone import now
 from datetime import timedelta
 from django.http import JsonResponse
 
-@login_required
 def get_notifications(request):
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {'error': 'Authentication required', 'notifications': []},
+            status=401,
+        )
     try:
         today = now().date()
         soon_due_date = today + timedelta(days=2)

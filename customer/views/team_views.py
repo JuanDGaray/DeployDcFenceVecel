@@ -5,10 +5,35 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.models import User, Group
+from django.core.paginator import Paginator
 from django.db.models import Q, Count, Sum, F, Avg
 from django.utils import timezone
 from datetime import timedelta
 from ..models import Project, ProposalProjects, BudgetEstimate, InvoiceProjects, Customer, ProjectHistory, commentsProject, EmailTracking
+
+
+def _can_view_user_profile(request, user_id):
+    current_user = request.user
+    if not current_user.is_authenticated:
+        return False
+    is_admin = current_user.is_superuser or current_user.groups.filter(name='ADMIN').exists()
+    return is_admin or current_user.id == user_id
+
+
+def _serialize_project_history_entry(entry):
+    ts = timezone.localtime(entry.timestamp) if entry.timestamp and timezone.is_aware(entry.timestamp) else entry.timestamp
+    return {
+        'id': entry.id,
+        'action': entry.action,
+        'action_display': entry.get_action_display(),
+        'timestamp': ts.strftime('%Y-%m-%d %H:%M') if ts else '',
+        'timestamp_display': ts.strftime('%b %d, %Y %H:%M') if ts else '',
+        'description': entry.description or '',
+        'project_id': entry.project_id,
+        'project_name': entry.project.project_name if entry.project else '',
+        'changes': entry.changes or {},
+        'has_changes': bool(entry.changes),
+    }
 
 def get_active_users():
     User = get_user_model()
@@ -37,13 +62,11 @@ def user_detail_view(request, user_id):
     # Obtener el usuario con sus grupos
     user = get_object_or_404(User.objects.prefetch_related('groups'), id=user_id)
     
-    # Verificar permisos - solo admins pueden ver todos los usuarios
     current_user = request.user
     is_admin = current_user.is_superuser or current_user.groups.filter(name='ADMIN').exists()
     is_viewing_own_profile = current_user.id == user_id
-    
-    # Solo admins pueden ver perfiles de otros usuarios
-    if not is_admin and not is_viewing_own_profile:
+
+    if not _can_view_user_profile(request, user_id):
         return render(request, 'project_access_restricted.html', {
             'message': 'Solo los administradores pueden ver los detalles de otros usuarios.',
             'title': 'Acceso Restringido'
@@ -150,10 +173,9 @@ def user_detail_view(request, user_id):
         date_created__gte=timezone.now() - timedelta(days=30)
     ).count()
     
-    # Obtener actividad del proyecto (limitado a 10)
-    project_activities = ProjectHistory.objects.select_related('project').filter(
-        user=user
-    ).order_by('-timestamp')[:10]
+    project_activities_qs = ProjectHistory.objects.select_related('project').filter(user=user)
+    total_activity_count = project_activities_qs.count()
+    project_activities = project_activities_qs.order_by('-timestamp')[:10]
     
     # Obtener emails enviados (si existe el modelo EmailTracking)
     email_stats = {}
@@ -258,6 +280,8 @@ def user_detail_view(request, user_id):
         
         # Actividad
         'project_activities': project_activities,
+        'total_activity_count': total_activity_count,
+        'activity_action_choices': ProjectHistory.ACTION_TYPES,
         'email_stats': email_stats,
         
         # Listas de proyectos
@@ -268,3 +292,50 @@ def user_detail_view(request, user_id):
     }
     
     return render(request, 'user_detail.html', context)
+
+
+@login_required
+def user_activity_history_api(request, user_id):
+    if not _can_view_user_profile(request, user_id):
+        return JsonResponse({'error': 'Access denied'}, status=403)
+
+    user = get_object_or_404(User, id=user_id)
+    page = request.GET.get('page', 1)
+    action_filter = request.GET.get('action', '').strip()
+    search_query = request.GET.get('q', '').strip()
+
+    try:
+        per_page = min(max(int(request.GET.get('per_page', 20)), 5), 50)
+    except (TypeError, ValueError):
+        per_page = 20
+
+    queryset = ProjectHistory.objects.select_related('project').filter(user=user)
+
+    if action_filter:
+        queryset = queryset.filter(action=action_filter)
+
+    if search_query:
+        queryset = queryset.filter(
+            Q(description__icontains=search_query)
+            | Q(project__project_name__icontains=search_query)
+        )
+
+    queryset = queryset.order_by('-timestamp')
+    paginator = Paginator(queryset, per_page)
+    page_obj = paginator.get_page(page)
+
+    return JsonResponse({
+        'activities': [_serialize_project_history_entry(entry) for entry in page_obj.object_list],
+        'pagination': {
+            'page': page_obj.number,
+            'total_pages': paginator.num_pages,
+            'total_count': paginator.count,
+            'has_next': page_obj.has_next(),
+            'has_previous': page_obj.has_previous(),
+            'per_page': per_page,
+        },
+        'user': {
+            'id': user.id,
+            'full_name': user.get_full_name() or user.username,
+        },
+    })

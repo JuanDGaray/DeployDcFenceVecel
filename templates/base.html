@@ -175,6 +175,11 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
+        {% if not user.is_authenticated %}
+        const spinner = document.getElementById('spinner-notifications');
+        if (spinner) spinner.style.display = 'none';
+        return;
+        {% endif %}
         ajaxGetRequest(
             '/get_notifications/',
             function successCallback(data) {
@@ -257,6 +262,11 @@
                 document.getElementById('spinner-notifications').style.display = 'none';
             },
             function errorCallback(error) {
+                const spinner = document.getElementById('spinner-notifications');
+                if (spinner) spinner.style.display = 'none';
+                if (error && error.nonJson) {
+                    return;
+                }
                 console.error('Failed to fetch notifications:', error);
                 const notificationContainer = document.getElementById('notifications');
                 if (notificationContainer) {

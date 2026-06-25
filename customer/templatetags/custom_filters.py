@@ -2,7 +2,20 @@ from typing import Dict
 import json
 from django import template
 from datetime import timedelta, date, datetime
+from django.utils import timezone
+from django.utils.formats import date_format
+
 register = template.Library()
+
+
+@register.filter
+def local_datetime(value, fmt="M d, Y g:i A"):
+    """Convierte un datetime con timezone a la hora local del usuario (TIME_ZONE) y lo formatea."""
+    if not value:
+        return ""
+    if timezone.is_aware(value):
+        value = timezone.localtime(value)
+    return date_format(value, fmt)
 
 @register.filter
 def currency_usd(value):

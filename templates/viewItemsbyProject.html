@@ -460,6 +460,28 @@
         evidenceModal.show();
     }
     
+    function getCsrfToken() {
+        const el = document.getElementById('csrf-token');
+        return el ? (el.dataset.csrf || el.value) : '';
+    }
+
+    function resetSaveButton(onclickHandler) {
+        const btn = document.getElementById('confirmRealCost');
+        if (!btn) return;
+        btn.disabled = false;
+        btn.innerHTML = 'Save';
+        btn.classList.remove('disabled', 'bg-secondary', 'text-white', 'border-0');
+        btn.onclick = onclickHandler || submitForm;
+    }
+
+    function setSaveButtonLoading() {
+        const btn = document.getElementById('confirmRealCost');
+        if (!btn) return;
+        btn.disabled = true;
+        btn.innerHTML = 'Saving...';
+        btn.classList.add('disabled', 'bg-secondary', 'text-white', 'border-0');
+    }
+
     function showUpdateCostModal(name, value) {
         updateCostModal = new bootstrap.Modal(document.getElementById('UpdateCostSpent')); // Assign to global variable
         const modalBody = document.querySelector('#UpdateCostSpent .modal-body');
@@ -536,6 +558,9 @@
                 </div>
             </form>
         `;
+        const fileInput = document.getElementById('evidenceFile');
+        if (fileInput) fileInput.value = '';
+        resetSaveButton(submitForm);
         updateCostModal.show();
     }
     
@@ -557,15 +582,8 @@
     }
 
     function submitForm() {
-        const confirmRealCost = document.getElementById('confirmRealCost');
-        confirmRealCost.disabled = true;
-        confirmRealCost.innerHTML = 'Saving...';
-        confirmRealCost.classList.add('disabled');
-        confirmRealCost.classList.add('bg-secondary');
-        confirmRealCost.classList.add('text-white');
-        confirmRealCost.classList.add('border-0');
-        confirmRealCost.classList.add('border-0');  
-        event.preventDefault();
+        if (event) event.preventDefault();
+
         const costValue = parseFloat(document.getElementById('costValue').value) || 0;
         const concept = document.getElementById('concept').value;
         const costDescription = document.getElementById('descriptionValue').value;
@@ -574,7 +592,6 @@
         const Item = document.getElementById('NameCost');
         const ItemLabelText = (Item.textContent || Item.innerText).replace(/\s+/g, ' ').trim();
 
-
         const formData = {
             costValue: costValue,
             concept: addNewConcept ? newConcept : concept, 
@@ -582,17 +599,14 @@
             description:costDescription,
         };
 
-
         const evidenceRequired = document.getElementById('evidenceRequired').value;
         const file_input = document.getElementById('evidenceFile');
         if (evidenceRequired == 'True') {
-                if (file_input.files.length == 0 || file_input.files[0].name == '') {
+            if (file_input.files.length == 0 || file_input.files[0].name == '') {
                 showAlert('Evidence file cannot be empty', 'danger');
                 return;
             }
         }
-
-    
 
         if (costValue > costEstimate) {
             showAlert(`Cost value (${costValue}) cannot be greater than the estimated value (${costEstimate})`, 'danger');
@@ -624,19 +638,19 @@
             }
         }
 
-        const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+        setSaveButtonLoading();
 
         const folder_id = document.getElementById('idFolderProject').value;
 
         if (file_input.files.length > 0 && file_input.files[0].name !== '') {
             showAlert('Uploading file...', 'info');
             uploadFileEvidence(file_input, folder_id).then(result => {
-                console.log(result, 'result');
                 formData.evidence_url = result;
                 submitFormData(formData);
             }).catch(error => {
                 console.error('Error uploading file:', error);
                 showAlert('Error uploading file', 'danger');
+                resetSaveButton(submitForm);
             });
         } else {
             submitFormData(formData);
@@ -644,7 +658,7 @@
     }
 
     function submitFormData(formData) {
-        const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+        const csrfToken = getCsrfToken();
         showRealCostsLoading();
         
         fetch(`/production/{{project.id}}/save_real_cost_by_items/`, {
@@ -655,8 +669,13 @@
             },
             body: JSON.stringify(formData),
         })
+        .then(response => {
+            if (!response.ok) throw new Error('Save failed');
+            return response.json();
+        })
         .then(() => {
             showAlert('Cost updated successfully', 'success');
+            resetSaveButton(submitForm);
             if (updateCostModal) { try { updateCostModal.hide(); } catch(e){} }
             setTimeout(() => {
                 updateCostChart();
@@ -666,6 +685,7 @@
         .catch((error) => {
             console.error('Error:', error);
             showAlert('Error updating cost', 'danger');
+            resetSaveButton(submitForm);
             hideRealCostsLoading();
         });
     }
@@ -673,6 +693,13 @@
     // Inicializar el gráfico cuando se carga la página
     document.addEventListener('DOMContentLoaded', function() {
         createCostComparisonChart();
+        const costModalEl = document.getElementById('UpdateCostSpent');
+        if (costModalEl) {
+            costModalEl.addEventListener('hidden.bs.modal', function() {
+                resetSaveButton(submitForm);
+                hideRealCostsLoading();
+            });
+        }
     });
 
     function reloadRealCostSection() {
@@ -690,7 +717,10 @@
                 }
                 hideRealCostsLoading();
             })
-            .catch(err => console.error('Error reloading section:', err));
+            .catch(err => {
+                console.error('Error reloading section:', err);
+                hideRealCostsLoading();
+            });
     }
 
     function showRealCostsLoading(){
@@ -747,12 +777,14 @@
         }
         const saveBtn = document.getElementById('confirmRealCost');
         saveBtn.onclick = submitEditForm;
+        resetSaveButton(submitEditForm);
         updateCostModal.show();
     }
 
     function submitEditForm() {
-        event.preventDefault();
-        const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+        if (event) event.preventDefault();
+        setSaveButtonLoading();
+        const csrfToken = getCsrfToken();
         showRealCostsLoading();
         const itemKey = (document.getElementById('NameCost').textContent || '').trim();
         const concept = document.getElementById('concept').value;
@@ -784,19 +816,21 @@
         })
         .then(() => {
             showAlert('Cost updated successfully', 'success');
+            resetSaveButton(submitForm);
             if (updateCostModal) { try { updateCostModal.hide(); } catch(e){} }
             setTimeout(() => { updateCostChart(); reloadRealCostSection(); }, 400);
         })
         .catch(err => {
             console.error(err);
             showAlert('Error updating cost', 'danger');
+            resetSaveButton(submitEditForm);
             hideRealCostsLoading();
         });
     }
 
     function confirmDeleteRealCost(itemKey, concept, description) {
         if (!confirm('Delete this cost entry?')) return;
-        const csrfToken = document.getElementById('csrf-token').dataset.csrf;
+        const csrfToken = getCsrfToken();
         showRealCostsLoading();
         fetch(`/production/{{project.id}}/delete_real_cost_item/`, {
             method: 'POST',

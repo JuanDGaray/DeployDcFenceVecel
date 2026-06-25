@@ -64,6 +64,49 @@
         height: 300px;
         position: relative;
     }
+    .activity-item-clickable {
+        cursor: pointer;
+        border-radius: 6px;
+        padding: 0.75rem;
+        margin-left: -0.75rem;
+        transition: background-color 0.15s ease;
+    }
+    .activity-item-clickable:hover {
+        background-color: #f8f9fa;
+    }
+    .activity-history-table tbody tr {
+        cursor: pointer;
+    }
+    .activity-history-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    .activity-changes-pre {
+        max-height: 200px;
+        overflow: auto;
+        font-size: 0.8rem;
+        margin-bottom: 0;
+        white-space: pre-wrap;
+    }
+  #userActivityHistoryModal .modal-dialog {
+        max-width: min(96rem, calc(100vw - var(--app-sidebar-width, 76px) - 2rem));
+        width: calc(100vw - var(--app-sidebar-width, 76px) - 2rem);
+        margin: 1rem auto;
+    }
+    #userActivityHistoryModal .modal-content {
+        min-height: min(82vh, 920px);
+    }
+    #userActivityHistoryModal .modal-body {
+        max-height: calc(100vh - 11rem);
+        overflow-y: auto;
+    }
+    #userActivityHistoryModal .activity-history-filters .form-control,
+    #userActivityHistoryModal .activity-history-filters .form-select {
+        min-width: 0;
+    }
+    #userActivityDetailModal .modal-dialog {
+        max-width: min(56rem, calc(100vw - var(--app-sidebar-width, 76px) - 2rem));
+        width: min(56rem, calc(100vw - var(--app-sidebar-width, 76px) - 2rem));
+    }
 </style>
 {% endblock %}
 
@@ -515,28 +558,36 @@
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <h5 class="card-title mb-0">
                         <i class="bi bi-activity me-2"></i>Recent Activity
+                        {% if total_activity_count %}
+                            <span class="badge bg-secondary ms-1">{{ total_activity_count }}</span>
+                        {% endif %}
                     </h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#userActivityHistoryModal">
+                        <i class="bi bi-clock-history me-1"></i>View full history
+                    </button>
                 </div>
                 <div class="card-body">
                     {% if project_activities %}
                         {% for activity in project_activities %}
-                            <div class="activity-item">
+                            <div class="activity-item activity-item-clickable" role="button" data-bs-toggle="modal" data-bs-target="#userActivityHistoryModal" data-activity-id="{{ activity.id }}" title="View in history">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <strong>{{ activity.get_action_display }}</strong>
+                                        <span class="badge {% if activity.action == 'CREATE' %}bg-success{% elif activity.action == 'UPDATE' %}bg-primary{% elif activity.action == 'DELETE' %}bg-danger{% elif activity.action == 'STATUS_CHANGE' %}bg-warning text-dark{% else %}bg-secondary{% endif %} me-1">
+                                            {{ activity.get_action_display }}
+                                        </span>
                                         {% if activity.project %}
-                                            - <a href="/projects/{{ activity.project.id }}/" class="text-decoration-none">
+                                            <a href="/projects/{{ activity.project.id }}/" class="text-decoration-none" onclick="event.stopPropagation();">
                                                 {{ activity.project.project_name }}
                                             </a>
                                         {% endif %}
                                         {% if activity.description %}
-                                            <br><small class="text-muted">{{ activity.description }}</small>
+                                            <br><small class="text-muted">{{ activity.description|truncatechars:120 }}</small>
                                         {% endif %}
                                     </div>
-                                    <small class="text-muted">{{ activity.timestamp|date:"M d, H:i" }}</small>
+                                    <small class="text-muted text-nowrap ms-2">{{ activity.timestamp|date:"M d, H:i" }}</small>
                                 </div>
                             </div>
                         {% endfor %}
@@ -550,6 +601,7 @@
             </div>
         </div>
     </div>
+
 
     <!-- Alerts and Notifications -->
     {% if overdue_proposals > 0 or soon_due_proposals > 0 or overbudget_projects > 0 %}
@@ -593,6 +645,94 @@
             </div>
         </div>
     {% endif %}
+</div>
+
+<!-- User activity history modal (outside .container for full width) -->
+<div class="modal fade" id="userActivityHistoryModal" tabindex="-1" aria-labelledby="userActivityHistoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userActivityHistoryModalLabel">
+                    <i class="bi bi-clock-history me-2"></i>Activity history — {{ user.get_full_name }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2 mb-3 activity-history-filters align-items-end">
+                    <div class="col-lg-6">
+                        <label class="form-label small text-muted mb-1" for="activityHistorySearch">Search</label>
+                        <input type="search" class="form-control" id="activityHistorySearch" placeholder="Project name or description...">
+                    </div>
+                    <div class="col-lg-4">
+                        <label class="form-label small text-muted mb-1" for="activityHistoryActionFilter">Action</label>
+                        <select class="form-select" id="activityHistoryActionFilter">
+                            <option value="">All actions</option>
+                            {% for action_code, action_label in activity_action_choices %}
+                                <option value="{{ action_code }}">{{ action_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-2 d-flex gap-2">
+                        <button type="button" class="btn btn-primary flex-grow-1" id="activityHistoryApplyFilters">
+                            <i class="bi bi-search me-1"></i>Search
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="activityHistoryClearFilters" title="Clear filters">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="activityHistoryLoading" class="text-center py-5 d-none">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="text-muted mt-2 mb-0">Loading activity...</p>
+                </div>
+
+                <div id="activityHistoryError" class="alert alert-danger d-none mb-0"></div>
+
+                <div class="table-responsive" id="activityHistoryTableWrap">
+                    <table class="table table-hover align-middle activity-history-table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 11rem">Date</th>
+                                <th style="width: 9rem">Action</th>
+                                <th style="width: 14rem">Project</th>
+                                <th>Description</th>
+                                <th style="width: 2.5rem"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="activityHistoryTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div id="activityHistoryEmpty" class="text-center text-muted py-5 d-none">
+                    <i class="bi bi-inbox fs-1"></i>
+                    <p class="mt-2 mb-0">No activity found for this user.</p>
+                </div>
+
+                <nav class="mt-3" id="activityHistoryPagination" aria-label="Activity pagination"></nav>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <small class="text-muted" id="activityHistorySummary"></small>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Activity detail modal -->
+<div class="modal fade" id="userActivityDetailModal" tabindex="-1" aria-labelledby="userActivityDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userActivityDetailModalLabel">Activity detail</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="userActivityDetailBody"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Chart.js for visualizations -->
@@ -651,6 +791,234 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     {% endif %}
+
+    const USER_ACTIVITY_API = "{% url 'user_activity_history' user.id %}";
+    const activityHistoryModal = document.getElementById('userActivityHistoryModal');
+    const activityDetailModal = document.getElementById('userActivityDetailModal');
+    const activityDetailModalInstance = activityDetailModal
+        ? new bootstrap.Modal(activityDetailModal)
+        : null;
+    let activityHistoryState = { page: 1, q: '', action: '', highlightId: null };
+    let activityHistoryCache = {};
+
+    function getActionBadgeClass(action) {
+        const map = {
+            CREATE: 'bg-success',
+            UPDATE: 'bg-primary',
+            DELETE: 'bg-danger',
+            STATUS_CHANGE: 'bg-warning text-dark',
+            BUDGET_CHANGE: 'bg-info text-dark',
+            PROPOSAL_CHANGE: 'bg-info text-dark',
+            INVOICE_CHANGE: 'bg-info text-dark',
+            COMMENT: 'bg-secondary',
+        };
+        return map[action] || 'bg-secondary';
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+    }
+
+    function renderActivityDetail(activity) {
+        const changesBlock = activity.has_changes
+            ? `<div class="mt-3">
+                    <h6 class="fw-semibold">Changes</h6>
+                    <pre class="activity-changes-pre bg-light border rounded p-2">${escapeHtml(JSON.stringify(activity.changes, null, 2))}</pre>
+               </div>`
+            : '';
+
+        return `
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Date</dt>
+                <dd class="col-sm-9">${escapeHtml(activity.timestamp_display)}</dd>
+                <dt class="col-sm-3">Action</dt>
+                <dd class="col-sm-9">
+                    <span class="badge ${getActionBadgeClass(activity.action)}">${escapeHtml(activity.action_display)}</span>
+                </dd>
+                <dt class="col-sm-3">Project</dt>
+                <dd class="col-sm-9">
+                    ${activity.project_id
+                        ? `<a href="/projects/${activity.project_id}/">${escapeHtml(activity.project_name)}</a>`
+                        : '<span class="text-muted">—</span>'}
+                </dd>
+                <dt class="col-sm-3">Description</dt>
+                <dd class="col-sm-9">${escapeHtml(activity.description) || '<span class="text-muted">—</span>'}</dd>
+            </dl>
+            ${changesBlock}
+        `;
+    }
+
+    function openActivityDetail(activityId) {
+        const activity = activityHistoryCache[activityId];
+        if (!activity || !activityDetailModalInstance) return;
+        document.getElementById('userActivityDetailBody').innerHTML = renderActivityDetail(activity);
+        activityDetailModalInstance.show();
+    }
+
+    function renderActivityHistoryPagination(pagination) {
+        const nav = document.getElementById('activityHistoryPagination');
+        if (!nav || pagination.total_pages <= 1) {
+            if (nav) nav.innerHTML = '';
+            return;
+        }
+
+        let html = '<ul class="pagination pagination-sm justify-content-center mb-0">';
+        html += `<li class="page-item ${pagination.has_previous ? '' : 'disabled'}">
+            <button type="button" class="page-link" data-page="${pagination.page - 1}" ${pagination.has_previous ? '' : 'disabled'}">&laquo;</button>
+        </li>`;
+
+        const start = Math.max(1, pagination.page - 2);
+        const end = Math.min(pagination.total_pages, pagination.page + 2);
+        for (let i = start; i <= end; i += 1) {
+            html += `<li class="page-item ${i === pagination.page ? 'active' : ''}">
+                <button type="button" class="page-link" data-page="${i}">${i}</button>
+            </li>`;
+        }
+
+        html += `<li class="page-item ${pagination.has_next ? '' : 'disabled'}">
+            <button type="button" class="page-link" data-page="${pagination.page + 1}" ${pagination.has_next ? '' : 'disabled'}>&raquo;</button>
+        </li></ul>`;
+        nav.innerHTML = html;
+
+        nav.querySelectorAll('button[data-page]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const page = parseInt(btn.dataset.page, 10);
+                if (!Number.isNaN(page) && page >= 1 && page <= pagination.total_pages) {
+                    activityHistoryState.page = page;
+                    loadUserActivityHistory();
+                }
+            });
+        });
+    }
+
+    function renderActivityHistoryTable(activities, pagination) {
+        const tbody = document.getElementById('activityHistoryTableBody');
+        const tableWrap = document.getElementById('activityHistoryTableWrap');
+        const emptyState = document.getElementById('activityHistoryEmpty');
+        const summary = document.getElementById('activityHistorySummary');
+
+        activityHistoryCache = {};
+        activities.forEach((activity) => {
+            activityHistoryCache[activity.id] = activity;
+        });
+
+        if (!activities.length) {
+            tbody.innerHTML = '';
+            tableWrap.classList.add('d-none');
+            emptyState.classList.remove('d-none');
+            if (summary) summary.textContent = '0 records';
+            renderActivityHistoryPagination(pagination);
+            return;
+        }
+
+        tableWrap.classList.remove('d-none');
+        emptyState.classList.add('d-none');
+
+        tbody.innerHTML = activities.map((activity) => {
+            const highlight = activityHistoryState.highlightId === activity.id ? 'table-primary' : '';
+            return `
+                <tr class="${highlight}" data-activity-id="${activity.id}">
+                    <td class="text-nowrap">${escapeHtml(activity.timestamp_display)}</td>
+                    <td><span class="badge ${getActionBadgeClass(activity.action)}">${escapeHtml(activity.action_display)}</span></td>
+                    <td>
+                        ${activity.project_id
+                            ? `<a href="/projects/${activity.project_id}/" onclick="event.stopPropagation();">${escapeHtml(activity.project_name)}</a>`
+                            : '<span class="text-muted">—</span>'}
+                    </td>
+                    <td>${escapeHtml(activity.description) || '<span class="text-muted">—</span>'}</td>
+                    <td class="text-end">
+                        ${activity.has_changes ? '<i class="bi bi-braces text-muted" title="Has change details"></i>' : ''}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        tbody.querySelectorAll('tr[data-activity-id]').forEach((row) => {
+            row.addEventListener('click', () => {
+                openActivityDetail(parseInt(row.dataset.activityId, 10));
+            });
+        });
+
+        if (summary) {
+            const from = (pagination.page - 1) * pagination.per_page + 1;
+            const to = Math.min(pagination.page * pagination.per_page, pagination.total_count);
+            summary.textContent = `Showing ${from}–${to} of ${pagination.total_count} records`;
+        }
+
+        renderActivityHistoryPagination(pagination);
+
+        if (activityHistoryState.highlightId) {
+            const highlighted = tbody.querySelector(`tr[data-activity-id="${activityHistoryState.highlightId}"]`);
+            if (highlighted) {
+                highlighted.scrollIntoView({ block: 'center' });
+            }
+            activityHistoryState.highlightId = null;
+        }
+    }
+
+    function loadUserActivityHistory() {
+        const loading = document.getElementById('activityHistoryLoading');
+        const errorBox = document.getElementById('activityHistoryError');
+        const params = new URLSearchParams({
+            page: activityHistoryState.page,
+            per_page: 20,
+        });
+        if (activityHistoryState.q) params.set('q', activityHistoryState.q);
+        if (activityHistoryState.action) params.set('action', activityHistoryState.action);
+
+        loading.classList.remove('d-none');
+        errorBox.classList.add('d-none');
+
+        ajaxGetRequest(
+            `${USER_ACTIVITY_API}?${params.toString()}`,
+            (data) => {
+                loading.classList.add('d-none');
+                renderActivityHistoryTable(data.activities || [], data.pagination || {});
+            },
+            () => {
+                loading.classList.add('d-none');
+                errorBox.textContent = 'Could not load activity history. Please try again.';
+                errorBox.classList.remove('d-none');
+            }
+        );
+    }
+
+    if (activityHistoryModal) {
+        activityHistoryModal.addEventListener('show.bs.modal', (event) => {
+            const trigger = event.relatedTarget;
+            const activityId = trigger?.dataset?.activityId;
+            activityHistoryState.highlightId = activityId ? parseInt(activityId, 10) : null;
+            activityHistoryState.page = 1;
+            loadUserActivityHistory();
+        });
+    }
+
+    document.getElementById('activityHistoryApplyFilters')?.addEventListener('click', () => {
+        activityHistoryState.q = document.getElementById('activityHistorySearch')?.value.trim() || '';
+        activityHistoryState.action = document.getElementById('activityHistoryActionFilter')?.value || '';
+        activityHistoryState.page = 1;
+        loadUserActivityHistory();
+    });
+
+    document.getElementById('activityHistoryClearFilters')?.addEventListener('click', () => {
+        const search = document.getElementById('activityHistorySearch');
+        const actionFilter = document.getElementById('activityHistoryActionFilter');
+        if (search) search.value = '';
+        if (actionFilter) actionFilter.value = '';
+        activityHistoryState.q = '';
+        activityHistoryState.action = '';
+        activityHistoryState.page = 1;
+        loadUserActivityHistory();
+    });
+
+    document.getElementById('activityHistorySearch')?.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            document.getElementById('activityHistoryApplyFilters')?.click();
+        }
+    });
 });
 </script>
 {% endblock %} 

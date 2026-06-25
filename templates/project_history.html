@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load custom_filters %}
 
 {% block title %}Historial del Proyecto | DC FENCE{% endblock %}
 
@@ -38,7 +39,7 @@
                                 <div class="list-group-item">
                                     <div class="row">
                                         <div class="col-md-3">
-                                            {{ entry.timestamp|date:"d/m/Y H:i" }}
+                                            {{ entry.timestamp|local_datetime }}
                                         </div>
                                         <div class="col-md-2">
                                             {% if entry.user %}

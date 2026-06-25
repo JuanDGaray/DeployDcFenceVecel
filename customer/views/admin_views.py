@@ -178,7 +178,7 @@ def get_detailed_project_info(project):
             'profit_value': float(budget.profit_value or 0),
             'total_value': float(budget.total_value or 0),
             'status': budget.get_status_display(),
-            'date_created': budget.date_created.strftime('%Y-%m-%d %H:%M')
+            'date_created': timezone.localtime(budget.date_created).strftime('%Y-%m-%d %H:%M') if budget.date_created else ''
         })
     
     # Información de propuestas

@@ -2367,7 +2367,7 @@ def get_collaboration_requests(request, project_id):
             'requester_email': req.requester.email,
             'message': req.message,
             'status': req.status,
-            'date_created': req.date_created.strftime('%Y-%m-%d %H:%M'),
+            'date_created': timezone.localtime(req.date_created).strftime('%Y-%m-%d %H:%M') if req.date_created else '',
             'response_message': req.response_message
         })
     

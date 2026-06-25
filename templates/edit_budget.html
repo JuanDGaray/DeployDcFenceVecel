@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load custom_filters %}
 {% block extra_head %}
 <style>
     #tools-container {
@@ -64,7 +65,7 @@
             </a> 
             / <span> Budget ID{{budget.id}} <span class='status status-empty user-select-none'>Mode : Edit</span>
             <span class='status status_approved user-select-none'>Create by : {{budget.sales_advisor}}</span>
-            <span class='status status_empty user-select-none'>Creation date : {{budget.date_created}}</span>
+            <span class='status status_empty user-select-none'>Creation date : {{ budget.date_created|local_datetime }}</span>
 
     </nav>
     <section class="d-flex justify-content-between w-100 d-flex flex-row justify-content-around">
