@@ -465,6 +465,19 @@
         return el ? (el.dataset.csrf || el.value) : '';
     }
 
+    function parseJsonOrEmpty(raw) {
+        if (!raw || raw === 'None' || raw === 'null' || raw === 'undefined') {
+            return {};
+        }
+        try {
+            const parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (error) {
+            console.warn('Could not parse JSON, using empty object:', raw, error);
+            return {};
+        }
+    }
+
     function resetSaveButton(onclickHandler) {
         const btn = document.getElementById('confirmRealCost');
         if (!btn) return;
@@ -486,14 +499,9 @@
         updateCostModal = new bootstrap.Modal(document.getElementById('UpdateCostSpent')); // Assign to global variable
         const modalBody = document.querySelector('#UpdateCostSpent .modal-body');
     
-        // Manejar realCostItems
-        let realValue = {};
-        try {
-            const rawRealCostItems = "{{ realCostItems|escapejs }}";
-            realValue = rawRealCostItems ? JSON.parse(rawRealCostItems) : {};
-        } catch (error) {
-            showAlert("Error parsing realCostItems:" + error, 'danger');
-        }
+        // Manejar realCostItems (vacío al inicio es normal)
+        const rawRealCostItems = "{{ realCostItems|default:'{}'|escapejs }}";
+        const realValue = parseJsonOrEmpty(rawRealCostItems);
         
         // Fix the variable assignments - value is estimated cost, realValue[name]?.total is spent cost
         costEstimate = parseFloat(value.replace('$', '').replace(',', '')).toFixed(2).toLocaleString('en-US', {style: 'currency', currency: 'USD'}) ; // Estimated cost from the parameter
@@ -502,13 +510,8 @@
         
     
         // Manejar costData
-        let costConcepts = {};
-        try {
-            const rawCostData = "{{ costData|escapejs }}";
-            costConcepts = rawCostData ? JSON.parse(rawCostData) : {};
-        } catch (error) {
-            showAlert("Error parsing costData:" + error, 'danger');
-        }
+        const rawCostData = "{{ costData|default:'{}'|escapejs }}";
+        const costConcepts = parseJsonOrEmpty(rawCostData);
     
         // Generar opciones si costConcepts[name] existe
         const optionsHTML = costConcepts[name]?.content

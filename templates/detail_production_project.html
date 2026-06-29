@@ -290,7 +290,108 @@
                             </span>
                         </h4>
                         <div class="d-flex justify-content-center flex-ROW align-items-center position-relative gap-2 bg-white p-4 rounded-4 border border-2 border-secondary mb-4 border-opacity-25">
-                            {% if request.user == project.project_manager and not project.production_funding_request %}
+                            {% if user_can_assign_cost_request and not project.accounting_cost_request %}
+                                <div class="d-flex justify-content-center flex-column align-items-center gap-3">
+                                    {% if project.production_funding_request %}
+                                    <p class="text-center bg-warning p-2 rounded-2 bg-opacity-25">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                        The Project Manager ({{ project.project_manager.first_name }} {{ project.project_manager.last_name }}) request a cost request:
+                                        <strong>{{ project.production_funding_request.cost_request_type }}</strong>
+                                    </p>
+                                    {% else %}
+                                    <p class="text-center bg-info p-2 rounded-2 bg-opacity-25">
+                                        <i class="bi bi-info-circle"></i>
+                                        Assign the type of cost request to enable project details and real cost.
+                                    </p>
+                                    {% endif %}
+                                    <form id="assignCostForm" class="w-100" style="max-width: 400px;" onsubmit="return false;">
+                                        <div class="mb-3 d-flex justify-content-center flex-row align-items-center gap-2">
+                                            <label for="tipo" class="form-label fw-bold">Confirm type of Cost Request:</label>
+                                            <select id="tipo" name="tipo" class="form-select">
+                                                <option value="GLOBAL COST REQUEST" {% if project.production_funding_request and project.production_funding_request.cost_request_type == 'GLOBAL COST REQUEST' %}selected{% endif %}>GLOBAL COST REQUEST</option>
+                                                <option value="ITEM COST REQUEST" {% if project.production_funding_request and project.production_funding_request.cost_request_type == 'ITEM COST REQUEST' %}selected{% endif %}>ITEM COST REQUEST</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-check mb-3">
+                                            <input type="checkbox" class="form-check-input" id="evidence" name="evidence">
+                                            <label for="evidence" class="form-check-label fw-bold">Is evidence required?</label>
+                                        </div>
+                                        <button type="button" id="assignCostBtn" class="btn btn-success px-4"> <i class="bi bi-check-circle"></i> Assign</button>
+                                    </form>
+                                    <script>
+                                    (function() {
+                                        function getAssignCsrfToken() {
+                                            var el = document.getElementById('csrf-token');
+                                            return el ? el.dataset.csrf : '{{ csrf_token }}';
+                                        }
+                                        function submitAssignCostRequest() {
+                                            var tipoEl = document.getElementById('tipo');
+                                            var evidenceEl = document.getElementById('evidence');
+                                            var assignBtn = document.getElementById('assignCostBtn');
+                                            if (!tipoEl || !assignBtn) return;
+
+                                            var tipo = tipoEl.value;
+                                            var evidence = evidenceEl ? evidenceEl.checked : false;
+                                            var originalHtml = assignBtn.innerHTML;
+
+                                            assignBtn.disabled = true;
+                                            assignBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Assigning...';
+
+                                            fetch('/assign_cost_by_accounting/{{ project.id }}/', {
+                                                method: 'POST',
+                                                headers: {
+                                                    'X-CSRFToken': getAssignCsrfToken(),
+                                                    'Content-Type': 'application/x-www-form-urlencoded'
+                                                },
+                                                body: 'tipo=' + encodeURIComponent(tipo) + '&evidence=' + evidence
+                                            })
+                                            .then(function(response) {
+                                                if (!response.ok) {
+                                                    return response.json().then(function(data) {
+                                                        throw new Error(data.message || 'Request failed');
+                                                    });
+                                                }
+                                                return response.json();
+                                            })
+                                            .then(function(data) {
+                                                if (data.status === 'ok') {
+                                                    if (typeof showAlert === 'function') {
+                                                        showAlert('Assignment made successfully.');
+                                                    } else {
+                                                        alert('Assignment made successfully.');
+                                                    }
+                                                    setTimeout(function() {
+                                                        window.location.href = window.location.pathname;
+                                                    }, 1000);
+                                                } else {
+                                                    throw new Error(data.message || 'You are not authorized to perform this action.');
+                                                }
+                                            })
+                                            .catch(function(err) {
+                                                if (typeof showAlert === 'function') {
+                                                    showAlert(err.message || 'An error occurred while assigning the cost request.');
+                                                } else {
+                                                    alert(err.message || 'An error occurred while assigning the cost request.');
+                                                }
+                                                assignBtn.disabled = false;
+                                                assignBtn.innerHTML = originalHtml;
+                                            });
+                                        }
+                                        function bindAssignCostButton() {
+                                            var assignBtn = document.getElementById('assignCostBtn');
+                                            if (!assignBtn || assignBtn.dataset.bound === '1') return;
+                                            assignBtn.dataset.bound = '1';
+                                            assignBtn.addEventListener('click', submitAssignCostRequest);
+                                        }
+                                        if (document.readyState === 'loading') {
+                                            document.addEventListener('DOMContentLoaded', bindAssignCostButton);
+                                        } else {
+                                            bindAssignCostButton();
+                                        }
+                                    })();
+                                    </script>
+                                </div>
+                            {% elif request.user == project.project_manager and not project.production_funding_request %}
                                 <div class="d-flex justify-content-center flex-column align-items-center gap-3">
                                     <h5 class="text-center">Request Cost Approval</h5>
                                     <div class="d-flex justify-content-center flex-row align-items-center gap-2">
@@ -302,38 +403,12 @@
                                     </div>
                                     <button class="btn btn-primary" id="requestCostBtn">Request Cost Approval</button>
                                 </div>
-                                {% elif user_allowed_to_close_production and not project.accounting_cost_request %}
-                                <div class="d-flex justify-content-center flex-column align-items-center gap-3">
-                                    <form id="assignCostForm" class="d-flex justify-content-center flex-column align-items-center gap-3">
-
-                                            <!-- Mensaje del Project Manager -->
-                                            <p class="text-center bg-warning p-2 rounded-2 bg-opacity-25">
-                                                <i class="bi bi-exclamation-triangle"></i>
-                                                The Project Manager ({{ project.project_manager.first_name }} {{ project.project_manager.last_name }}) request a cost request:
-                                                <strong>{{ project.production_funding_request.cost_request_type }}</strong>
-                                            </p>
-                                            <!-- Formulario -->
-                                            <form id="assignCostForm" class="w-100" style="max-width: 400px;">
-                                                <div class="mb-3 d-flex justify-content-center flex-row align-items-center gap-2">
-                                                    <label for="tipo" class="form-label fw-bold">Confirm type of Cost Request:</label>
-                                                    <select id="tipo" name="tipo" class="form-select">
-                                                        <option value="GLOBAL COST REQUEST" {% if project.production_funding_request.cost_request_type == 'GLOBAL COST REQUEST' %}selected{% endif %}>GLOBAL COST REQUEST</option>
-                                                        <option value="ITEM COST REQUEST" {% if project.production_funding_request.cost_request_type == 'ITEM COST REQUEST' %}selected{% endif %}>ITEM COST REQUEST</option>
-                                                    </select>
-                                                </div>
-                                                <div class="form-check mb-3">
-                                                    <input type="checkbox" class="form-check-input" id="evidence" name="evidence">
-                                                    <label for="evidence" class="form-check-label fw-bold">Is evidence required?</label>
-                                                </div>
-                                                <button type="submit" class="btn btn-success px-4"> <i class="bi bi-check-circle"></i> Assign</button>
-                                            </form>
-                                        </div>
-                                    </form>
-                                </div>
                             {% elif project.production_funding_request and not project.accounting_cost_request %}
-                                <h6 class="text-center bg-warning p-2 rounded-2 bg-opacity-25">The Project Manager ({{ project.project_manager.first_name }} {{ project.project_manager.last_name }}) request a cost request ({{ project.production_funding_request.cost_request_type }}) on {{ project.production_funding_request.date }}, waiting approval from Accounting  ({{ project.accounting_manager.first_name }} {{ project.accounting_manager.last_name }}).</h6>
+                                <h6 class="text-center bg-warning p-2 rounded-2 bg-opacity-25">The Project Manager ({{ project.project_manager.first_name }} {{ project.project_manager.last_name }}) request a cost request ({{ project.production_funding_request.cost_request_type }}) on {{ project.production_funding_request.date }}, waiting approval from Accounting{% if project.accounting_manager %} ({{ project.accounting_manager.first_name }} {{ project.accounting_manager.last_name }}){% endif %}.</h6>
                             {% elif project.accounting_cost_request %}
                                 <h6 class="text-center bg-success p-2 rounded-2">Type of cost request assigned: {{ project.accounting_cost_request }}{% if project.evidence_required %} (Evidence required){% endif %}</h6>
+                            {% else %}
+                                <h6 class="text-center bg-warning p-2 rounded-2 bg-opacity-25">Waiting for the Project Manager to request a cost approval type.</h6>
                             {% endif %}
                         </div>
                 {% endif %}
@@ -552,7 +627,7 @@
                 }
             
                 // Función que valida las fechas de inicio y fin
-                document.getElementById("saveDatesBtn").addEventListener("click", function(event) {
+                document.getElementById("saveDatesBtn")?.addEventListener("click", function(event) {
                     if (!user.is_superuser && !user == project.project_manager && !user == project.sales_advisor && !user == project.accounting_manager) {
                         alert("You are not authorized to update this project");
                         event.preventDefault();
@@ -822,31 +897,6 @@
                             }, 1000);
                         } else if (data.status === 'already_requested') {
                             showAlert('There is already a pending request.');
-                        } else {
-                            showAlert('You are not authorized to perform this action.');
-                        }
-                    });
-                });
-
-                document.getElementById('assignCostForm')?.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    const tipo = document.getElementById('tipo').value;
-                    const evidence = document.getElementById('evidence').checked;
-                    fetch('/assign_cost_by_accounting/{{ project.id }}/', {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': '{{ csrf_token }}',
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        },
-                        body: `tipo=${tipo}&evidence=${evidence}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'ok') {
-                            showAlert('Assignment made successfully.');
-                            setTimeout(() => {
-                                window.location.reload();
-                            }, 1000);
                         } else {
                             showAlert('You are not authorized to perform this action.');
                         }

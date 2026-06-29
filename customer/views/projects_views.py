@@ -44,7 +44,7 @@ client = Groq(
 
 
 def user_is_admin(user):
-    return user.is_superuser or user.groups.filter(name='ADMIN').exists()
+    return user.is_superuser or user.is_staff or user.groups.filter(name='ADMIN').exists()
 
 
 def manager_needs_reassign(user):

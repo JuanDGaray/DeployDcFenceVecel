@@ -93,6 +93,8 @@ def get_item(dictionary, key):
 
 @register.filter(name='get_item_value')
 def get_item_value(dictionary, key):
+    if dictionary is None or dictionary == 'None':
+        return None
     if isinstance(dictionary, str):
         try:
             dictionary = json.loads(dictionary)
@@ -106,6 +108,8 @@ def get_item_value(dictionary, key):
 
 @register.filter(name='get_Subitem')
 def get_Subitem(dictionary, key):
+    if dictionary is None or dictionary == 'None':
+        return []
     if isinstance(dictionary, str):
         try:
             dictionary = json.loads(dictionary)

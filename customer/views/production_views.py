@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.http import JsonResponse
 from django.core.exceptions import ValidationError
 import json
-from .projects_views import extract_data_budget, log_project_history
+from .projects_views import extract_data_budget, log_project_history, user_is_admin
 from datetime import datetime
 from django.contrib.auth.models import Group
 from ..utils import create_manager_assignment_notification
@@ -96,10 +96,10 @@ def production_project(request, project_id):
     taskGantt = TaskProject.objects.filter(project=project)
     RealCost = RealCostProject.objects.filter(project=project)
 
-    RealCostByItems = None
+    RealCostByItems = '{}'
     if RealCost.exists():
         RealCostItems = RealCost.get()
-        if RealCostItems: 
+        if RealCostItems and RealCostItems.items:
             RealCostByItems = json.dumps(RealCostItems.items)
 
     proposal = project.get_approved_proposal()
@@ -108,6 +108,7 @@ def production_project(request, project_id):
     costData = {}
     progress = 0
     user_allowed_to_close_production = False
+    user_can_assign_cost_request = False
     # Calcular el total del presupuesto desde dataPreview
     estimated_budget_total = 0
     if budget.dataPreview:
@@ -117,8 +118,10 @@ def production_project(request, project_id):
                     estimated_budget_total += float(elemet[1])
                 except Exception:
                     pass
-    if (request.user == project.project_manager or request.user.groups.filter(name='ADMIN').exists()) and not project.production_closed:
+    if (request.user == project.project_manager or user_is_admin(request.user)) and not project.production_closed:
         user_allowed_to_close_production = True
+    if user_is_admin(request.user) or (project.accounting_manager and request.user == project.accounting_manager):
+        user_can_assign_cost_request = True
     last_index = None
     for elemet in budget.dataPreview:
         if len(elemet) >= 2:
@@ -151,6 +154,7 @@ def production_project(request, project_id):
         'taskGantt':taskGantt,
         'realCostItems': RealCostByItems,
         'user_allowed_to_close_production': user_allowed_to_close_production,
+        'user_can_assign_cost_request': user_can_assign_cost_request,
         'changeOrders': changeOrders,
         'totalChangeOrders': changeOrders.count(),
     })
@@ -614,23 +618,31 @@ def request_cost_by_pm(request, project_id):
             return JsonResponse({'status': 'already_requested'})
     return JsonResponse({'status': 'forbidden'}, status=403)
 
-@csrf_exempt
 @require_POST
 @login_required
 def assign_cost_by_accounting(request, project_id):
-    project = Project.objects.get(id=project_id)
+    project = get_object_or_404(Project, pk=project_id)
+    is_accounting_manager = project.accounting_manager and request.user == project.accounting_manager
+    if not (is_accounting_manager or user_is_admin(request.user)):
+        return JsonResponse({'status': 'forbidden', 'message': 'You are not authorized to perform this action.'}, status=403)
+
     tipo = request.POST.get('tipo')
+    if tipo not in ('GLOBAL COST REQUEST', 'ITEM COST REQUEST'):
+        return JsonResponse({'status': 'error', 'message': 'Invalid cost request type.'}, status=400)
+
     evidencia = request.POST.get('evidence') == 'true'
     project.accounting_cost_request = tipo
     project.evidence_required = evidencia
-    project.save()
-    Notification.objects.create(
-        recipient=project.project_manager,
-        sender=request.user,
-        notification_type='project_update',
-        project=project,
-        message=f"{request.user.first_name} {request.user.last_name} assigned the type of cost request: {tipo} (Evidence required: {'Yes' if evidencia else 'No'}) for the project {project.project_name}."
-    )
+    project.save(update_fields=['accounting_cost_request', 'evidence_required'])
+    if project.accounting_manager:
+        Notification.objects.create(
+            recipient=project.project_manager,
+            sender=request.user,
+            notification_type='project_update',
+            project=project,
+            message=f"{request.user.first_name} {request.user.last_name} assigned the type of cost request: {tipo} (Evidence required: {'Yes' if evidencia else 'No'}) for the project {project.project_name}."
+        )
+    log_project_history(request, project, 'UPDATE', f'Cost request type assigned: {tipo}')
     return JsonResponse({'status': 'ok'})
 
 @login_required
