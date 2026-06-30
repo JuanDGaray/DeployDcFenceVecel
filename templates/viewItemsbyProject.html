@@ -110,7 +110,13 @@
                             {% for data in item %}
                                 <td class='text-end' id="costEstimated"><strong>{{data}}</strong></td>
                             {% endfor %}
-                            <td class="text-end" id="costSpent"><strong>{{ realCostItems|get_item_value:item.0 | currency_usd }}</strong>
+                            <td class="text-end" id="costSpent">
+                                {% with spent=realCostItems|get_item_value:item.0 estimated=item.1 %}
+                                <strong class="{% if spent|is_over_estimated:estimated %}text-danger{% endif %}">{{ spent | currency_usd }}</strong>
+                                {% if spent|is_over_estimated:estimated %}
+                                <span class="badge bg-danger ms-1" style="font-size: 0.65rem;" title="Sobregirado">Over budget</span>
+                                {% endif %}
+                                {% endwith %}
                                 <button class="bg-success text-white ms-2 incrementButton border border-1 border-success rounded-2"{% if not user_allowed_to_close_production %} disabled style="opacity: 0.5; cursor: not-allowed;" {% endif %}  onclick="showUpdateCostModal('{{item.0}}','{{item.1}}')" >+</button>
                             </td>
                             
@@ -204,8 +210,13 @@
                                 <td class="p-0 border fw-bold text-end">{{changeOrder.total_change_order | currency_usd}}</td>
                                 <td class="p-0 border fw-bold text-end">
                                     {% with co_number=changeOrder.change_order_detail.change_order_no|concat_co %}
-                                    {{ realCostItems|get_item_value:co_number | currency_usd }}
+                                    {% with spent=realCostItems|get_item_value:co_number estimated=changeOrder.total_change_order %}
+                                    <strong class="{% if spent|is_over_estimated:estimated %}text-danger{% endif %}">{{ spent | currency_usd }}</strong>
+                                    {% if spent|is_over_estimated:estimated %}
+                                    <span class="badge bg-danger ms-1" style="font-size: 0.65rem;" title="Sobregirado">Over budget</span>
+                                    {% endif %}
                                     <button class="bg-success text-white ms-2 incrementButton border border-1 border-success rounded-2"{% if not user_allowed_to_close_production %} disabled style="opacity: 0.5; cursor: not-allowed;" {% endif %}  onclick="showUpdateCostModal('{{co_number}}','{{changeOrder.total_change_order}}')" >+</button>
+                                    {% endwith %}
                                     {% endwith %}
                                 </td>
                             </tr>
@@ -318,9 +329,20 @@
 <script>
     let costEstimate = 0;
     let costSpend = 0;
+    let costEstimateNumeric = 0;
+    let costSpendNumeric = 0;
     let updateCostModal; // Declare as global variable
     let totalValue = 0;
     let costComparisonChart; // Variable para el gráfico de dona
+
+    function parseMoney(value) {
+        if (typeof value === 'number') return value;
+        return parseFloat(String(value).replace(/[$,]/g, '')) || 0;
+    }
+
+    function formatCurrency(value) {
+        return parseMoney(value).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    }
 
     // Función para crear el gráfico de dona
     function createCostComparisonChart() {
@@ -504,10 +526,15 @@
         const realValue = parseJsonOrEmpty(rawRealCostItems);
         
         // Fix the variable assignments - value is estimated cost, realValue[name]?.total is spent cost
-        costEstimate = parseFloat(value.replace('$', '').replace(',', '')).toFixed(2).toLocaleString('en-US', {style: 'currency', currency: 'USD'}) ; // Estimated cost from the parameter
-        costSpend = realValue[name]?.total !== undefined ? parseFloat(realValue[name].total).toFixed(2).toLocaleString('en-US', {style: 'currency', currency: 'USD'}) : 0; // Spent cost
-        totalValue = costSpend; // For comparison, use spent cost as the limit
-        
+        costEstimateNumeric = parseMoney(value);
+        costSpendNumeric = realValue[name]?.total !== undefined ? parseFloat(realValue[name].total) : 0;
+        costEstimate = formatCurrency(costEstimateNumeric);
+        costSpend = formatCurrency(costSpendNumeric);
+        totalValue = costSpendNumeric;
+
+        const overBudgetBadge = costSpendNumeric > costEstimateNumeric && costEstimateNumeric > 0
+            ? '<span class="badge bg-danger ms-2" style="font-size: 0.7rem;">Over budget</span>'
+            : '';
     
         // Manejar costData
         const rawCostData = "{{ costData|default:'{}'|escapejs }}";
@@ -529,8 +556,8 @@
                         ${value}
                         <div class="m-0 p-0 fs-7" style="font-size: 0.75rem;">Costo Estimated</div>
                     </label>
-                    <label for="costSpend" class="form-label border px-2 bg-info text-white w-30 text-center m-0">
-                        $${totalValue}
+                    <label for="costSpend" class="form-label border px-2 ${costSpendNumeric > costEstimateNumeric && costEstimateNumeric > 0 ? 'bg-danger' : 'bg-info'} text-white w-30 text-center m-0">
+                        ${costSpend}${overBudgetBadge}
                         <div class="m-0 p-0 fs-7" style="font-size: 0.75rem;">Costo Spend</div>
                     </label>
                 </div>
@@ -611,16 +638,15 @@
             }
         }
 
-        if (costValue > costEstimate) {
-            showAlert(`Cost value (${costValue}) cannot be greater than the estimated value (${costEstimate})`, 'danger');
-            return; 
-        }
-
-        if (costValue == costEstimate) {
-            if (confirm('Are you sure you want to update the cost value to the estimated value? This will update the cost spend to the estimated value.')) {
-                formData.costValue = costEstimate;
-            } else {
-                return;
+        if (costEstimateNumeric > 0) {
+            const newTotal = costSpendNumeric + costValue;
+            if (costValue > costEstimateNumeric || newTotal > costEstimateNumeric) {
+                const msg = newTotal > costEstimateNumeric
+                    ? `The total spent (${formatCurrency(newTotal)}) will exceed the estimated cost (${costEstimate}). Continue?`
+                    : `This amount (${formatCurrency(costValue)}) exceeds the item estimated cost (${costEstimate}). Continue?`;
+                if (!confirm(msg)) {
+                    return;
+                }
             }
         }
 

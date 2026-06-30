@@ -106,6 +106,24 @@ def get_item_value(dictionary, key):
             return item_value.get('total')
     return None
 
+def _parse_money(value):
+    if value is None:
+        return 0
+    if isinstance(value, (int, float)):
+        return float(value)
+    try:
+        return float(str(value).replace('$', '').replace(',', '').strip())
+    except (ValueError, TypeError):
+        return 0
+
+@register.filter(name='is_over_estimated')
+def is_over_estimated(spent, estimated):
+    spent_val = _parse_money(spent)
+    estimated_val = _parse_money(estimated)
+    if spent_val <= 0 or estimated_val <= 0:
+        return False
+    return spent_val > estimated_val
+
 @register.filter(name='get_Subitem')
 def get_Subitem(dictionary, key):
     if dictionary is None or dictionary == 'None':
