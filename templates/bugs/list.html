@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}{% if can_manage %}Bug Tracker{% else %}My bug reports{% endif %}{% endblock %}
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1">{% if can_manage %}Bug Tracker{% else %}My bug reports{% endif %}</h1>
+            <p class="text-muted mb-0">
+                {% if can_manage %}
+                    Review, prioritize, and follow every reported bug.
+                {% else %}
+                    Reports you sent and their current status.
+                {% endif %}
+            </p>
+        </div>
+        <button type="button" class="btn btn-dark" onclick="window.openReportBug && window.openReportBug()">
+            <i class="bi bi-plus-lg"></i> Report Bug
+        </button>
+    </div>
+
+    {% if can_manage %}
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="text-muted small">Total</div><div class="fs-3 fw-bold">{{ stats.total }}</div></div></div>
+        </div>
+        <div class="col-6 col-lg">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="text-muted small">Pending</div><div class="fs-3 fw-bold">{{ stats.pending }}</div></div></div>
+        </div>
+        <div class="col-6 col-lg">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="text-muted small">In progress</div><div class="fs-3 fw-bold text-primary">{{ stats.in_progress }}</div></div></div>
+        </div>
+        <div class="col-6 col-lg">
+            <div class="card border-0 shadow-sm h-100"><div class="card-body"><div class="text-muted small">Resolved</div><div class="fs-3 fw-bold text-success">{{ stats.resolved }}</div></div></div>
+        </div>
+        <div class="col-12 col-lg">
+            <div class="card border-0 shadow-sm h-100 border-start border-danger border-4"><div class="card-body"><div class="text-muted small">Critical and high</div><div class="fs-3 fw-bold text-danger">{{ stats.urgent }}</div></div></div>
+        </div>
+    </div>
+
+    <form class="card border-0 shadow-sm mb-4" method="get">
+        <div class="card-body row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Search</label>
+                <input class="form-control" name="q" value="{{ filters.q }}" placeholder="Title or description">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Status</label>
+                <select class="form-select" name="status">
+                    <option value="">All</option>
+                    {% for value, label in status_choices %}
+                    <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Urgency</label>
+                <select class="form-select" name="urgency">
+                    <option value="">All</option>
+                    {% for value, label in urgency_choices %}
+                    <option value="{{ value }}" {% if filters.urgency == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Assignee</label>
+                <select class="form-select" name="assignee">
+                    <option value="">All</option>
+                    {% for developer in developers %}
+                    <option value="{{ developer.id }}" {% if filters.assignee == developer.id|stringformat:"s" %}selected{% endif %}>{{ developer.get_full_name|default:developer.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1">
+                <label class="form-label small mb-1">From</label>
+                <input class="form-control" type="date" name="date_from" value="{{ filters.date_from }}">
+            </div>
+            <div class="col-md-1">
+                <label class="form-label small mb-1">To</label>
+                <input class="form-control" type="date" name="date_to" value="{{ filters.date_to }}">
+            </div>
+            <div class="col-md-1 d-flex gap-1">
+                <button class="btn btn-primary" type="submit">Filter</button>
+            </div>
+        </div>
+    </form>
+    {% endif %}
+
+    <div class="card border-0 shadow-sm">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Title</th>
+                        <th>Page</th>
+                        <th>Urgency</th>
+                        <th>Status</th>
+                        <th>Reported</th>
+                        <th>Reporter</th>
+                        {% if can_manage %}<th>Assignee</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bug in bugs %}
+                    <tr class="{% if bug.urgency == 'critical' %}table-danger{% elif bug.urgency == 'high' %}table-warning{% endif %}">
+                        <td><a class="fw-semibold text-decoration-none" href="/bugs/{{ bug.id }}/">{{ bug.title }}</a></td>
+                        <td>{% if bug.page_url %}<a href="{{ bug.page_url }}">{{ bug.page_url }}</a>{% else %}—{% endif %}</td>
+                        <td>{{ bug.get_urgency_display }}</td>
+                        <td>{{ bug.get_status_display }}</td>
+                        <td>{{ bug.created_at|date:"M d, Y H:i" }}</td>
+                        <td>{{ bug.reporter.get_full_name|default:bug.reporter.username }}</td>
+                        {% if can_manage %}
+                        <td>{{ bug.assignee.get_full_name|default:"Unassigned" }}</td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="{% if can_manage %}7{% else %}6{% endif %}" class="text-center text-muted py-4">No bug reports yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

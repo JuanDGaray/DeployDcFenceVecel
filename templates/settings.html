@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load custom_filters %}
 {% block extra_head %}
 <style>
     .org-tree {
@@ -37,6 +38,22 @@
         background-color: #dee2e6;
         margin: 0 auto;
     }
+    .avatar-wrap {
+        position: relative;
+        display: inline-flex;
+        flex-shrink: 0;
+    }
+    .presence-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #22c55e;
+        border: 2px solid #fff;
+        position: absolute;
+        right: -1px;
+        bottom: -1px;
+        box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.35);
+    }
 </style>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 {% endblock %}
@@ -49,7 +66,7 @@
             <div class="org-group w-100 m-0">
                 <div class="d-flex flex-column justify-content-center align-items-center">
                     <h4 class="text-primary text-center fw-bold">Administrators
-                        {% if user.groups.first.name == 'ADMIN' or request.user.is_superuser %}
+                        {% if request.user|has_group:'ADMIN' or request.user.is_superuser %}
                             <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">+</button>
                         {% endif %}
                     </h4>
@@ -63,11 +80,17 @@
                 <hr class="border-primary border-4">
                 <div class="org-member d-flex flex-row w-100 justify-content-center align-items-center my-2 position-relative gap-2 flex-wrap">
                     {% for user in admin_users %}
-                        <div class="card p-1 px-3 d-flex flex-row justify-content-between align-items-center gap-2">
-                            <span
-                                class="customer-avatar text-light rounded-circle m-0 bg-primary"
-                                style="font-size: 1.5rem; font-weight: bold; width: 40px; height: 40px;">
-                                {{ user.user.first_name|first }}{{ user.user.last_name|first }}
+                        <div class="card p-1 px-3 d-flex flex-row justify-content-between align-items-center gap-2 position-relative">
+{% include "components/role_edit_btn.html" %}
+                            <span class="avatar-wrap">
+                                <span
+                                    class="customer-avatar text-light rounded-circle m-0 bg-primary"
+                                    style="font-size: 1.5rem; font-weight: bold; width: 40px; height: 40px;">
+                                    {{ user.user.first_name|first }}{{ user.user.last_name|first }}
+                                </span>
+                                {% if user.user.id in online_user_ids %}
+                                    <span class="presence-dot" title="Online"></span>
+                                {% endif %}
                             </span>
                             <div class="d-flex flex-column justify-content-between align-items-center">
                                 <h5 class="fs-6 fw-bold w-100 m-0 text-primary">{{ user.user.first_name }} {{ user.user.last_name }}<br> <span class="text-muted" style="font-size: 0.6rem;">{{ user.user.date_joined|timesince }}</span></h5>
@@ -87,7 +110,7 @@
                 <div class="org-group text-center ">
                     <div class="d-flex flex-column justify-content-center align-items-center">
                         <h4 class="text-success fw-bold mb-3">Production
-                            {% if user.groups.first.name == 'ADMIN' or request.user.is_superuser %}
+                            {% if request.user|has_group:'ADMIN' or request.user.is_superuser %}
                                 <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">+</button>
                             {% endif %}
                         </h4>
@@ -101,11 +124,17 @@
                     <div class="d-flex flex-wrap justify-content-center gap-2">
                         {% if production_users %}
                             {% for user in production_users %}
-                                <div class="card p-1 px-3 d-flex flex-row justify-content-between align-items-center gap-2">
-                                <span
-                                    class="customer-avatar text-light rounded-circle m-0 bg-success"
-                                    style="font-size: 1.5rem; font-weight: bold; width: 40px; height: 40px;">
-                                    {{ user.user.first_name|first }}{{ user.user.last_name|first }}
+                                <div class="card p-1 px-3 d-flex flex-row justify-content-between align-items-center gap-2 position-relative">
+{% include "components/role_edit_btn.html" %}
+                                <span class="avatar-wrap">
+                                    <span
+                                        class="customer-avatar text-light rounded-circle m-0 bg-success"
+                                        style="font-size: 1.5rem; font-weight: bold; width: 40px; height: 40px;">
+                                        {{ user.user.first_name|first }}{{ user.user.last_name|first }}
+                                    </span>
+                                    {% if user.user.id in online_user_ids %}
+                                        <span class="presence-dot" title="Online"></span>
+                                    {% endif %}
                                 </span>
                                 <div class="d-flex flex-column justify-content-between align-items-center">
                                     <h5 class="fs-6 fw-bold m-0 text-success">{{ user.user.first_name }} {{ user.user.last_name }} <span class="fs-6 text-muted">{{ user.user.date_joined|timesince }}</span></h5>
@@ -126,7 +155,7 @@
                 <div class="org-group text-center">
                     <div class="d-flex flex-column justify-content-center align-items-center">
                         <h4 class="text-warning fw-bold mb-3">Sales
-                            {% if user.groups.first.name == 'ADMIN' or request.user.is_superuser %}
+                            {% if request.user|has_group:'ADMIN' or request.user.is_superuser %}
                                 <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">+</button>
                             {% endif %}
                         </h4>
@@ -140,11 +169,17 @@
                     <div class="d-flex flex-wrap justify-content-center gap-2">
                         {% if sales_users %}
                             {% for user in sales_users %}
-                            <div class="card p-1 px-3 d-flex flex-row justify-content-between align-items-center gap-2">
-                                <span
-                                    class="customer-avatar text-light rounded-circle m-0 bg-warning"
-                                    style="font-size: 1.5rem; font-weight: bold; width: 40px; height: 40px;">
-                                    {{ user.user.first_name|first }}{{ user.user.last_name|first }}
+                            <div class="card p-1 px-3 d-flex flex-row justify-content-between align-items-center gap-2 position-relative">
+{% include "components/role_edit_btn.html" %}
+                                <span class="avatar-wrap">
+                                    <span
+                                        class="customer-avatar text-light rounded-circle m-0 bg-warning"
+                                        style="font-size: 1.5rem; font-weight: bold; width: 40px; height: 40px;">
+                                        {{ user.user.first_name|first }}{{ user.user.last_name|first }}
+                                    </span>
+                                    {% if user.user.id in online_user_ids %}
+                                        <span class="presence-dot" title="Online"></span>
+                                    {% endif %}
                                 </span>
                                 <div class="d-flex flex-column justify-content-between align-items-center">
                                     <h5 class="fs-6 fw-bold m-0 text-warning">{{ user.user.first_name }} {{ user.user.last_name }} <span class="fs-6 text-muted">{{ user.user.date_joined|timesince }}</span></h5>
@@ -159,6 +194,51 @@
                             {% endfor %}
                         {% else %}
                             <p class="text-muted card p-2">No sales users found...</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="org-group text-center">
+                    <div class="d-flex flex-column justify-content-center align-items-center">
+                        <h4 class="text-info fw-bold mb-3">Developers
+                            {% if request.user|has_group:'ADMIN' or request.user.is_superuser %}
+                                <button class="btn btn-info btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">+</button>
+                            {% endif %}
+                        </h4>
+                        <span class="text-muted text-center fs-6 w-100">
+                            <i class="bi bi-info-circle-fill"></i>
+                            <span>
+                                Developers build and maintain the system.
+                            </span>
+                        </span>
+                    </div>
+                    <div class="d-flex flex-wrap justify-content-center gap-2">
+                        {% if developer_users %}
+                            {% for user in developer_users %}
+                            <div class="card p-1 px-3 d-flex flex-row justify-content-between align-items-center gap-2 position-relative">
+{% include "components/role_edit_btn.html" %}
+                                <span class="avatar-wrap">
+                                    <span
+                                        class="customer-avatar text-light rounded-circle m-0 bg-info"
+                                        style="font-size: 1.5rem; font-weight: bold; width: 40px; height: 40px;">
+                                        {{ user.user.first_name|first }}{{ user.user.last_name|first }}
+                                    </span>
+                                    {% if user.user.id in online_user_ids %}
+                                        <span class="presence-dot" title="Online"></span>
+                                    {% endif %}
+                                </span>
+                                <div class="d-flex flex-column justify-content-between align-items-center">
+                                    <h5 class="fs-6 fw-bold m-0 text-info">{{ user.user.first_name }} {{ user.user.last_name }} <span class="fs-6 text-muted">{{ user.user.date_joined|timesince }}</span></h5>
+                                    <p class="card-text fs-6 m-0">{{ user.user.email }}</p>
+                                </div>
+                                {% if user.user.id != request.user.id and request.user.is_superuser %}
+                                    <button class="btn btn-danger btn-sm opacity-50 position-absolute p-0 m-0" style="right: -5px; top: -5px; width: 20px; height: 20px;" onclick="confirmDeleteUser({{ user.user.id }}, '{{ user.user.first_name|escapejs }} {{ user.user.last_name|escapejs }}')">
+                                        <i class="bi bi-trash p-0 m-0"></i>
+                                    </button>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted card p-2">No developers found...</p>
                         {% endif %}
                     </div>
                 </div>
@@ -204,6 +284,7 @@
                                 <option value="ADMIN">ADMIN</option>
                                 <option value="SALES">SALES</option>
                                 <option value="PRODUCTION">PRODUCTION</option>
+                                <option value="DEVELOPER">DEVELOPER</option>
                             </select>
                         </div>
                     </form>
@@ -218,6 +299,43 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-primary" id="addUserButton">Add User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="rolesModal" tabindex="-1" aria-labelledby="rolesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold" id="rolesModalLabel">Roles</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-3">Choose every role for <strong id="rolesUserName"></strong>. The same person can appear in more than one section.</p>
+                    <form id="rolesForm">
+                        <input type="hidden" id="rolesUserId" name="user_id">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="roles" value="ADMIN" id="roleAdmin">
+                            <label class="form-check-label" for="roleAdmin">Administrator</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="roles" value="PRODUCTION" id="roleProduction">
+                            <label class="form-check-label" for="roleProduction">Production</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="roles" value="SALES" id="roleSales">
+                            <label class="form-check-label" for="roleSales">Sales</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="roles" value="DEVELOPER" id="roleDeveloper">
+                            <label class="form-check-label" for="roleDeveloper">Developer</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveRolesBtn">Save roles</button>
                 </div>
             </div>
         </div>
@@ -285,6 +403,47 @@
             const modalEl = document.getElementById('deleteUserModal');
             bootstrap.Modal.getInstance(modalEl)?.hide();
             deleteUser(userId);
+        });
+    }
+
+    document.querySelectorAll(".role-edit-btn").forEach(function(button) {
+        button.addEventListener("click", function() {
+            const roles = (button.dataset.roles || "").split(",").filter(Boolean);
+            document.getElementById("rolesUserId").value = button.dataset.userId;
+            document.getElementById("rolesUserName").textContent = button.dataset.userName || "this user";
+            document.querySelectorAll('#rolesForm input[name="roles"]').forEach(function(checkbox) {
+                checkbox.checked = roles.indexOf(checkbox.value) !== -1;
+            });
+            bootstrap.Modal.getOrCreateInstance(document.getElementById("rolesModal")).show();
+        });
+    });
+
+    const saveRolesBtn = document.getElementById("saveRolesBtn");
+    if (saveRolesBtn) {
+        saveRolesBtn.addEventListener("click", function() {
+            const selected = Array.from(document.querySelectorAll('#rolesForm input[name="roles"]:checked'));
+            if (!selected.length) {
+                showAlert("Select at least one role", "danger");
+                return;
+            }
+            const formData = new FormData();
+            formData.append("user_id", document.getElementById("rolesUserId").value);
+            selected.forEach(function(checkbox) {
+                formData.append("roles", checkbox.value);
+            });
+            saveRolesBtn.disabled = true;
+            ajaxPostRequest("/update_user_roles/", formData, "{{ csrf_token }}", function(response) {
+                saveRolesBtn.disabled = false;
+                if (response.success) {
+                    showAlert("Roles updated", "success");
+                    location.reload();
+                } else {
+                    showAlert(response.error || "Could not update roles", "danger");
+                }
+            }, function(error) {
+                saveRolesBtn.disabled = false;
+                showAlert(error?.error || "Could not update roles", "danger");
+            });
         });
     }
 

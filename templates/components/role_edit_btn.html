@@ -1,0 +1,11 @@
+{% if request.user.is_superuser %}
+<button type="button"
+    class="btn btn-light border btn-sm position-absolute p-0 m-0 role-edit-btn"
+    style="left: -6px; top: -6px; width: 22px; height: 22px; z-index: 2;"
+    title="Roles"
+    data-user-id="{{ user.user.id }}"
+    data-user-name="{{ user.user.first_name }} {{ user.user.last_name }}"
+    data-roles="{{ user.role_names|join:',' }}">
+    <i class="bi bi-person-badge" style="font-size: 0.75rem;"></i>
+</button>
+{% endif %}

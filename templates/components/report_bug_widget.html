@@ -1,0 +1,343 @@
+<div class="report-bug-root" id="reportBugRoot">
+    <button type="button" class="report-bug-launcher" id="reportBugLauncher">
+        <i class="bi bi-bug-fill"></i>
+        <span>Report Bug</span>
+    </button>
+    <section class="report-bug-panel" id="reportBugPanel" aria-hidden="true">
+        <header class="report-bug-panel__header">
+            <div>
+                <strong>Report Bug</strong>
+                <div class="small opacity-75">Tell us what went wrong</div>
+            </div>
+            <button type="button" class="btn btn-sm btn-light" id="reportBugClose" aria-label="Close">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </header>
+        <form id="reportBugForm" class="report-bug-panel__body" enctype="multipart/form-data">
+            {% csrf_token %}
+            <label class="form-label fw-semibold mb-1" for="bugTitle">Title</label>
+            <input class="form-control mb-3" id="bugTitle" name="title" maxlength="200" required placeholder="Short description of the problem">
+
+            <label class="form-label fw-semibold mb-1" for="bugPageUrl">Page</label>
+            <input class="form-control mb-3" id="bugPageUrl" name="page_url" readonly>
+
+            <label class="form-label fw-semibold mb-1" for="bugDescription">What happened</label>
+            <textarea class="form-control mb-3" id="bugDescription" name="description" rows="5" required placeholder="What you did, what happened, and what you expected"></textarea>
+
+            <label class="form-label fw-semibold mb-1">Screenshot</label>
+            <div class="d-flex gap-2 mb-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" id="bugCaptureBtn">
+                    <i class="bi bi-crop"></i> Select area
+                </button>
+                <label class="btn btn-outline-secondary btn-sm mb-0">
+                    <i class="bi bi-paperclip"></i> Attach image
+                    <input type="file" id="bugFileInput" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+                </label>
+            </div>
+            <p class="text-muted small mb-2">Drag over the part of this page you want to include.</p>
+            <img id="bugPreview" alt="" class="report-bug-preview d-none">
+            <input type="file" id="bugScreenshot" name="screenshot" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+
+            <label class="form-label fw-semibold mb-1 mt-3">Urgency</label>
+            <select class="form-select mb-3" name="urgency" required>
+                <option value="critical">Critical — blocks an essential feature</option>
+                <option value="high">High — seriously affects the work</option>
+                <option value="medium" selected>Medium — partial impact</option>
+                <option value="low">Low — minor or visual</option>
+            </select>
+            <button type="submit" class="btn btn-primary w-100" id="bugSubmitBtn">Send report</button>
+            <a href="/bugs/" class="d-block text-center mt-3 small">View my reports</a>
+        </form>
+        <div id="reportBugSuccess" class="report-bug-panel__body d-none">
+            <div class="alert alert-success">Your report was sent. A developer has been notified.</div>
+            <a class="btn btn-primary w-100" id="reportBugSuccessLink" href="/bugs/">Open the report</a>
+            <button type="button" class="btn btn-link w-100" id="reportBugAnother">Report another bug</button>
+        </div>
+    </section>
+</div>
+<div id="reportBugSelect" class="report-bug-select" hidden>
+    <div class="report-bug-select__hint">Drag to select an area. Press Esc to cancel.</div>
+    <div id="reportBugSelectBox" class="report-bug-select__box" hidden></div>
+</div>
+<style>
+    .report-bug-root { position: fixed; right: 0; bottom: 24px; z-index: 1040; }
+    .report-bug-launcher {
+        border: 0;
+        border-radius: 20px 0 0 20px;
+        background: #1f2937;
+        color: #fff;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 8px 20px rgba(0,0,0,.18);
+    }
+    .report-bug-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: min(420px, 100vw);
+        height: 100vh;
+        background: #fff;
+        box-shadow: -8px 0 24px rgba(0,0,0,.12);
+        transform: translateX(100%);
+        transition: transform .25s ease;
+        display: flex;
+        flex-direction: column;
+        z-index: 1041;
+    }
+    .report-bug-panel.is-open { transform: translateX(0); }
+    .report-bug-panel__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        background: #1f2937;
+        color: #fff;
+    }
+    .report-bug-panel__body { padding: 16px; overflow: auto; }
+    .report-bug-preview { width: 100%; max-height: 160px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; }
+    .report-bug-select {
+        position: fixed;
+        inset: 0;
+        z-index: 3000;
+        cursor: crosshair;
+        background: rgba(15, 23, 42, 0.28);
+    }
+    .report-bug-select__hint {
+        position: fixed;
+        top: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #111827;
+        color: #fff;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        pointer-events: none;
+        z-index: 3002;
+    }
+    .report-bug-select__box {
+        position: fixed;
+        border: 2px solid #2563eb;
+        background: rgba(37, 99, 235, 0.18);
+        box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.35);
+        z-index: 3001;
+    }
+</style>
+<script>
+(function () {
+    const panel = document.getElementById('reportBugPanel');
+    const form = document.getElementById('reportBugForm');
+    const success = document.getElementById('reportBugSuccess');
+    const preview = document.getElementById('bugPreview');
+    const screenshot = document.getElementById('bugScreenshot');
+    const fileInput = document.getElementById('bugFileInput');
+
+    function currentPage() {
+        return window.location.pathname + window.location.search;
+    }
+    function fillPageUrl() {
+        const pageUrl = document.getElementById('bugPageUrl');
+        if (pageUrl) pageUrl.value = currentPage();
+    }
+    function openPanel() {
+        fillPageUrl();
+        panel.classList.add('is-open');
+        panel.setAttribute('aria-hidden', 'false');
+    }
+    function closePanel() {
+        panel.classList.remove('is-open');
+        panel.setAttribute('aria-hidden', 'true');
+    }
+    document.getElementById('reportBugLauncher').addEventListener('click', openPanel);
+    document.getElementById('reportBugClose').addEventListener('click', closePanel);
+    window.openReportBug = openPanel;
+
+    function showPreview(file) {
+        if (!file) {
+            preview.classList.add('d-none');
+            preview.removeAttribute('src');
+            return;
+        }
+        preview.src = URL.createObjectURL(file);
+        preview.classList.remove('d-none');
+    }
+
+    function setScreenshot(file) {
+        const transfer = new DataTransfer();
+        transfer.items.add(file);
+        screenshot.files = transfer.files;
+        showPreview(file);
+    }
+
+    fileInput.addEventListener('change', function () {
+        if (fileInput.files && fileInput.files[0]) setScreenshot(fileInput.files[0]);
+    });
+
+    function loadHtml2Canvas() {
+        if (window.html2canvas) return Promise.resolve(window.html2canvas);
+        return new Promise(function (resolve, reject) {
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+            script.onload = function () { resolve(window.html2canvas); };
+            script.onerror = function () { reject(new Error('html2canvas failed to load')); };
+            document.head.appendChild(script);
+        });
+    }
+
+    async function captureSelection(rect) {
+        const html2canvas = await loadHtml2Canvas();
+        const root = document.getElementById('reportBugRoot');
+        root.style.visibility = 'hidden';
+        try {
+            const full = await html2canvas(document.body, {
+                x: window.scrollX,
+                y: window.scrollY,
+                width: window.innerWidth,
+                height: window.innerHeight,
+                windowWidth: window.innerWidth,
+                windowHeight: window.innerHeight,
+                scrollX: 0,
+                scrollY: 0,
+                useCORS: true,
+                logging: false,
+                scale: 1,
+            });
+            const scaleX = full.width / window.innerWidth;
+            const scaleY = full.height / window.innerHeight;
+            const crop = document.createElement('canvas');
+            crop.width = Math.max(1, Math.round(rect.width * scaleX));
+            crop.height = Math.max(1, Math.round(rect.height * scaleY));
+            crop.getContext('2d').drawImage(
+                full,
+                rect.left * scaleX,
+                rect.top * scaleY,
+                rect.width * scaleX,
+                rect.height * scaleY,
+                0,
+                0,
+                crop.width,
+                crop.height
+            );
+            const blob = await new Promise(function (resolve) { crop.toBlob(resolve, 'image/png'); });
+            if (!blob) throw new Error('empty capture');
+            setScreenshot(new File([blob], 'screenshot.png', { type: 'image/png' }));
+        } finally {
+            root.style.visibility = '';
+        }
+    }
+
+    document.getElementById('bugCaptureBtn').addEventListener('click', function () {
+        const layer = document.getElementById('reportBugSelect');
+        const box = document.getElementById('reportBugSelectBox');
+        closePanel();
+        layer.hidden = false;
+        box.hidden = true;
+        let startX = 0;
+        let startY = 0;
+        let dragging = false;
+
+        function place(x, y, width, height) {
+            box.style.left = x + 'px';
+            box.style.top = y + 'px';
+            box.style.width = width + 'px';
+            box.style.height = height + 'px';
+        }
+        function cleanup() {
+            layer.hidden = true;
+            box.hidden = true;
+            document.removeEventListener('keydown', onKey);
+            layer.removeEventListener('mousedown', onDown);
+            window.removeEventListener('mousemove', onMove);
+            window.removeEventListener('mouseup', onUp);
+        }
+        function onKey(event) {
+            if (event.key === 'Escape') {
+                cleanup();
+                openPanel();
+            }
+        }
+        function onDown(event) {
+            if (event.button !== 0) return;
+            dragging = true;
+            startX = event.clientX;
+            startY = event.clientY;
+            box.hidden = false;
+            place(startX, startY, 0, 0);
+            event.preventDefault();
+        }
+        function onMove(event) {
+            if (!dragging) return;
+            place(
+                Math.min(event.clientX, startX),
+                Math.min(event.clientY, startY),
+                Math.abs(event.clientX - startX),
+                Math.abs(event.clientY - startY)
+            );
+        }
+        function onUp() {
+            if (!dragging) return;
+            dragging = false;
+            const rect = box.getBoundingClientRect();
+            cleanup();
+            if (rect.width < 12 || rect.height < 12) {
+                openPanel();
+                return;
+            }
+            captureSelection(rect).then(function () {
+                openPanel();
+            }).catch(function () {
+                openPanel();
+                showAlert('Could not capture that area. Attach an image instead.', 'warning');
+            });
+        }
+        document.addEventListener('keydown', onKey);
+        layer.addEventListener('mousedown', onDown);
+        window.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onUp);
+    });
+
+    document.getElementById('reportBugAnother').addEventListener('click', function () {
+        form.reset();
+        screenshot.value = '';
+        showPreview(null);
+        fillPageUrl();
+        success.classList.add('d-none');
+        form.classList.remove('d-none');
+    });
+
+    fillPageUrl();
+
+    form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        fillPageUrl();
+        const button = document.getElementById('bugSubmitBtn');
+        button.disabled = true;
+        const token = form.querySelector('[name=csrfmiddlewaretoken]').value;
+        fetch('/bugs/create/', {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-CSRFToken': token, 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        }).then(function (response) {
+            return response.json().then(function (data) {
+                return { ok: response.ok, data: data };
+            });
+        }).then(function (result) {
+            button.disabled = false;
+            if (!result.ok) {
+                showAlert(result.data.error || 'Could not send the report.', 'danger');
+                return;
+            }
+            document.getElementById('reportBugSuccessLink').href = result.data.url;
+            form.classList.add('d-none');
+            success.classList.remove('d-none');
+            showAlert('Bug report sent.', 'success');
+        }).catch(function () {
+            button.disabled = false;
+            showAlert('Could not send the report.', 'danger');
+        });
+    });
+})();
+</script>

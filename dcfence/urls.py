@@ -98,8 +98,18 @@ urlpatterns = [
     path('production/<int:project_id>/close_production/', views.close_production, name='close_production'),
     path('api/chat/', views.chat_with_groq, name='chat_with_groq'),
     path('settings/', settings_view, name='settings'),
+    path('bugs/', views.bug_list, name='bug_list'),
+    path('bugs/create/', views.bug_create, name='bug_create'),
+    path('bugs/<int:bug_id>/', views.bug_detail, name='bug_detail'),
+    path('bugs/<int:bug_id>/status/', views.bug_update_status, name='bug_update_status'),
+    path('bugs/<int:bug_id>/assign/', views.bug_assign, name='bug_assign'),
+    path('bugs/<int:bug_id>/comment/', views.bug_comment, name='bug_comment'),
+    path('bugs/<int:bug_id>/checklist/', views.bug_checklist_add, name='bug_checklist_add'),
+    path('bugs/<int:bug_id>/checklist/<int:item_id>/', views.bug_checklist_update, name='bug_checklist_update'),
+    path('bugs/<int:bug_id>/checklist/<int:item_id>/delete/', views.bug_checklist_delete, name='bug_checklist_delete'),
     path('add_user/', views.add_user_post, name='add_user'),
     path('delete_user/', views.delete_user, name='delete_user'),
+    path('update_user_roles/', views.update_user_roles, name='update_user_roles'),
     path('metrics/', views.metrics, name='metrics'),
     path('metrics/cost-trend/',views.cost_trend, name='cost_trend'),
     path('metrics/project-status-distribution/',views.project_status_distribution, name='project_status_distribution'),
@@ -122,3 +132,5 @@ urlpatterns = [
 
 if django_settings.DEBUG is False:
     urlpatterns += static(django_settings.STATIC_URL, document_root=django_settings.STATIC_ROOT)
+if django_settings.DEBUG:
+    urlpatterns += static(django_settings.MEDIA_URL, document_root=django_settings.MEDIA_ROOT)

@@ -961,7 +961,7 @@
 
       </div>
   </div>
-  {% if user.groups.first.name == 'ADMIN' %}
+  {% if user|has_group:'ADMIN' %}
   <div class="col-md-12 border border-success border-opacity-25 border-4 rounded-4 p-3 position-relative mt-5">
     {% if not project.accounting_manager %}
       {% include "components/block_panel.html" %}
@@ -1130,8 +1130,6 @@
       <a class="btn btn-success my-3 d-flex justify-content-end align-items-center fw-bold fs-3 px-4" style="width: fit-content; margin-left: auto;" href="/production/{{project.id }}"> Go to panel of production <i class="bi bi-arrow-right ms-2"></i></a>
     {% endif %}
   {% endif %}
-    {% include "components/documents_projects.html" %}
-    {% include "components/emails_sent_to_client.html" %}
     {% include "modal_delete.html" %}
     {% include "components/modals_detail_projects.html" with project=project %}
 <div id="loadingOverlay"  class="containerLoading d-none" >
@@ -1141,7 +1139,6 @@
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
-<script src="{% static 'js/components/documents_projects.js' %}"></script>
 <script type="text/javascript">
   
 
@@ -1151,7 +1148,8 @@ document.getElementById('button-delete-project').addEventListener('click', funct
     if (userConfirmed) {
 
       const projectId = this.getAttribute('data-id');
-      const folderRootValue = document.getElementById("document-list").getAttribute("data-folder-root");
+      const documentList = document.getElementById("document-list");
+      const folderRootValue = documentList ? documentList.getAttribute("data-folder-root") : null;
       let url = `/projects/${projectId}/delete_project/`;  // URL base
       const loadingOverlay = document.getElementById('loadingOverlay');
       loadingOverlay.classList.remove('d-none');
@@ -1208,10 +1206,8 @@ function updateFolderName(folderId, newFolderName) {
   .then(data => {
     if (data.message === 'Folder renamed successfully') {
       showAlert("Folder renamed successfully.", 'success');
-      loadFolder()
     } else {
       showAlert("Error renaming folder", 'warning');
-      loadFolder()
     }
   })
   .catch(error => {

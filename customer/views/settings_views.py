@@ -8,8 +8,10 @@ from django.contrib.auth.password_validation import validate_password
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.db import transaction
+from django.db.models import Prefetch
 import json
 import traceback
+from ..presence import get_online_user_ids
 from ..models import (
     CostItemDescription,
     Customer,
@@ -66,25 +68,54 @@ def transfer_user_ownership(from_user, to_user):
     ProjectCollaborationRequest.objects.filter(requested_by_id=uid).delete()
     Notification.objects.filter(recipient_id=uid).delete()
 
+APP_ROLES = ("ADMIN", "SALES", "PRODUCTION", "DEVELOPER")
+
+
+def _users_for_group(group):
+    users = []
+    for user in group.user_set.all():
+        users.append({
+            "name": user.first_name + user.last_name,
+            "email": user.email,
+            "user": user,
+            "role_names": [role.name for role in user.groups.all()],
+        })
+    return users
+
+
 @login_required
 def settings(request):
-    groups = Group.objects.prefetch_related("user_set").all()
+    for role_name in APP_ROLES:
+        Group.objects.get_or_create(name=role_name)
+    groups = Group.objects.prefetch_related(
+        Prefetch("user_set", queryset=User.objects.prefetch_related("groups"))
+    )
 
     admin_users = []
     sales_users = []
     production_users = []
+    developer_users = []
     for group in groups:
         if group.name == "ADMIN":
-            admin_users = [{"name": user.first_name + user.last_name, "email": user.email, "user": user} for user in group.user_set.all()]
+            admin_users = _users_for_group(group)
         elif group.name == "SALES":
-            sales_users = [{"name": user.first_name + user.last_name, "email": user.email, "user": user} for user in group.user_set.all()]
+            sales_users = _users_for_group(group)
         elif group.name == "PRODUCTION":
-            production_users = [{"name": user.first_name + user.last_name, "email": user.email, "user": user} for user in group.user_set.all()]
+            production_users = _users_for_group(group)
+        elif group.name == "DEVELOPER":
+            developer_users = _users_for_group(group)
+
+    online_user_ids = set(get_online_user_ids())
+    if request.user.is_authenticated:
+        online_user_ids.add(request.user.id)
+    online_user_ids = list(online_user_ids)
 
     return render(request, "settings.html", {
         "admin_users": admin_users,
         "sales_users": sales_users,
         "production_users": production_users,
+        "developer_users": developer_users,
+        "online_user_ids": online_user_ids,
     })
 
 
@@ -174,6 +205,35 @@ def delete_user(request):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
     return JsonResponse({"error": "Invalid request method"}, status=405)
+
+
+@login_required
+@require_http_methods(["POST"])
+def update_user_roles(request):
+    if not request.user.is_superuser:
+        return JsonResponse({"error": "Only the superuser can change roles"}, status=403)
+
+    user_id = request.POST.get("user_id")
+    selected = request.POST.getlist("roles")
+    if not selected:
+        return JsonResponse({"error": "Select at least one role"}, status=400)
+    if any(name not in APP_ROLES for name in selected):
+        return JsonResponse({"error": "Unknown role"}, status=400)
+
+    try:
+        user = User.objects.get(id=user_id)
+    except (User.DoesNotExist, ValueError, TypeError):
+        return JsonResponse({"error": "User not found"}, status=404)
+
+    for role_name in APP_ROLES:
+        Group.objects.get_or_create(name=role_name)
+
+    current_roles = list(user.groups.filter(name__in=APP_ROLES))
+    if current_roles:
+        user.groups.remove(*current_roles)
+    user.groups.add(*Group.objects.filter(name__in=selected))
+    return JsonResponse({"success": "Roles updated"})
+
 
 @login_required
 @csrf_exempt

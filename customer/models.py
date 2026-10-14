@@ -714,12 +714,17 @@ class Notification(models.Model):
         ('project_update', 'Project Update'),
         ('status_change', 'Status Change'),
         ('manager_assignment', 'Manager Assignment'),
+        ('bug_report', 'Bug Report'),
+        ('bug_assigned', 'Bug Assigned'),
+        ('bug_status', 'Bug Status'),
+        ('bug_comment', 'Bug Comment'),
     ]
     
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='sent_notifications')
     notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
-    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='notifications')
+    project = models.ForeignKey('Project', on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
+    bug = models.ForeignKey('BugReport', on_delete=models.CASCADE, related_name='notifications', null=True, blank=True)
     comment = models.ForeignKey(commentsProject, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
     message = models.TextField()
     is_read = models.BooleanField(default=False)
@@ -1015,3 +1020,95 @@ class ProjectCollaborationRequest(models.Model):
     @property
     def is_rejected(self):
         return self.status == self.STATUS_REJECTED
+
+
+class BugReport(models.Model):
+    URGENCY_CRITICAL = 'critical'
+    URGENCY_HIGH = 'high'
+    URGENCY_MEDIUM = 'medium'
+    URGENCY_LOW = 'low'
+    URGENCY_CHOICES = [
+        (URGENCY_CRITICAL, 'Critical'),
+        (URGENCY_HIGH, 'High'),
+        (URGENCY_MEDIUM, 'Medium'),
+        (URGENCY_LOW, 'Low'),
+    ]
+
+    STATUS_NEW = 'new'
+    STATUS_PENDING = 'pending'
+    STATUS_IN_PROGRESS = 'in_progress'
+    STATUS_IN_REVIEW = 'in_review'
+    STATUS_RESOLVED = 'resolved'
+    STATUS_CLOSED = 'closed'
+    STATUS_REOPENED = 'reopened'
+    STATUS_CHOICES = [
+        (STATUS_NEW, 'New'),
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_IN_PROGRESS, 'In progress'),
+        (STATUS_IN_REVIEW, 'In review'),
+        (STATUS_RESOLVED, 'Resolved'),
+        (STATUS_CLOSED, 'Closed'),
+        (STATUS_REOPENED, 'Reopened'),
+    ]
+
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    page_url = models.CharField(max_length=500, blank=True)
+    urgency = models.CharField(max_length=20, choices=URGENCY_CHOICES, default=URGENCY_MEDIUM)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_NEW)
+    reporter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reported_bugs')
+    assignee = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_bugs')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.title
+
+    @property
+    def is_urgent(self):
+        return self.urgency in (self.URGENCY_CRITICAL, self.URGENCY_HIGH)
+
+
+class BugAttachment(models.Model):
+    bug = models.ForeignKey(BugReport, on_delete=models.CASCADE, related_name='attachments')
+    file = models.FileField(upload_to='bug_reports/%Y/%m/')
+    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='bug_attachments')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+
+class BugComment(models.Model):
+    bug = models.ForeignKey(BugReport, on_delete=models.CASCADE, related_name='comments')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bug_comments')
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+
+class BugChecklistItem(models.Model):
+    bug = models.ForeignKey(BugReport, on_delete=models.CASCADE, related_name='checklist_items')
+    title = models.CharField(max_length=200)
+    is_done = models.BooleanField(default=False)
+    position = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['position', 'id']
+
+
+class BugHistory(models.Model):
+    bug = models.ForeignKey(BugReport, on_delete=models.CASCADE, related_name='history')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='bug_history')
+    action = models.CharField(max_length=40)
+    description = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']

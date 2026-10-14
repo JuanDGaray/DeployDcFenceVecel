@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+{% block title %}{{ bug.title }}{% endblock %}
+{% block content %}
+<div class="container-fluid p-4">
+    <a href="/bugs/" class="text-decoration-none small">&larr; Back to reports</a>
+    {% if created_now %}
+    <div class="alert alert-success mt-3">Your report was sent. A developer has been notified.</div>
+    {% endif %}
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mt-2 mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-2">{{ bug.title }}</h1>
+            <div class="d-flex gap-2 flex-wrap">
+                <span class="badge {% if bug.urgency == 'critical' %}text-bg-danger{% elif bug.urgency == 'high' %}text-bg-warning{% elif bug.urgency == 'medium' %}text-bg-secondary{% else %}text-bg-success{% endif %}">{{ bug.get_urgency_display }}</span>
+                <span class="badge text-bg-light border">{{ bug.get_status_display }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <h2 class="h6 fw-bold">Description</h2>
+                    <p class="mb-0" style="white-space: pre-wrap;">{{ bug.description }}</p>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <h2 class="h6 fw-bold">Screenshots</h2>
+                    {% if attachments %}
+                    <div class="d-flex flex-wrap gap-3">
+                        {% for attachment in attachments %}
+                        <a href="{{ attachment.file.url }}" target="_blank">
+                            <img src="{{ attachment.file.url }}" alt="Screenshot" style="width: 180px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No screenshots attached.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <h2 class="h6 fw-bold">Resolution checklist</h2>
+                        <span class="small text-muted" id="checklistProgress">{{ checklist_done }}/{{ checklist_total }}</span>
+                    </div>
+                    <ul class="list-group list-group-flush" id="checklist">
+                        {% for item in checklist %}
+                        <li class="list-group-item px-0 d-flex align-items-center gap-2" data-item-id="{{ item.id }}">
+                            <input class="form-check-input mt-0 checklist-toggle" type="checkbox" {% if item.is_done %}checked{% endif %} {% if not can_manage %}disabled{% endif %}>
+                            {% if can_manage %}
+                            <input class="form-control form-control-sm checklist-title" value="{{ item.title }}">
+                            <button type="button" class="btn btn-sm btn-outline-danger checklist-delete" aria-label="Remove">&times;</button>
+                            {% else %}
+                            <span class="{% if item.is_done %}text-decoration-line-through text-muted{% endif %}">{{ item.title }}</span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <p class="small text-muted mt-2 mb-0" id="checklistSaved"></p>
+                    {% if can_manage %}
+                    <form class="d-flex gap-2 mt-3" id="checklistAddForm">
+                        <input class="form-control" name="title" placeholder="Add a task" required>
+                        <button class="btn btn-outline-primary" type="submit">Add</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h2 class="h6 fw-bold">Comments</h2>
+                    {% for comment in comments %}
+                    <div class="border-bottom py-2">
+                        <div class="small fw-semibold">{{ comment.author.get_full_name|default:comment.author.username }} <span class="text-muted fw-normal">{{ comment.created_at|date:"M d, Y H:i" }}</span></div>
+                        <div style="white-space: pre-wrap;">{{ comment.body }}</div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No comments yet.</p>
+                    {% endfor %}
+                    <form method="post" action="/bugs/{{ bug.id }}/comment/" class="mt-3">
+                        {% csrf_token %}
+                        <textarea class="form-control mb-2" name="body" rows="3" required placeholder="Add a comment"></textarea>
+                        <button class="btn btn-primary" type="submit">Comment</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <h2 class="h6 fw-bold">Details</h2>
+                    <p class="mb-1"><span class="text-muted">Page:</span> {% if bug.page_url %}<a href="{{ bug.page_url }}">{{ bug.page_url }}</a>{% else %}Not recorded{% endif %}</p>
+                    <p class="mb-1"><span class="text-muted">Reporter:</span> {{ bug.reporter.get_full_name|default:bug.reporter.username }}</p>
+                    <p class="mb-1"><span class="text-muted">Email:</span> {{ bug.reporter.email }}</p>
+                    <p class="mb-1"><span class="text-muted">Created:</span> {{ bug.created_at|date:"M d, Y H:i" }}</p>
+                    <p class="mb-1"><span class="text-muted">Updated:</span> {{ bug.updated_at|date:"M d, Y H:i" }}</p>
+                    <p class="mb-0"><span class="text-muted">Assignee:</span> {{ bug.assignee.get_full_name|default:"Unassigned" }}</p>
+                </div>
+            </div>
+
+            {% if can_manage %}
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <h2 class="h6 fw-bold">Status</h2>
+                    <form method="post" action="/bugs/{{ bug.id }}/status/" class="d-flex gap-2">
+                        {% csrf_token %}
+                        <select class="form-select" name="status">
+                            {% for value, label in status_choices %}
+                            <option value="{{ value }}" {% if bug.status == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <button class="btn btn-primary" type="submit">Save</button>
+                    </form>
+                </div>
+            </div>
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body">
+                    <h2 class="h6 fw-bold">Assignee</h2>
+                    <form method="post" action="/bugs/{{ bug.id }}/assign/" class="d-flex gap-2">
+                        {% csrf_token %}
+                        <select class="form-select" name="assignee_id">
+                            <option value="">Unassigned</option>
+                            {% for developer in developers %}
+                            <option value="{{ developer.id }}" {% if bug.assignee_id == developer.id %}selected{% endif %}>{{ developer.get_full_name|default:developer.username }}</option>
+                            {% endfor %}
+                        </select>
+                        <button class="btn btn-primary" type="submit">Save</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h2 class="h6 fw-bold">History</h2>
+                    {% for entry in history %}
+                    <div class="border-bottom py-2">
+                        <div class="small text-muted">{{ entry.created_at|date:"M d, Y H:i" }} · {{ entry.user.get_full_name|default:"System" }}</div>
+                        <div>{{ entry.description }}</div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted mb-0">No history yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+    const bugId = {{ bug.id }};
+    const csrf = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const progress = document.getElementById('checklistProgress');
+    const saved = document.getElementById('checklistSaved');
+
+    function markSaved(data) {
+        if (data && typeof data.done === 'number') {
+            progress.textContent = data.done + '/' + data.total;
+        }
+        saved.textContent = 'Saved';
+    }
+
+    function postItem(itemId, body) {
+        return fetch('/bugs/' + bugId + '/checklist/' + itemId + '/', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+            body: body,
+            credentials: 'same-origin',
+        }).then(function (response) { return response.json(); });
+    }
+
+    document.querySelectorAll('#checklist li').forEach(function (row) {
+        const itemId = row.dataset.itemId;
+        const toggle = row.querySelector('.checklist-toggle');
+        const title = row.querySelector('.checklist-title');
+        const remove = row.querySelector('.checklist-delete');
+        if (toggle && !toggle.disabled) {
+            toggle.addEventListener('change', function () {
+                const body = new FormData();
+                body.append('is_done', toggle.checked ? '1' : '0');
+                postItem(itemId, body).then(markSaved);
+            });
+        }
+        if (title) {
+            title.addEventListener('change', function () {
+                const body = new FormData();
+                body.append('title', title.value);
+                postItem(itemId, body).then(markSaved);
+            });
+        }
+        if (remove) {
+            remove.addEventListener('click', function () {
+                fetch('/bugs/' + bugId + '/checklist/' + itemId + '/delete/', {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                }).then(function (response) { return response.json(); }).then(function (data) {
+                    row.remove();
+                    markSaved(data);
+                });
+            });
+        }
+    });
+
+    const addForm = document.getElementById('checklistAddForm');
+    if (addForm) {
+        addForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const body = new FormData(addForm);
+            fetch('/bugs/' + bugId + '/checklist/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrf, 'X-Requested-With': 'XMLHttpRequest' },
+                body: body,
+                credentials: 'same-origin',
+            }).then(function (response) { return response.json(); }).then(function (data) {
+                if (data.success) window.location.reload();
+            });
+        });
+    }
+})();
+</script>
+{% endblock %}

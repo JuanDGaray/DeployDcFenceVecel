@@ -54,7 +54,7 @@
                       </div>
                     </div>
                   </div>
-                  {% if user.is_superuser or user.groups.first.name == "ADMIN" %}
+                  {% if user.is_superuser or user|has_group:"ADMIN" %}
                   <div class="d-flex gap-2">
                     <a href="{% url 'edit_customer' client.id %}" class="btn btn-primary">
                       <i class="bi bi-pencil-fill me-2"></i>Edit Customer

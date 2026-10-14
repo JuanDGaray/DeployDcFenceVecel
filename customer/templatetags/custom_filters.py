@@ -283,6 +283,24 @@ def add(value, arg):
     except (ValueError, TypeError):
         return 0
 
+@register.filter
+def has_group(user, group_name):
+    if not getattr(user, "is_authenticated", False):
+        return False
+    names = getattr(user, "_group_name_cache", None)
+    if names is None:
+        names = set(user.groups.values_list("name", flat=True))
+        user._group_name_cache = names
+    return group_name in names
+
+
+@register.filter
+def group_names(user):
+    if not getattr(user, "is_authenticated", False):
+        return ""
+    return ", ".join(user.groups.values_list("name", flat=True))
+
+
 @register.filter(name='concat_co')
 def concat_co(value):
     """

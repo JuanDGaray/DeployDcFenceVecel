@@ -1,4 +1,5 @@
    {% load static %}
+   {% load custom_filters %}
     <!-- Project Documentation -->
     <style>
       .folder-container:hover {
@@ -46,7 +47,7 @@
           </div>
           <div class="card-header d-flex align-items-center p-3 border-bottom bg-gray">
             <h1 class="card-header fs-4 rounded-4">Documents</h1>
-            {% if request.user.groups.first.name == 'ADMIN' %}
+            {% if request.user|has_group:'ADMIN' %}
             <span id="google-drive-link" class="text-white ms-2 bg-secondary rounded-2 p-1 px-2" style="cursor: pointer;">
                 <a href="https://drive.google.com/drive/folders/{{ project.folder_id }}" class="text-decoration-none text-white" target="_blank">
                   <i class="bi bi-google"></i> Google Drive

@@ -1,3 +1,4 @@
+{% load custom_filters %}
 <!-- Customer Card -->
 <div style="width: 30%;">
     <div class="card shadow-sm rounded-4">
@@ -17,7 +18,7 @@
                         {% if dataUser %}
                             <strong class="border-bottom border-2 mb-2">{{ dataUser.user.first_name }} {{ dataUser.user.last_name }}</strong>
                             <br>
-                            <span class="text-muted text-center text-nowrap" style="font-size: 0.8rem;">{{ dataUser.user.groups.first.name }}</span>
+                            <span class="text-muted text-center text-nowrap" style="font-size: 0.8rem;">{{ dataUser.user|group_names }}</span>
                         {% else %}
                             <span class="placeholder col-6 rounded-pill">&nbsp;</span>
                         {% endif %}

@@ -312,16 +312,26 @@ def get_notifications(request):
             notifications = Notification.objects.filter(
                 recipient=request.user,
                 is_read=False
-            ).select_related('sender', 'project', 'comment').order_by('-date_created')[:5]
-            print(notifications)
+            ).select_related('sender', 'project', 'comment', 'bug').order_by('-date_created')[:15]
             for notification in notifications:
+                if notification.bug_id:
+                    urgency = notification.bug.urgency
+                    link = f'/bugs/{notification.bug_id}/'
+                    ntype = 'danger' if urgency in ('critical', 'high') else 'primary'
+                elif notification.project_id:
+                    link = f'/projects/{notification.project_id}/'
+                    ntype = 'primary'
+                else:
+                    link = '/bugs/'
+                    ntype = 'primary'
+                created = timezone.localtime(notification.date_created) if timezone.is_aware(notification.date_created) else notification.date_created
                 mention_notifications.append({
                     'id': notification.id,
                     'title': f'{notification.get_notification_type_display()}',
                     'message': notification.message,
-                    'link': f'/projects/{notification.project.id}/',
-                    'type': 'primary',
-                    'date': notification.date_created.strftime('%M/%d %H:%M'),
+                    'link': link,
+                    'type': ntype,
+                    'date': created.strftime('%b %d %H:%M'),
                     'sender': notification.sender.get_full_name() if notification.sender else 'System'
                 })
         except Exception as e:
