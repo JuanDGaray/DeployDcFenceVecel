@@ -38,15 +38,18 @@
             <img id="bugPreview" alt="" class="report-bug-preview d-none">
             <input type="file" id="bugScreenshot" name="screenshot" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
 
-            <label class="form-label fw-semibold mb-1 mt-3">Urgency</label>
-            <select class="form-select mb-3" name="urgency" required>
+            <label class="form-label fw-semibold mb-1 mt-3" for="bugUrgency">Urgency</label>
+            <select class="form-select mb-3" id="bugUrgency" name="urgency" required>
                 <option value="critical">Critical — blocks an essential feature</option>
                 <option value="high">High — seriously affects the work</option>
                 <option value="medium" selected>Medium — partial impact</option>
                 <option value="low">Low — minor or visual</option>
             </select>
             <button type="submit" class="btn btn-primary w-100" id="bugSubmitBtn">Send report</button>
-            <a href="/bugs/" class="d-block text-center mt-3 small">View my reports</a>
+            <div class="d-flex justify-content-between mt-3">
+                <button type="button" class="btn btn-link btn-sm p-0" id="reportBugTutorialBtn">Tutorial</button>
+                <a href="/bugs/" class="small">View my reports</a>
+            </div>
         </form>
         <div id="reportBugSuccess" class="report-bug-panel__body d-none">
             <div class="alert alert-success">Your report was sent. A developer has been notified.</div>
@@ -54,6 +57,19 @@
             <button type="button" class="btn btn-link w-100" id="reportBugAnother">Report another bug</button>
         </div>
     </section>
+</div>
+<div id="reportBugTour" class="report-bug-tour" hidden>
+    <div id="reportBugTourShield" class="report-bug-tour__shield"></div>
+    <div id="reportBugTourRing" class="report-bug-tour__ring"></div>
+    <div id="reportBugTourCard" class="report-bug-tour__card" role="dialog" aria-labelledby="reportBugTourTitle">
+        <div class="small text-muted mb-1" id="reportBugTourStep"></div>
+        <h2 class="h6 fw-bold mb-2" id="reportBugTourTitle"></h2>
+        <p class="mb-3" id="reportBugTourBody"></p>
+        <div class="d-flex justify-content-between align-items-center">
+            <button type="button" class="btn btn-link btn-sm p-0" id="reportBugTourSkip">Saltar</button>
+            <button type="button" class="btn btn-primary btn-sm" id="reportBugTourNext">Siguiente</button>
+        </div>
+    </div>
 </div>
 <div id="reportBugSelect" class="report-bug-select" hidden>
     <div class="report-bug-select__hint">Drag to select an area. Press Esc to cancel.</div>
@@ -123,6 +139,28 @@
         background: rgba(37, 99, 235, 0.18);
         box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.35);
         z-index: 3001;
+    }
+    .report-bug-tour__shield {
+        position: fixed;
+        inset: 0;
+        z-index: 4000;
+    }
+    .report-bug-tour__ring {
+        position: fixed;
+        z-index: 4001;
+        border-radius: 10px;
+        outline: 3px solid #3b82f6;
+        box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.55);
+        pointer-events: none;
+    }
+    .report-bug-tour__card {
+        position: fixed;
+        z-index: 4002;
+        width: min(320px, calc(100vw - 24px));
+        background: #fff;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 12px 32px rgba(0,0,0,.22);
     }
 </style>
 <script>
@@ -308,6 +346,84 @@
     });
 
     fillPageUrl();
+
+    const tutorialKey = 'reportBugTutorialSeen';
+    const tutorialSteps = [
+        { target: '#reportBugLauncher', title: 'Reporta un error', body: 'Este botón está en todas las páginas. Ábrelo en la pantalla donde viste el problema.', open: false },
+        { target: '#bugTitle', title: 'Título', body: 'Resume el problema en una frase corta.', open: true },
+        { target: '#bugPageUrl', title: 'Página', body: 'La ruta se llena sola con la página en la que estás. No hace falta copiarla.', open: true },
+        { target: '#bugDescription', title: 'Qué ocurrió', body: 'Explica qué hiciste, qué pasó y qué esperabas que pasara.', open: true },
+        { target: '#bugCaptureBtn', title: 'Captura', body: 'Select area recorta un fragmento de esta página. También puedes adjuntar una imagen.', open: true },
+        { target: '#bugUrgency', title: 'Urgencia', body: 'Crítico bloquea el trabajo. Alto lo afecta mucho. Medio es parcial. Bajo es visual.', open: true },
+        { target: '#bugSubmitBtn', title: 'Enviar', body: 'Send report avisa a los developers. Luego puedes seguir el estado en View my reports.', open: true }
+    ];
+    let tutorialIndex = 0;
+    let tutorialToken = 0;
+
+    function tutorialSeen() {
+        try { return localStorage.getItem(tutorialKey) === '1'; }
+        catch (error) { return true; }
+    }
+    function markTutorialSeen() {
+        try { localStorage.setItem(tutorialKey, '1'); }
+        catch (error) { /* ignore private mode */ }
+    }
+    function endTutorial() {
+        tutorialToken += 1;
+        document.getElementById('reportBugTour').hidden = true;
+        markTutorialSeen();
+    }
+    function showTutorialStep() {
+        const token = ++tutorialToken;
+        const step = tutorialSteps[tutorialIndex];
+        const target = document.querySelector(step.target);
+        if (!target) {
+            tutorialIndex += 1;
+            if (tutorialIndex >= tutorialSteps.length) endTutorial();
+            else showTutorialStep();
+            return;
+        }
+        if (step.open) openPanel();
+        else closePanel();
+        window.setTimeout(function () {
+            if (token !== tutorialToken) return;
+            const rect = target.getBoundingClientRect();
+            const ring = document.getElementById('reportBugTourRing');
+            const card = document.getElementById('reportBugTourCard');
+            const pad = 6;
+            ring.style.left = (rect.left - pad) + 'px';
+            ring.style.top = (rect.top - pad) + 'px';
+            ring.style.width = (rect.width + pad * 2) + 'px';
+            ring.style.height = (rect.height + pad * 2) + 'px';
+            document.getElementById('reportBugTourStep').textContent = 'Paso ' + (tutorialIndex + 1) + ' de ' + tutorialSteps.length;
+            document.getElementById('reportBugTourTitle').textContent = step.title;
+            document.getElementById('reportBugTourBody').textContent = step.body;
+            document.getElementById('reportBugTourNext').textContent = tutorialIndex === tutorialSteps.length - 1 ? 'Entendido' : 'Siguiente';
+            document.getElementById('reportBugTour').hidden = false;
+            const margin = 12;
+            let left = rect.left - card.offsetWidth - margin;
+            if (left < 8) left = Math.min(rect.right + margin, window.innerWidth - card.offsetWidth - 8);
+            let top = rect.top;
+            if (top + card.offsetHeight > window.innerHeight - 8) top = window.innerHeight - card.offsetHeight - 8;
+            if (top < 8) top = 8;
+            card.style.left = Math.max(8, left) + 'px';
+            card.style.top = top + 'px';
+        }, step.open ? 280 : 0);
+    }
+    function startTutorial() {
+        form.classList.remove('d-none');
+        success.classList.add('d-none');
+        tutorialIndex = 0;
+        showTutorialStep();
+    }
+    document.getElementById('reportBugTourSkip').addEventListener('click', endTutorial);
+    document.getElementById('reportBugTourNext').addEventListener('click', function () {
+        tutorialIndex += 1;
+        if (tutorialIndex >= tutorialSteps.length) endTutorial();
+        else showTutorialStep();
+    });
+    document.getElementById('reportBugTutorialBtn').addEventListener('click', startTutorial);
+    if (!tutorialSeen()) window.setTimeout(startTutorial, 700);
 
     form.addEventListener('submit', function (event) {
         event.preventDefault();
