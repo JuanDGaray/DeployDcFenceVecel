@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db.models import Q
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -109,7 +109,14 @@ def _save_screenshot(bug, uploaded, user):
         return "Attach a PNG, JPG, WEBP, or GIF image."
     if uploaded.size > MAX_SCREENSHOT_BYTES:
         return "The screenshot must be 8 MB or smaller."
-    BugAttachment.objects.create(bug=bug, file=uploaded, uploaded_by=user)
+    uploaded.seek(0)
+    BugAttachment.objects.create(
+        bug=bug,
+        uploaded_by=user,
+        data=uploaded.read(),
+        content_type=content_type,
+        original_name=(uploaded.name or "screenshot.png")[:200],
+    )
     return None
 
 
@@ -219,6 +226,19 @@ def bug_create(request):
     if is_ajax:
         return JsonResponse({"success": True, "id": bug.id, "url": f"/bugs/{bug.id}/"})
     return redirect(f"/bugs/{bug.id}/?created=1")
+
+
+@login_required
+def bug_attachment(request, attachment_id):
+    attachment = get_object_or_404(BugAttachment.objects.select_related("bug"), id=attachment_id)
+    if not _can_view(request.user, attachment.bug):
+        return HttpResponseForbidden("You cannot open this screenshot.")
+    if not attachment.data:
+        return HttpResponse(status=404)
+    response = HttpResponse(bytes(attachment.data), content_type=attachment.content_type or "image/png")
+    response["Content-Disposition"] = "inline"
+    response["Cache-Control"] = "private, max-age=3600"
+    return response
 
 
 @login_required

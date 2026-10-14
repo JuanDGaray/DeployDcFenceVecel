@@ -15,7 +15,7 @@ from .production_views import production, production_project, setDateInProductio
 from .sales_manager_views import assign_sales_manager
 from .settings_views import settings, add_user_post, delete_user, update_user_roles
 from .bug_views import (
-    bug_list, bug_create, bug_detail, bug_update_status, bug_assign,
+    bug_list, bug_create, bug_detail, bug_attachment, bug_update_status, bug_assign,
     bug_comment, bug_checklist_add, bug_checklist_update, bug_checklist_delete,
 )
 from .metrics_views import metrics, cost_trend, project_status_distribution, sales_performance_view, projects_by_creation_date, proposals_donut_chart

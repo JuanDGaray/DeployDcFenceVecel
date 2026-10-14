@@ -100,6 +100,7 @@ urlpatterns = [
     path('settings/', settings_view, name='settings'),
     path('bugs/', views.bug_list, name='bug_list'),
     path('bugs/create/', views.bug_create, name='bug_create'),
+    path('bugs/attachments/<int:attachment_id>/', views.bug_attachment, name='bug_attachment'),
     path('bugs/<int:bug_id>/', views.bug_detail, name='bug_detail'),
     path('bugs/<int:bug_id>/status/', views.bug_update_status, name='bug_update_status'),
     path('bugs/<int:bug_id>/assign/', views.bug_assign, name='bug_assign'),

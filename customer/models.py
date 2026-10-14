@@ -1074,7 +1074,10 @@ class BugReport(models.Model):
 
 class BugAttachment(models.Model):
     bug = models.ForeignKey(BugReport, on_delete=models.CASCADE, related_name='attachments')
-    file = models.FileField(upload_to='bug_reports/%Y/%m/')
+    file = models.FileField(upload_to='bug_reports/%Y/%m/', blank=True, null=True)
+    data = models.BinaryField(null=True)
+    content_type = models.CharField(max_length=100, blank=True)
+    original_name = models.CharField(max_length=200, blank=True)
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='bug_attachments')
     created_at = models.DateTimeField(auto_now_add=True)
 

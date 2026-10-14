@@ -31,8 +31,8 @@
                     {% if attachments %}
                     <div class="d-flex flex-wrap gap-3">
                         {% for attachment in attachments %}
-                        <a href="{{ attachment.file.url }}" target="_blank">
-                            <img src="{{ attachment.file.url }}" alt="Screenshot" style="width: 180px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb;">
+                        <a href="/bugs/attachments/{{ attachment.id }}/" target="_blank">
+                            <img src="/bugs/attachments/{{ attachment.id }}/" alt="Screenshot" style="width: 180px; height: 120px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb;">
                         </a>
                         {% endfor %}
                     </div>
