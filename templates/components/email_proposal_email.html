@@ -266,7 +266,7 @@
                 <tr>
                   <td style="font-weight: bold;">Job Address:</td>
                   <td colspan="3">
-                    {{ proposal.project.address|default:'' }} {{ proposal.project.city|default:'' }} {{ proposal.project.state|default:'' }} {{ proposal.project.country|default:'' }} - {{ proposal.project.zip_code|default:'' }}
+                    {{ proposal.project|project_address }}
                   </td>
                 </tr>
                 <tr>

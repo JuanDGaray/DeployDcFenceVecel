@@ -116,6 +116,28 @@ def _parse_money(value):
     except (ValueError, TypeError):
         return 0
 
+@register.filter(name='project_address')
+def project_address(project):
+    """Show the single address line, or the older city/state fields when it is empty."""
+    address = (getattr(project, 'address', None) or '').strip()
+    if address:
+        return address
+    parts = []
+    for value in (
+        getattr(project, 'city', None),
+        getattr(project, 'state', None),
+        getattr(project, 'country', None),
+    ):
+        text = (value or '').strip()
+        if text and text.lower() != 'none':
+            parts.append(text)
+    zip_code = (getattr(project, 'zip_code', None) or '').strip()
+    line = ' '.join(parts)
+    if zip_code and zip_code.lower() != 'none':
+        line = f'{line} - {zip_code}' if line else zip_code
+    return line
+
+
 @register.filter(name='is_over_estimated')
 def is_over_estimated(spent, estimated):
     spent_val = _parse_money(spent)
@@ -161,6 +183,26 @@ def get_description(dictionary):
 @register.filter(name='short_name')
 def short_name(first_name, last_name):
     return f"{first_name.split(' ')[0]} {last_name.split(' ')[0]}"
+
+
+@register.filter(name='budget_alert')
+def budget_alert(project):
+    """Return 'near' at 80% of the estimate and 'over' once actual passes it."""
+    proposal = project.get_approved_proposal() if hasattr(project, 'get_approved_proposal') else None
+    actual = getattr(project, 'actual_cost', 0)
+    estimated = proposal.total_proposal if proposal else 0
+    try:
+        actual_value = float(actual or 0)
+        estimated_value = float(estimated or 0)
+    except (TypeError, ValueError):
+        return ''
+    if estimated_value <= 0:
+        return 'over' if actual_value > 0 else ''
+    if actual_value >= estimated_value:
+        return 'over'
+    if actual_value >= estimated_value * 0.8:
+        return 'near'
+    return ''
 
 @register.filter(name='sum_values')
 def sum_values(value):

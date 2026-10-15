@@ -140,7 +140,7 @@
                     </div>
                     <div class="col-6 border-black p-2">
                         <div  class="fw-bold" >Job Location:</div>
-                        <input id="JobLocation" type="text" class="form-control border-0 p-0" value='{{ project.address }} {{ project.city }} {{ project.state }} - {{ project.zip_code }}'>
+                        <input id="JobLocation" type="text" class="form-control border-0 p-0" value='{{ project|project_address }}'>
                     </div>
                 </div>
 

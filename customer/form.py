@@ -28,8 +28,5 @@ class ProjectsForm(ModelForm):
                   'status',
                   'description',
                   'estimated_cost',
-                  'city',
-                  'state',
-                  'zip_code',
-                  'country',
+                  'address',
                 ]

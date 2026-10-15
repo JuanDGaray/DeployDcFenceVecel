@@ -640,13 +640,8 @@
 
         if (costEstimateNumeric > 0) {
             const newTotal = costSpendNumeric + costValue;
-            if (costValue > costEstimateNumeric || newTotal > costEstimateNumeric) {
-                const msg = newTotal > costEstimateNumeric
-                    ? `The total spent (${formatCurrency(newTotal)}) will exceed the estimated cost (${costEstimate}). Continue?`
-                    : `This amount (${formatCurrency(costValue)}) exceeds the item estimated cost (${costEstimate}). Continue?`;
-                if (!confirm(msg)) {
-                    return;
-                }
+            if (newTotal > costEstimateNumeric) {
+                showAlert(`This expense is over the estimate (${costEstimate}). The amount will be saved.`, 'warning');
             }
         }
 

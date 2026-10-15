@@ -82,8 +82,8 @@
           </div>
           <div class="card  col-md-3 mt-2 mx-2 my-2 p-0 overflow-hidden"> 
                          <div class="p-2">
-               <p class="text-capitalize"><strong>Project Address:</strong></p>
-               <p class="text-break m-0">{{ project.address }} {{ project.city }} {{ project.state }} {{ project.country }} - {{ project.zip_code }}</p>
+               <p><strong>Project Address:</strong></p>
+               <p class="text-break m-0">{{ project|project_address }}</p>
              </div>
             {% include 'components/manager_selection.html' %}
           </div>

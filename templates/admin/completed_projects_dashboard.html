@@ -333,6 +333,20 @@
         color: #6c757d;
         font-size: 1.2rem;
     }
+
+    .admin-dash-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.86);
+        border-radius: 12px;
+        min-height: 220px;
+    }
     
     @media (max-width: 768px) {
         .stats-grid {
@@ -368,197 +382,32 @@
             </button>
         </div>
         
-        <!-- Estadísticas Generales -->
-        <div class="stats-grid w-50 fs-4">
+        <div class="stats-grid w-50 fs-4" id="adminDashboardStats">
             <div class="stat-card">
-                <div class="stat-number text-primary">{{ total_completed_projects }}</div>
+                <div class="stat-number text-primary">—</div>
                 <div class="stat-label fw-bold text-primary">Completed Projects</div>
             </div>
             <div class="stat-card">
-                <div class="stat-number text-primary">{{ total_budgeted_cost|currency_usd }}</div>
+                <div class="stat-number text-primary">—</div>
                 <div class="stat-label fw-bold text-primary">Total Budgeted Cost</div>
             </div>
-                         <div class="stat-card">
-                 <div class="stat-number text-primary">{{ total_actual_cost|currency_usd }}</div>
-                 <div class="stat-label fw-bold text-primary">Total Actual Cost</div>
-             </div>
-             <div class="stat-card">
-                 <div class="stat-number {% if total_profit > 0 %}profit-positive{% elif total_profit < 0 %}profit-negative{% else %}profit-neutral{% endif %}">{{ total_profit|currency_usd }}</div>
-                 <div class="stat-label fw-bold {% if total_profit > 0 %}profit-positive{% elif total_profit < 0 %}profit-negative{% else %}profit-neutral{% endif %}">Profit Total</div>
-             </div>
-         </div>
-    </div>
-    
-    
-         <!-- Proyectos por Período -->
-     {% if projects_by_period %}
-         {% for year in projects_by_period %}
-         <div class="period-section mb-4">
-                <div class="period-header bg-secondary text-primary bg-opacity-25 text-center fs-3 fw-bold p-3" 
-                   data-bs-toggle="collapse" 
-                   data-bs-target="#year-{{ year }}" 
-                   aria-expanded="false" 
-                   aria-controls="year-{{ year }}"
-                   style="cursor: pointer;">
-                  <div class="d-flex justify-content-between align-items-center">
-                      <div class="d-flex align-items-center gap-4">
-                          <span><i class="bi bi-calendar me-1 fw-bold "></i> {{ year }}</span> 
-                      </div>
-                      <i class="bi bi-chevron-down expand-icon"></i>
-                  </div>
-              </div>
-             
-             <div class="collapse" id="year-{{ year }}">
-                 <div class="p-3">
-                     <div class="row g-3">
-                         {% for month in projects_by_period|get_item:year %}
-                         <div class="col-12 col-md-6 col-lg-4">
-                             <div class="month-section">
-                                        <div class="month-header bg-secondary text-white p-3 rounded-3 text-white fw-bold fs-5" 
-                                       data-bs-toggle="collapse" 
-                                       data-bs-target="#month-{{ year }}-{{ month }}" 
-                                       aria-expanded="false" 
-                                       aria-controls="month-{{ year }}-{{ month }}"
-                                       style="cursor: pointer;">
-                                      <div class="d-flex justify-content-between align-items-center w-100">
-                                            <div class="d-flex align-items-center">
-                                              <span class="fs-5 fw-bold">{{ month|month_name }}</span>
-                                            </div>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <span class="fs-5 text-end bg-light rounded-2 py-1 px-2 {% if period_totals|get_item:year|get_item:month|get_item:'total_profit' > 0 %}text-success{% elif period_totals|get_item:year|get_item:month|get_item:'total_profit' < 0 %}text-danger{% else %}text-secondary{% endif %}">{{ period_totals|get_item:year|get_item:month|get_item:'total_profit'|currency_usd }}</span>
-                                                <span class="fs-5 text-end bg-light rounded-2 py-1 px-2 text-secondary">{{projects_by_period|get_item:year|get_item:month|length}}</span>
-                                                <i class="bi bi-chevron-down expand-icon"></i>
-                                            </div>
-                                            
-                                      </div>
-                                  </div>
-                                 
-                                 <div class="collapse bg-secondary bg-opacity-25 rounded-3" id="month-{{ year }}-{{ month }}">
-                                     <!-- Totales del Mes -->
-                                     <div class="month-totals p-3 bg-secondary bg-opacity-25 rounded-3 my-2">
-                                         <div class="row g-2">
-                                             <div class="col-3">
-                                                 <div class="month-total-item text-center p-1">
-                                                     <div class="month-total-label small text-muted fw-bold border-bottom border-2 border-secondary">Budgeted</div>
-                                                     <div class="month-total-value fw-bold text-primary">{{ period_totals|get_item:year|get_item:month|get_item:'total_budgeted'|currency_usd }}</div>
-                                                 </div>
-                                             </div>
-                                             <div class="col-3">
-                                                 <div class="month-total-item text-center p-1">
-                                                     <div class="month-total-label small text-muted fw-bold border-bottom border-2 border-secondary">Spent</div>
-                                                     <div class="month-total-value fw-bold text-danger">{{ period_totals|get_item:year|get_item:month|get_item:'total_actual'|currency_usd }}</div>
-                                                 </div>
-                                             </div>
-                                             <div class="col-3">
-                                                 <div class="month-total-item text-center p-1">
-                                                     <div class="month-total-label small text-muted fw-bold border-bottom border-2 border-secondary">Profit</div>
-                                                     <div class="month-total-value fw-bold {% if period_totals|get_item:year|get_item:month|get_item:'total_profit' > 0 %}profit-positive{% elif period_totals|get_item:year|get_item:month|get_item:'total_profit' < 0 %}profit-negative{% else %}profit-neutral{% endif %}">
-                                                         {{ period_totals|get_item:year|get_item:month|get_item:'total_profit'|currency_usd }}
-                                                     </div>
-                                                 </div>
-                                             </div>
-                                             <div class="col-3">
-                                                 <div class="month-total-item text-center p-1">
-                                                     <div class="month-total-label small text-muted fw-bold border-bottom border-2 border-secondary">Projects</div>
-                                                     <div class="month-total-value fw-bold">{{ period_totals|get_item:year|get_item:month|get_item:'project_count' }}</div>
-                                                 </div>
-                                             </div>
-                                         </div>
-                                     </div>
-                                     
-                                     <!-- Lista de Proyectos -->
-                                     <div class="projects-list p-3">
-                                         {% for project_data in projects_by_period|get_item:year|get_item:month %}
-                                         {% with project=project_data.project totals=project_data.totals %}
-                                         <div class="project-card mb-3 cursor-none">
-                                             <div class="project-header mb-3">
-                                                 <div>
-                                                     <div class="project-name fw-bold fs-6"><a href="/projects/{{ project.id }}/"target="_blank" class="text-decoration-none">{{ project.project_name|title }}</a></div>
-                                                     <div class="project-customer text-muted small">{{ project.customer.get_full_name }}</div>
-                                                 </div>
-                                                 <div class="project-actions">
-                                                     <button class="btn btn-sm btn-primary" onclick="viewProjectDetails({{ project.id }})">
-                                                         <i class="bi bi-eye"></i>
-                                                     </button>
-                                                     <a class="btn btn-sm btn-success" href="/production/{{ project.id }}" target="_blank" class="text-decoration-none">
-                                                        <i class="bi bi bi-wrench-adjustable-circle-fill"></i>
-                                                     </a>
-                                                 </div>
-                                             </div>
-                                             
-                                             <div class="project-details ">
-                                                 <div class="row g-2">
-                                                     <div class="col-3">
-                                                         <div class="detail-item text-center p-2">
-                                                             <div class="detail-label small text-muted border-bottom border-2 border-secondary">Budgeted</div>
-                                                             <div class="detail-value fw-bold">{{ totals.budgeted_cost|currency_usd }}</div>
-                                                         </div>
-                                                     </div>
-                                                     <div class="col-3">
-                                                        <div class="detail-item text-center p-2">
-                                                            <div class="detail-label small text-muted border-bottom border-2 border-secondary">Cost</div>
-                                                            <div class="detail-value fw-bold">{{ totals.total_cost_budget|currency_usd }}</div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-3">
-                                                        <div class="detail-item text-center p-2">
-                                                            <div class="detail-label small text-muted border-bottom border-2 border-secondary">Spent</div>
-                                                            <div class="detail-value fw-bold">{{ totals.actual_cost|currency_usd }}</div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-3">
-                                                        <div class="detail-item text-center p-2 position-relative">
-                                                            <div class="detail-label small text-muted border-bottom border-2 border-secondary">Cost Diff.</div>
-                                                            <div class="detail-value fw-bold "> {%if totals.cost_difference > 0 %}<span class="text-success position-absolute top-0 end-0 bg-success bg-opacity-25 rounded-2"><i class="bi bi-arrow-up-short"></i></span>{{ totals.cost_difference|currency_usd }}</span>{% else %}<span class="text-danger position-absolute top-0 end-0 bg-danger bg-opacity-25 rounded-2"><i class="bi bi-arrow-down-short"></i></span> {{ totals.cost_difference|currency_usd }}</span>{% endif %}</div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-3">
-                                                        <div class="detail-item text-center p-2 position-relative">
-                                                            <div class="detail-label small text-muted border-bottom border-2 border-secondary">Profit</div>
-                                                            <div class="detail-value fw-bold"> {%if totals.profit > 0 %}<span class="text-success position-absolute top-0 end-0 bg-success bg-opacity-25 rounded-2"><i class="bi bi-arrow-up-short"></i></span>{{ totals.profit|currency_usd }}</span>{% else %}<span class="text-danger position-absolute top-0 end-0 bg-danger bg-opacity-25 rounded-2"><i class="bi bi-arrow-down-short"></i></span> {{ totals.profit|currency_usd }}</span>{% endif %}</div>
-                                                        </div>
-                                                    </div>  
-                                                    <div class="col-3">     
-                                                        <div class="detail-item text-center p-2 position-relative">  
-                                                            <div class="detail-label small text-muted border-bottom border-2 border-secondary">Margin</div>
-                                                            <div class="detail-value fw-bold"> {%if totals.percentage_profit > 0 %}<span class="text-success position-absolute top-0 end-0 bg-success bg-opacity-25 rounded-2"><i class="bi bi-arrow-up-short"></i></span>{{ totals.percentage_profit|floatformat:1 }}%</span>{% else %}<span class="text-danger position-absolute top-0 end-0 bg-danger bg-opacity-25 rounded-2"><i class="bi bi-arrow-down-short"></i></span> {{ totals.percentage_profit|floatformat:1 }}%</span>{% endif %}</div>
-                                                        </div>
-                                                    </div>
-                                                 {% if project.end_date %}
-                                                    <div class="col-3"> 
-                                                        <div class="detail-item text-center p-2">
-                                                            <div class="detail-label small text-muted border-bottom border-2 border-secondary">End Date</div>
-                                                            <div class="detail-value fw-bold">{{ project.end_date|date:"d/m/Y" }}</div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-24">
-                                                        <div class="detail-item text-center p-2">
-                                                            <div class="detail-label small text-muted border-bottom border-2 border-secondary">Location</div>
-                                                            <div class="detail-value fw-bold">{{ project.city }}, {{ project.state }} {{ project.zip_code }}</div>
-                                                        </div>
-                                                    </div>
-                                                 {% endif %}
-                                                 </div>
-                                             </div>
-                                         </div>
-                                         {% endwith %}
-                                         {% endfor %}
-                                     </div>
-                                 </div>
-                             </div>
-                         </div>
-                         {% endfor %}
-                     </div>
-                 </div>
-             </div>
-         </div>
-         {% endfor %}
-     {% else %}
-        <div class="no-projects">
-            <i class="fas fa-inbox fa-3x mb-3"></i>
-            <p>No hay proyectos completados para mostrar.</p>
+            <div class="stat-card">
+                <div class="stat-number text-primary">—</div>
+                <div class="stat-label fw-bold text-primary">Total Actual Cost</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number profit-neutral">—</div>
+                <div class="stat-label fw-bold profit-neutral">Profit Total</div>
+            </div>
         </div>
-    {% endif %}
+    </div>
+
+    <div id="adminDashboardPeriods" class="position-relative" style="min-height: 240px;">
+        <div id="adminDashboardLoading" class="admin-dash-overlay">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mb-0 fw-bold text-primary">Loading dashboard...</p>
+        </div>
+    </div>
 </div>
 
 <!-- Modal para Detalles del Proyecto -->
@@ -580,6 +429,45 @@
 
 {% block extra_js %}
 <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const stats = document.getElementById('adminDashboardStats');
+        const periods = document.getElementById('adminDashboardPeriods');
+        const overlay = document.getElementById('adminDashboardLoading');
+
+        fetch('/admin/completed-projects/data/', {
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error('Dashboard request failed');
+                }
+                return response.text();
+            })
+            .then(function (html) {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const nextStats = doc.getElementById('adminDashboardStatsReplacement');
+                const nextPeriods = doc.getElementById('adminDashboardPeriodsReplacement');
+                if (nextStats && stats) {
+                    stats.replaceWith(nextStats);
+                    nextStats.id = 'adminDashboardStats';
+                }
+                if (nextPeriods && periods) {
+                    periods.innerHTML = nextPeriods.innerHTML;
+                }
+            })
+            .catch(function () {
+                if (periods) {
+                    periods.innerHTML = '<div class="no-projects"><p>No se pudo cargar el dashboard. Recarga la página.</p></div>';
+                }
+            })
+            .finally(function () {
+                if (overlay) {
+                    overlay.remove();
+                }
+            });
+    });
+
     // Función para ver detalles del proyecto
     function viewProjectDetails(projectId) {
         const modal = document.getElementById('projectModal');

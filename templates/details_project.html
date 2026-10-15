@@ -2205,10 +2205,7 @@ function loadProjectData() {
   // Cargar datos del proyecto actual en el formulario
   document.getElementById('editProjectName').value = '{{ project.project_name|escapejs }}';
   document.getElementById('editProjectDescription').value = '{{ project.description|default:""|escapejs }}';
-  document.getElementById('editProjectCity').value = '{{ project.city|escapejs }}';
-  document.getElementById('editProjectState').value = '{{ project.state|escapejs }}';
-  document.getElementById('editProjectZipCode').value = '{{ project.zip_code|default:""|escapejs }}';
-  document.getElementById('editProjectCountry').value = '{{ project.country|escapejs }}';
+  document.getElementById('editProjectAddress').value = '{{ project|project_address|escapejs }}';
   
   // Formatear fechas para el input type="date"
   var startDate = '{{ project.start_date|date:"Y-m-d" }}';
@@ -2250,10 +2247,7 @@ function saveProjectChanges() {
     description: document.getElementById('editProjectDescription').value.trim(),
     start_date: document.getElementById('editProjectStartDate').value || null,
     end_date: document.getElementById('editProjectEndDate').value || null,
-    city: document.getElementById('editProjectCity').value.trim(),
-    state: document.getElementById('editProjectState').value.trim(),
-    zip_code: document.getElementById('editProjectZipCode').value.trim(),
-    country: document.getElementById('editProjectCountry').value.trim()
+    address: document.getElementById('editProjectAddress').value.trim()
   };
   
   // Enviar datos usando ajaxPostRequest

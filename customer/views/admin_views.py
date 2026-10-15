@@ -1,80 +1,93 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.http import JsonResponse
-from django.db.models import Q, Sum, Count
+from django.db.models import Prefetch
 from django.utils import timezone
-from datetime import datetime
 from decimal import Decimal
-from ..models import Project, BudgetEstimate, RealCostProject, ProposalProjects, InvoiceProjects
-from django.contrib.auth.models import User
-import json
+from ..models import Project, BudgetEstimate, ProposalProjects
 
 def is_admin(user):
     """Verifica si el usuario es administrador"""
     user.groups.filter(name='ADMIN').exists()
     return user.is_superuser or user.is_staff or user.groups.filter(name='ADMIN').exists()
 
-@login_required
-@user_passes_test(is_admin)
-def completed_projects_dashboard(request):
-    """
-    Vista principal del dashboard de proyectos terminados para administradores.
-    Muestra proyectos organizados por año y mes.
-    """
-    # Obtener todos los proyectos con estado 'completed'
-    completed_projects = Project.objects.filter(status='completed').order_by('-end_date')
-    
-    # Organizar proyectos por año y mes
+def _completed_projects_queryset():
+    return (
+        Project.objects.filter(status='completed')
+        .select_related('customer')
+        .prefetch_related(
+            Prefetch('proposals', queryset=ProposalProjects.objects.select_related('budget')),
+            Prefetch(
+                'budget_categories',
+                queryset=BudgetEstimate.objects.select_related('id_related_budget'),
+            ),
+            'invoices',
+        )
+        .order_by('-end_date')
+    )
+
+
+def build_completed_dashboard_context():
+    completed_projects = list(_completed_projects_queryset())
     projects_by_period = {}
-    
+    total_profit = 0
+    total_budgeted_cost = 0
+    total_actual_cost = 0
+
     for project in completed_projects:
-        if project.end_date:
-            year = project.end_date.year
-            month = project.end_date.month
-            
-            if year not in projects_by_period:
-                projects_by_period[year] = {}
-            
-            if month not in projects_by_period[year]:
-                projects_by_period[year][month] = []
-            
-            # Calcular totales del proyecto
-            project_totals = calculate_project_totals(project)
-            
-            projects_by_period[year][month].append({
-                'project': project,
-                'totals': project_totals
-            })
-    
-    # Calcular totales por período
+        project_totals = calculate_project_totals(project)
+        total_profit += project_totals['profit']
+        total_budgeted_cost += project.estimated_cost or 0
+        total_actual_cost += project.actual_cost or 0
+
+        if not project.end_date:
+            continue
+
+        year = project.end_date.year
+        month = project.end_date.month
+        projects_by_period.setdefault(year, {}).setdefault(month, []).append({
+            'project': project,
+            'totals': project_totals,
+        })
+
     period_totals = {}
-    for year in projects_by_period:
+    for year, months in projects_by_period.items():
         period_totals[year] = {}
-        for month in projects_by_period[year]:
-            projects = projects_by_period[year][month]
+        for month, projects in months.items():
             period_totals[year][month] = {
                 'total_budgeted': sum(p['totals']['budgeted_cost'] for p in projects),
                 'total_actual': sum(p['totals']['actual_cost'] for p in projects),
                 'total_profit': sum(p['totals']['profit'] for p in projects),
-                'project_count': len(projects)
+                'project_count': len(projects),
             }
-    
-    # Calcular profit total
-    total_profit = 0
-    for project in completed_projects:
-        project_totals = calculate_project_totals(project)
-        total_profit += project_totals['profit']
-    
-    context = {
+
+    return {
         'projects_by_period': projects_by_period,
         'period_totals': period_totals,
-        'total_completed_projects': completed_projects.count(),
-        'total_budgeted_cost': sum(p.estimated_cost or 0 for p in completed_projects),
-        'total_actual_cost': sum(p.actual_cost or 0 for p in completed_projects),
+        'total_completed_projects': len(completed_projects),
+        'total_budgeted_cost': total_budgeted_cost,
+        'total_actual_cost': total_actual_cost,
         'total_profit': total_profit,
     }
-    
-    return render(request, 'admin/completed_projects_dashboard.html', context)
+
+
+@login_required
+@user_passes_test(is_admin)
+def completed_projects_dashboard(request):
+    """Shell of the admin dashboard. Numbers load afterwards over AJAX."""
+    return render(request, 'admin/completed_projects_dashboard.html', {
+        'view': 'admin_dashboard',
+    })
+
+
+@login_required
+@user_passes_test(is_admin)
+def completed_projects_dashboard_data(request):
+    return render(
+        request,
+        'admin/completed_projects_dashboard_data.html',
+        build_completed_dashboard_context(),
+    )
 
 @login_required
 @user_passes_test(is_admin)
@@ -110,9 +123,16 @@ def calculate_project_totals(project):
     Calcula los totales de un proyecto completado.
     Retorna un diccionario con costo presupuestado, costo real y utilidad.
     """
-    # Obtener el presupuesto aprobado (última versión)
-    approved_proposal = project.get_approved_proposal()
-    change_orders = project.budget_categories.filter(isChangeOrder=True, status='approved')
+    approved_proposal = None
+    for proposal in project.proposals.all():
+        if proposal.status == ProposalProjects.STATUS_APPROVED:
+            approved_proposal = proposal
+            break
+
+    change_orders = [
+        co for co in project.budget_categories.all()
+        if co.isChangeOrder and co.status == 'approved'
+    ]
 
     invoices = project.invoices.all()
     total_invoiced = sum((invoice.total_invoice or Decimal('0')) for invoice in invoices)
@@ -120,8 +140,8 @@ def calculate_project_totals(project):
     approved_total_value = (approved_proposal.total_proposal if approved_proposal and approved_proposal.total_proposal else Decimal('0'))
     approved_cost_budget = (approved_proposal.budget.projected_cost if approved_proposal and approved_proposal.budget and approved_proposal.budget.projected_cost else Decimal('0'))
 
-    if change_orders.count() > 0:
-        change_budget = sum((co.budget.total_change_order or Decimal('0')) for co in change_orders)
+    if change_orders:
+        change_budget = sum((co.total_change_order or Decimal('0')) for co in change_orders)
         budgeted_cost = approved_total_value + change_budget
         cost_budget = approved_cost_budget + change_budget
     else:
@@ -239,7 +259,7 @@ def export_completed_projects_data(request):
     Vista para exportar datos de proyectos completados en formato JSON o CSV.
     """
     # Obtener todos los proyectos completados
-    completed_projects = Project.objects.filter(status='completed').order_by('-end_date')
+    completed_projects = _completed_projects_queryset()
     
     export_data = []
     

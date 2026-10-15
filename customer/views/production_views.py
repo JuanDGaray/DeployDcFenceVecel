@@ -18,37 +18,87 @@ from django.contrib.auth import get_user_model
 import copy
 User = get_user_model()
 
+def user_may_close_production(user, project):
+    """Project manager, accounting, admin/staff, or production can close a job."""
+    if user_is_admin(user):
+        return True
+    manager_ids = {
+        getattr(project.project_manager, 'pk', None),
+        getattr(project.accounting_manager, 'pk', None),
+    }
+    if user.pk in manager_ids:
+        return True
+    return user.groups.filter(name='PRODUCTION').exists()
+
 @login_required
 def production(request):
-    # Retrieves the list of all customers and paginates it
-    from django.db.models import Sum
+    from django.db.models import Sum, Q
     from decimal import Decimal
-    
-    Project_list = Project.objects.filter(status="in_production").select_related('customer', 'sales_advisor', 'accounting_manager', 'project_manager').prefetch_related('invoices').order_by('-id')
-    
-    # Annotate with billing information
+    from urllib.parse import urlencode
+
+    project_id = (request.GET.get('id') or '').strip()
+    project_name = (request.GET.get('project_name') or '').strip()
+    customer_query = (request.GET.get('customer') or '').strip()
+    seller = (request.GET.get('seller') or '').strip()
+
+    Project_list = Project.objects.filter(status="in_production").select_related(
+        'customer', 'sales_advisor', 'accounting_manager', 'project_manager'
+    ).prefetch_related('invoices').order_by('-id')
+
+    if project_id:
+        if project_id.isdigit():
+            Project_list = Project_list.filter(id=int(project_id))
+        else:
+            Project_list = Project_list.none()
+    if project_name:
+        Project_list = Project_list.filter(project_name__icontains=project_name)
+    if customer_query:
+        Project_list = Project_list.filter(
+            Q(customer__first_name__icontains=customer_query)
+            | Q(customer__last_name__icontains=customer_query)
+            | Q(customer__company_name__icontains=customer_query)
+        )
+    if seller:
+        Project_list = Project_list.filter(
+            Q(sales_advisor__username=seller)
+            | Q(project_manager__username=seller)
+            | Q(accounting_manager__username=seller)
+        )
+
     Project_list = Project_list.annotate(
         total_invoiced=Sum('invoices__total_invoice', default=Decimal('0')),
         total_paid=Sum('invoices__total_paid', default=Decimal('0'))
     )
-    
+
+    filter_params = {}
+    if project_id:
+        filter_params['id'] = project_id
+    if project_name:
+        filter_params['project_name'] = project_name
+    if customer_query:
+        filter_params['customer'] = customer_query
+    if seller:
+        filter_params['seller'] = seller
+    filter_query = urlencode(filter_params)
+
     paginator = Paginator(Project_list, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    sellers = User.objects.only('id', 'username', 'first_name', 'last_name')
-    customers = Customer.objects.only('id', 'company_name', 'first_name', 'last_name', 'customer_type')
-    current_user = request.user  
-    if request.method == 'GET':
 
-        # Renders the customer list view with pagination
-        return render(request, 'productionIndex.html', {
-            'projects': page_obj,
-            'total_projects': Project_list.count(),
-            'view': 'production',
-            'current_user': current_user, 
-            'customers': customers,
-            'sellers': sellers   
-        })
+    context = {
+        'projects': page_obj,
+        'total_projects': paginator.count,
+        'view': 'production',
+        'filter_query': filter_query,
+        'search_id': project_id,
+        'search_name': project_name,
+        'search_customer': customer_query,
+        'search_seller': seller,
+        'current_user': request.user,
+        'customers': Customer.objects.only('id', 'company_name', 'first_name', 'last_name', 'customer_type'),
+        'sellers': User.objects.only('id', 'username', 'first_name', 'last_name'),
+    }
+    return render(request, 'productionIndex.html', context)
 
 @login_required
 def production_project(request, project_id):
@@ -90,6 +140,12 @@ def production_project(request, project_id):
             'accounting_manager_needs_reassign': manager_needs_reassign(project.accounting_manager),
             'project_manager_needs_reassign': manager_needs_reassign(project.project_manager),
             'sales_advisor_needs_reassign': manager_needs_reassign(project.sales_advisor),
+            'ganttData': '[]',
+            'user_allowed_to_close_production': (
+                (request.user == project.project_manager or user_is_admin(request.user))
+                and not project.production_closed
+            ),
+            'can_close_production': user_may_close_production(request.user, project) and not project.production_closed,
         })
     
 
@@ -120,6 +176,7 @@ def production_project(request, project_id):
                     pass
     if (request.user == project.project_manager or user_is_admin(request.user)) and not project.production_closed:
         user_allowed_to_close_production = True
+    can_close_production = user_may_close_production(request.user, project) and not project.production_closed
     if user_is_admin(request.user) or (project.accounting_manager and request.user == project.accounting_manager):
         user_can_assign_cost_request = True
     last_index = None
@@ -154,6 +211,7 @@ def production_project(request, project_id):
         'taskGantt':taskGantt,
         'realCostItems': RealCostByItems,
         'user_allowed_to_close_production': user_allowed_to_close_production,
+        'can_close_production': can_close_production,
         'user_can_assign_cost_request': user_can_assign_cost_request,
         'changeOrders': changeOrders,
         'totalChangeOrders': changeOrders.count(),
@@ -654,10 +712,7 @@ def close_production(request, project_id):
     try:
         project = get_object_or_404(Project, pk=project_id)
         
-        # Check if user has permission to close production
-        if not (request.user == project.project_manager or 
-                request.user.groups.filter(name='ADMIN').exists() or 
-                request.user.is_superuser):
+        if not user_may_close_production(request.user, project):
             return JsonResponse({
                 'status': 'error',
                 'message': 'You are not authorized to close production for this project.'

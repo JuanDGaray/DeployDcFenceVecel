@@ -20,7 +20,7 @@ from .bug_views import (
 )
 from .metrics_views import metrics, cost_trend, project_status_distribution, sales_performance_view, projects_by_creation_date, proposals_donut_chart
 from .team_views import active_users_view, user_detail_view, user_activity_history_api
-from .admin_views import completed_projects_dashboard, get_project_details_ajax, export_completed_projects_data
+from .admin_views import completed_projects_dashboard, completed_projects_dashboard_data, get_project_details_ajax, export_completed_projects_data
 from .utils_get import *
 from .planning_accounting import *
 

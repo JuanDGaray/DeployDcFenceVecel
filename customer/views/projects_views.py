@@ -397,7 +397,7 @@ def detail_project(request, project_id):
             ).only(
                 'id', 'project_name', 'customer', 'status', 'estimated_cost',
                 'actual_cost', 'sales_advisor', 'accounting_manager', 'project_manager',
-                'created_at', 'updated_at', 'city', 'state', 'zip_code', 'country',
+                'created_at', 'updated_at', 'address', 'city', 'state', 'zip_code', 'country',
                 'folder_id',
             ),
             pk=project_id
@@ -1992,10 +1992,8 @@ def edit_project(request, project_id):
             project.project_name = data['project_name'].strip()
             project.customer = customer
             project.description = data.get('description', '').strip()
-            project.city = data.get('city', '').strip()
-            project.state = data.get('state', '').strip()
-            project.zip_code = data.get('zip_code', '').strip()
-            project.country = data.get('country', '').strip()
+            if 'address' in data:
+                project.address = data.get('address', '').strip()
             
             # Procesar fechas
             if data.get('start_date'):

@@ -1050,11 +1050,200 @@ input:disabled[readonly] {
     z-index: 1055;
 }
 
-.production-card:hover{
-  box-shadow: 0 0 10px 0 rgba(0, 0, 0, 0.1);
-  cursor: pointer;
-  scale: 1.02;
-  transition: all 0.3s ease;
+.production-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.75rem;
+  padding: 0.75rem 1rem 1.25rem;
+}
+
+.production-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+  padding: 0.8rem 0.9rem 0.7rem;
+  background: #fff;
+  border: 1px solid #e7e9ef;
+  border-radius: 12px;
+  color: #1c2430;
+  text-decoration: none;
+}
+
+.production-card:hover {
+  border-color: #cfd3dc;
+  box-shadow: 0 6px 16px rgba(20, 24, 40, 0.05);
+  color: #1c2430;
+}
+
+.production-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.production-code {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #3d4a63;
+  background: #f4f6f8;
+  border-radius: 6px;
+  padding: 0.08rem 0.4rem;
+}
+
+.production-customer {
+  min-width: 0;
+  max-width: 55%;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.05rem 0.45rem;
+}
+
+.production-customer.is-company {
+  color: var(--color-status-customer1);
+  background: var(--color-status-customer1-bg);
+}
+
+.production-customer.is-individual {
+  color: var(--color-status-customer2);
+  background: var(--color-status-customer2-bg);
+}
+
+.production-customer.is-contractor {
+  color: var(--color-status-customer3);
+  background: var(--color-status-customer3-bg);
+}
+
+.production-name {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.production-dates {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #8b93a1;
+}
+
+.production-figures {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin: 0.35rem 0 0;
+  padding-top: 0.45rem;
+  border-top: 1px solid #f0f2f5;
+}
+
+.production-figures dt {
+  margin: 0;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: #8b93a1;
+}
+
+.production-figures dd {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.production-figures .is-near dt,
+.production-figures .is-near dd {
+  color: #9a6b00;
+}
+
+.production-figures .is-over dt,
+.production-figures .is-over dd {
+  color: #c2352d;
+}
+
+.production-figures .bi {
+  font-size: 0.68rem;
+}
+
+.production-team {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid #f0f2f5;
+}
+
+.production-member {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.production-role {
+  width: 4.5rem;
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  color: #8b93a1;
+}
+
+.production-who {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1c2430;
+}
+
+.production-who.is-empty {
+  font-weight: 500;
+  color: #b0b6c0;
+}
+
+.production-person {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #4b5568;
+  background: #f3f4f6;
+}
+
+.production-person.is-sales {
+  color: #9a6b00;
+  background: #fff4d6;
+}
+
+.production-person.is-accounting {
+  color: #1e8100;
+  background: #e7f6ea;
+}
+
+.production-person.is-project {
+  color: #1d4f91;
+  background: #e7f0ff;
+}
+
+.production-person.is-empty {
+  color: #b0b6c0;
+  background: transparent;
+  border: 1px dashed #d5d8e0;
 }
 
 /* Colores personalizados para la barra de progreso del Gantt */

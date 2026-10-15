@@ -341,6 +341,7 @@ class Project(models.Model):
     accounting_manager = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name="Accounting Manager", related_name='accounting_manager_projects')
     created_at = models.DateTimeField("Created At", auto_now_add=True)
     updated_at = models.DateTimeField("Updated At", auto_now=True)
+    address = models.CharField("Address", max_length=255, blank=True, default="")
     city = models.CharField("City", max_length=100, default="Hialeah")
     state = models.CharField("State/Province", max_length=100, default="Florida")
     zip_code = models.CharField("ZIP/Postal Code", max_length=20, blank=True, null=True)

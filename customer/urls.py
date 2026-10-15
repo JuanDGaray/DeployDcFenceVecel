@@ -57,6 +57,7 @@ urlpatterns = [
     
     # URLs para Dashboard de Proyectos Completados (Solo Administradores)
     path('admin/completed-projects/', views.admin_views.completed_projects_dashboard, name='completed_projects_dashboard'),
+    path('admin/completed-projects/data/', views.admin_views.completed_projects_dashboard_data, name='completed_projects_dashboard_data'),
     path('admin/project-details/<int:project_id>/', views.admin_views.get_project_details_ajax, name='get_project_details_ajax'),
     path('admin/export-completed-projects/', views.admin_views.export_completed_projects_data, name='export_completed_projects_data'),
 ]   

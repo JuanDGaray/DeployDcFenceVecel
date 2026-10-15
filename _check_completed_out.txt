@@ -1,0 +1,85 @@
+status [{'status': 'new', 'c': 415}, {'status': 'pending_payment', 'c': 62}, {'status': 'in_production', 'c': 59}, {'status': 'contacted', 'c': 52}, {'status': 'completed', 'c': 22}, {'status': 'planning_and_documentation', 'c': 7}, {'status': 'approved', 'c': 3}, {'status': 'quote_sent', 'c': 1}, {'status': 'cancelled', 'c': 1}]
+production_closed 84
+2026-ish id=126 status=pending_payment end=2025-08-29 closed=2026-02-16 19:35:07.209546+00:00 updated=2026-02-16 19:35:07.209747+00:00 Sewer Dog Park
+2026-ish id=99 status=pending_payment end=2025-12-27 closed=2026-04-10 16:09:58.338193+00:00 updated=2026-04-10 16:09:58.338374+00:00 Transportation Centar
+2026-ish id=171 status=pending_payment end=2025-10-24 closed=2026-02-16 19:33:27.829978+00:00 updated=2026-02-16 19:33:27.830186+00:00 Coral Reef Palmetto Bay
+2026-ish id=152 status=pending_payment end=2026-04-12 closed=2026-03-23 13:28:33.527487+00:00 updated=2026-03-23 13:28:33.527646+00:00 Village of Golf
+2026-ish id=463 status=pending_payment end=2026-05-02 closed=2026-04-06 17:46:27.498082+00:00 updated=2026-04-06 17:46:27.498232+00:00 North Glade Nature Playground
+2026-ish id=251 status=pending_payment end=2025-12-31 closed=2026-03-11 18:58:28.179458+00:00 updated=2026-03-11 18:58:28.179675+00:00 Stirrup Elementary Alum.
+2026-ish id=108 status=pending_payment end=2026-04-03 closed=2026-03-11 18:53:01.794961+00:00 updated=2026-03-11 18:53:01.795116+00:00 Grapeland Park City Fields 1 and 3
+2026-ish id=263 status=pending_payment end=2026-02-09 closed=2026-01-30 19:28:06.034915+00:00 updated=2026-01-30 19:28:06.035067+00:00 Pine Villa Elmentary
+2026-ish id=288 status=pending_payment end=2026-01-20 closed=2026-01-30 19:20:21.916209+00:00 updated=2026-01-30 19:20:21.916404+00:00 Homestead MD
+2026-ish id=271 status=pending_payment end=2025-12-30 closed=2026-02-16 19:38:55.397897+00:00 updated=2026-02-16 19:38:55.398053+00:00 Palm Spring Elem.
+2026-ish id=291 status=pending_payment end=2026-03-10 closed=2026-03-11 18:30:10.516003+00:00 updated=2026-03-11 18:30:10.516181+00:00 Miami Northwestern
+2026-ish id=478 status=pending_payment end=2026-05-26 closed=2026-05-18 17:58:51.525661+00:00 updated=2026-05-18 17:58:51.525812+00:00 Railing Project
+2026-ish id=471 status=pending_payment end=2026-03-05 closed=2026-03-11 18:50:51.766327+00:00 updated=2026-03-11 18:50:51.766478+00:00 English Center
+2026-ish id=272 status=pending_payment end=2026-03-30 closed=2026-02-05 17:55:52.031295+00:00 updated=2026-02-05 17:55:52.031436+00:00 RPQ#2025FCHAP Chapman Field Park – Multipurpose Field Berm Perimeter F
+2026-ish id=122 status=pending_payment end=2026-02-20 closed=2026-02-20 17:55:32.104779+00:00 updated=2026-02-20 17:55:32.104938+00:00 Kelsey L. Phar El.
+2026-ish id=487 status=pending_payment end=2026-05-04 closed=2026-05-20 18:44:50.191414+00:00 updated=2026-05-20 18:44:50.191572+00:00 Open PO Van E. Blanton
+2026-ish id=297 status=pending_payment end=2026-03-24 closed=2026-03-20 18:21:08.208196+00:00 updated=2026-03-20 18:21:08.208354+00:00 Henry W Mack
+2026-ish id=289 status=pending_payment end=2025-12-20 closed=2026-01-14 20:19:28.196517+00:00 updated=2026-01-14 20:19:28.196725+00:00 South Dade Adult ED.
+2026-ish id=411 status=pending_payment end=2026-05-22 closed=2026-05-22 13:22:27.129387+00:00 updated=2026-05-22 13:22:27.129544+00:00 Maya Angelou Elementary School Safety Fencing
+2026-ish id=400 status=pending_payment end=2026-05-12 closed=2026-05-11 17:26:58.681414+00:00 updated=2026-05-11 17:26:58.681584+00:00 Ponce de Leon Middle School
+2026-ish id=497 status=pending_payment end=2026-04-25 closed=2026-04-03 18:10:23.630370+00:00 updated=2026-04-03 18:10:23.630519+00:00 George Washington Carver
+2026-ish id=467 status=pending_payment end=2026-03-30 closed=2026-04-06 17:48:11.077636+00:00 updated=2026-04-06 17:48:11.077788+00:00 Open PO SBAB
+2026-ish id=412 status=pending_payment end=2026-05-07 closed=2026-05-22 13:05:37.378171+00:00 updated=2026-05-22 13:05:37.378322+00:00 Maya Angelou Elementary School Perimeter Fencing
+2026-ish id=479 status=pending_payment end=2026-05-04 closed=2026-06-01 18:44:43.722852+00:00 updated=2026-06-01 18:44:43.723006+00:00 Miami Central Open PO II
+2026-ish id=506 status=pending_payment end=2026-06-30 closed=2026-06-01 18:37:45.109228+00:00 updated=2026-06-01 18:37:45.109387+00:00 Open Po Da dorsey
+2026-ish id=530 status=pending_payment end=2026-05-04 closed=2026-06-01 18:32:03.179225+00:00 updated=2026-06-01 18:32:03.179379+00:00 Open PO Liberty City
+2026-ish id=442 status=pending_payment end=2026-04-27 closed=2026-05-18 17:10:21.193122+00:00 updated=2026-05-18 17:10:21.193275+00:00 South Dade Sr High School
+2026-ish id=526 status=pending_payment end=2026-05-04 closed=2026-05-20 18:47:17.455429+00:00 updated=2026-05-20 18:47:17.455616+00:00 Open Po Coral Way K-8
+2026-ish id=510 status=pending_payment end=2026-05-13 closed=2026-06-01 18:34:20.074731+00:00 updated=2026-06-01 18:34:20.074889+00:00 Open PO G W Carver Elementary School
+2026-ish id=432 status=pending_payment end=2026-03-20 closed=2026-06-01 18:43:52.416601+00:00 updated=2026-06-01 18:43:52.416755+00:00 Emerald Estates
+closed years [(2025, 54), (2026, 30)]
+pending_payment 62
+pending id=64 end=2025-05-05 closed=2025-09-19 16:29:49.677450+00:00 Venetian Parc West K-5
+pending id=86 end=2025-05-05 closed=2025-09-02 16:06:36.425603+00:00 Melrose Duplexes - Emergency relocation of perimeter fence
+pending id=325 end=2025-11-07 closed=2025-11-05 15:46:28.435911+00:00 Crash Fence Repair
+pending id=110 end=2025-07-12 closed=2025-07-11 14:44:34.835623+00:00 Highland Oaks
+pending id=123 end=2025-07-29 closed=2025-09-02 16:04:10.925551+00:00 GreenAcres Project
+pending id=126 end=2025-08-29 closed=2026-02-16 19:35:07.209546+00:00 Sewer Dog Park
+pending id=130 end=2025-08-08 closed=2025-08-18 12:42:11.097206+00:00 FECR-Kaseya Center
+pending id=124 end=2025-12-09 closed=2025-12-12 14:53:45.416443+00:00 ITECH
+pending id=33 end=2025-09-26 closed=2025-10-06 16:56:38.433763+00:00 MSC# 2 Gate and Mega Arm
+pending id=154 end=2025-12-30 closed=2025-11-12 12:10:58.608354+00:00 Broadmoor Elementary School
+pending id=99 end=2025-12-27 closed=2026-04-10 16:09:58.338193+00:00 Transportation Centar
+pending id=156 end=2025-07-24 closed=2025-07-23 19:04:24.837010+00:00 James Bright CHO.1
+pending id=190 end=2025-10-15 closed=2025-10-09 19:25:31.103388+00:00 MSC#6 Repair
+pending id=171 end=2025-10-24 closed=2026-02-16 19:33:27.829978+00:00 Coral Reef Palmetto Bay
+pending id=168 end=2025-11-16 closed=2025-10-20 19:26:35.008020+00:00 Temporary Perimeter Fence @Naranja
+pending id=191 end=2025-11-06 closed=2025-11-17 18:35:19.466038+00:00 MSC#7
+pending id=152 end=2026-04-12 closed=2026-03-23 13:28:33.527487+00:00 Village of Golf
+pending id=192 end=2025-11-30 closed=2025-11-17 18:34:56.697158+00:00 MSC#8
+pending id=347 end=2025-12-19 closed=2025-11-19 21:04:12.035357+00:00 Open PO Young Men' s preparatory Academy
+pending id=165 end=2025-12-02 closed=2025-12-02 18:59:20.019392+00:00 Springview Elementary
+updated 2026 322
+upd id=396 status=in_production end=2026-07-31 closed=None Melrose
+upd id=536 status=in_production end=2026-12-22 closed=None Horace Mann MD
+upd id=599 status=in_production end=2026-11-14 closed=None Manuel Barreiro
+upd id=589 status=in_production end=2026-12-16 closed=None Edison Park
+upd id=185 status=in_production end=2025-12-31 closed=None Palm Spring Middle - 46
+upd id=631 status=in_production end=2026-11-08 closed=None RPQ TP-0000043945
+upd id=598 status=in_production end=2026-11-09 closed=None Stirrup Elementary
+upd id=561 status=in_production end=2026-11-07 closed=None MDFR-882-HARB-F - Entire Perimeter Fencing At Homestead Air Reserve Ba
+upd id=40 status=in_production end=2025-11-06 closed=None Lakeside Park
+upd id=614 status=in_production end=2026-11-04 closed=None Shanandoah Elementary
+upd id=349 status=new end=None closed=None Robert Morgan TC
+upd id=560 status=in_production end=2026-11-19 closed=None Miami-Dade Water and Sewer Department T2876
+upd id=159 status=in_production end=2026-04-30 closed=None Santa Clara
+upd id=228 status=in_production end=2026-08-27 closed=None Veterans Park Trail & Kayak
+upd id=256 status=in_production end=2026-11-24 closed=None Walmart Supercenter #1851 Expansion - North Lauderdale
+upd id=606 status=in_production end=2026-11-06 closed=None Henry Reeves
+upd id=535 status=in_production end=2026-10-24 closed=None Phillips Park Tennis Court
+upd id=377 status=in_production end=2026-11-25 closed=None Medical Respite at Lewis Center
+upd id=495 status=in_production end=2026-11-18 closed=None Arthur & Polly Mays Conservatory
+upd id=651 status=in_production end=2026-10-27 closed=None Open PO Holmes El.02
+upd id=692 status=in_production end=2026-10-27 closed=None Open PO MAST Academy Rickenbacker Causeway
+upd id=534 status=in_production end=2026-10-29 closed=None Open PO Shenandoah Elementary
+upd id=701 status=new end=None closed=None Open Po  ITECH@THOMAS A. EDISON EDUCATION
+upd id=273 status=in_production end=2026-12-01 closed=None Herbert Ammons Middle School
+upd id=384 status=in_production end=2026-10-15 closed=None Marathon Regional Center- Chiller Fence
+upd id=496 status=in_production end=2026-09-01 closed=None Highland Oaks
+upd id=700 status=new end=None closed=None Open PO Shenandoah Elementary
+upd id=557 status=in_production end=2026-09-12 closed=None Project No. 1190-24A SIRO Rehab Phase I - Fencing
+upd id=470 status=in_production end=2026-11-11 closed=None Milam Market – Double Gate Replacement & Structural Post Repair
+upd id=537 status=in_production end=2026-11-25 closed=None CORAL Gables Gate
