@@ -312,10 +312,6 @@
                                                 <option value="ITEM COST REQUEST" {% if project.production_funding_request and project.production_funding_request.cost_request_type == 'ITEM COST REQUEST' %}selected{% endif %}>ITEM COST REQUEST</option>
                                             </select>
                                         </div>
-                                        <div class="form-check mb-3">
-                                            <input type="checkbox" class="form-check-input" id="evidence" name="evidence">
-                                            <label for="evidence" class="form-check-label fw-bold">Is evidence required?</label>
-                                        </div>
                                         <button type="button" id="assignCostBtn" class="btn btn-success px-4"> <i class="bi bi-check-circle"></i> Assign</button>
                                     </form>
                                     <script>
@@ -326,12 +322,10 @@
                                         }
                                         function submitAssignCostRequest() {
                                             var tipoEl = document.getElementById('tipo');
-                                            var evidenceEl = document.getElementById('evidence');
                                             var assignBtn = document.getElementById('assignCostBtn');
                                             if (!tipoEl || !assignBtn) return;
 
                                             var tipo = tipoEl.value;
-                                            var evidence = evidenceEl ? evidenceEl.checked : false;
                                             var originalHtml = assignBtn.innerHTML;
 
                                             assignBtn.disabled = true;
@@ -343,7 +337,7 @@
                                                     'X-CSRFToken': getAssignCsrfToken(),
                                                     'Content-Type': 'application/x-www-form-urlencoded'
                                                 },
-                                                body: 'tipo=' + encodeURIComponent(tipo) + '&evidence=' + evidence
+                                                body: 'tipo=' + encodeURIComponent(tipo)
                                             })
                                             .then(function(response) {
                                                 if (!response.ok) {
@@ -406,7 +400,7 @@
                             {% elif project.production_funding_request and not project.accounting_cost_request %}
                                 <h6 class="text-center bg-warning p-2 rounded-2 bg-opacity-25">The Project Manager ({{ project.project_manager.first_name }} {{ project.project_manager.last_name }}) request a cost request ({{ project.production_funding_request.cost_request_type }}) on {{ project.production_funding_request.date }}, waiting approval from Accounting{% if project.accounting_manager %} ({{ project.accounting_manager.first_name }} {{ project.accounting_manager.last_name }}){% endif %}.</h6>
                             {% elif project.accounting_cost_request %}
-                                <h6 class="text-center bg-success p-2 rounded-2">Type of cost request assigned: {{ project.accounting_cost_request }}{% if project.evidence_required %} (Evidence required){% endif %}</h6>
+                                <h6 class="text-center bg-success p-2 rounded-2">Type of cost request assigned: {{ project.accounting_cost_request }}</h6>
                             {% else %}
                                 <h6 class="text-center bg-warning p-2 rounded-2 bg-opacity-25">Waiting for the Project Manager to request a cost approval type.</h6>
                             {% endif %}

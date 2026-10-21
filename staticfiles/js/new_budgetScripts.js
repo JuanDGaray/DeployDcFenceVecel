@@ -544,7 +544,7 @@ function updateTotalCost(skipSummaryRefresh) {
         subtotalMarginErrorCost.value = marginErrorTotal.toFixed(2);
         formatTotalCost(subtotalMarginErrorCost);
     }
-
+    
 
     // Calculate deducts subtotal
     const deductsCostInputs = deductsSection.querySelectorAll('input[name="deducts_UnitCost"]');
@@ -1211,7 +1211,7 @@ function toggleAddLoans() {
         });
     } else {
         // If the checkbox is unchecked, hide the loans table and remove loan deduction rows
-        table.style.display = "none";
+        table.style.display = "none";  
         removeLoanGeneratedRows();
     }
     updateRowNumbers(deductsSection);
@@ -1226,8 +1226,8 @@ function toggleAddLoans() {
 const percentageLoansInput = document.getElementById('percentage-loans');
 if (percentageLoansInput) {
     percentageLoansInput.addEventListener('input', function() {
-        reoloadLoans();
-    });
+    reoloadLoans();
+});
 }
 
 function toggleUnitCostMW() {
@@ -1649,7 +1649,7 @@ let costInputs = costManagement.querySelectorAll('#total_Cost');
 function checkItemHasFts(itemName) {
     const rows = document.querySelectorAll("#tbodyFt\\&Post tr");
     let ftsValue = 0;
-
+    
     rows.forEach(row => {
         const itemCell = row.querySelector("td:first-child input[type='checkbox']");
         const ftsInput = row.querySelector("input[name='ft']");
@@ -1684,7 +1684,7 @@ function getRowCostFromSelect(select) {
     const row = select.closest('tr');
     if (!row) return 0;
 
-    if (select.closest('#materials-section')) {
+        if (select.closest('#materials-section')) {
         return parseMoneyInputValue(row.querySelector('#materials_Cost')?.value);
     }
     if (select.closest('#contractor-section')) {
@@ -2094,7 +2094,7 @@ function calculateProfitByItem() {
                 <td class="p-0  px-2">${formatSubtotalWithFtPerFoot(totalsByItem[item], item)}</td>
             </tr>`
             tableBody.insertAdjacentHTML('beforeend', row);
-
+    
             Object.entries(descriptionByItem[item]).forEach(([subKey, subValue]) => {
                     row = `
                     <tr class="table-secondary p-4" style="font-size:0.8rem">
@@ -2136,10 +2136,10 @@ function calculateProfitAndCostByItem() {
             || select.closest('#contractor-section')
             || select.closest('#labor-section')
             || select.closest('#misc-section')) {
-            totalCostWithoutDeductionsByItem[selectedItem] += cost;
-        }
-
-        totalsByItem[selectedItem] += cost;
+                totalCostWithoutDeductionsByItem[selectedItem] += cost;
+            }
+            
+        totalsByItem[selectedItem] += cost; 
         descriptionByItem[selectedItem]['ID' + (index + 1) + '- ' + nameDesc] = cost;
     });
     
@@ -2162,7 +2162,7 @@ function calculateProfitAndCostByItem() {
                 <td class="p-0  px-2">${formatSubtotalWithFtPerFoot(totalsByItem[item], item)}</td>
             </tr>`
             tableBody.insertAdjacentHTML('beforeend', row);
-
+    
             Object.entries(descriptionByItem[item]).forEach(([subKey, subValue]) => {
                     row = `
                     <tr class="table-secondary p-4" style="font-size:0.8rem">
@@ -2690,7 +2690,7 @@ function getCostManagementData() {
             },
             body: JSON.stringify(data),
         })
-        .then(() => {
+        .then(() => { 
             const loadingOverlay = document.getElementById('loadingOverlay');
             loadingOverlay.classList.add('d-none');
         })

@@ -1,6 +1,21 @@
 {% extends "base.html" %}
 {% block title %}{% if can_manage %}Bug Tracker{% else %}My bug reports{% endif %}{% endblock %}
 {% block content %}
+<style>
+    .bug-row-done {
+        background-color: #d1e7dd !important;
+    }
+    .bug-row-done td {
+        background-color: transparent;
+    }
+    .bug-status-done {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-weight: 600;
+        color: #0f5132;
+    }
+</style>
 <div class="container-fluid p-4">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
@@ -85,7 +100,10 @@
     </form>
     {% endif %}
 
-    <div class="card border-0 shadow-sm">
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white border-0 pt-3 pb-0">
+            <h2 class="h5 fw-bold mb-0">Open</h2>
+        </div>
         <div class="table-responsive">
             <table class="table align-middle mb-0">
                 <thead class="table-light">
@@ -100,7 +118,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for bug in bugs %}
+                    {% for bug in open_bugs %}
                     <tr class="{% if bug.urgency == 'critical' %}table-danger{% elif bug.urgency == 'high' %}table-warning{% endif %}">
                         <td><a class="fw-semibold text-decoration-none" href="/bugs/{{ bug.id }}/">{{ bug.title }}</a></td>
                         <td>{% if bug.page_url %}<a href="{{ bug.page_url }}">{{ bug.page_url }}</a>{% else %}—{% endif %}</td>
@@ -113,7 +131,53 @@
                         {% endif %}
                     </tr>
                     {% empty %}
-                    <tr><td colspan="{% if can_manage %}7{% else %}6{% endif %}" class="text-center text-muted py-4">No bug reports yet.</td></tr>
+                    <tr><td colspan="{% if can_manage %}7{% else %}6{% endif %}" class="text-center text-muted py-4">No open bug reports.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white border-0 pt-3 pb-0">
+            <h2 class="h5 fw-bold mb-0 text-success"><i class="bi bi-check-circle-fill me-1"></i> Closed</h2>
+        </div>
+        <div class="table-responsive">
+            <table class="table align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Title</th>
+                        <th>Page</th>
+                        <th>Urgency</th>
+                        <th>Status</th>
+                        <th>Reported</th>
+                        <th>Reporter</th>
+                        {% if can_manage %}<th>Assignee</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for bug in closed_bugs %}
+                    <tr class="bug-row-done">
+                        <td>
+                            <a class="fw-semibold text-decoration-none text-success" href="/bugs/{{ bug.id }}/">
+                                <i class="bi bi-check-circle-fill me-1"></i>{{ bug.title }}
+                            </a>
+                        </td>
+                        <td>{% if bug.page_url %}<a href="{{ bug.page_url }}">{{ bug.page_url }}</a>{% else %}—{% endif %}</td>
+                        <td>{{ bug.get_urgency_display }}</td>
+                        <td>
+                            <span class="bug-status-done">
+                                <i class="bi bi-check2"></i>{{ bug.get_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ bug.created_at|date:"M d, Y H:i" }}</td>
+                        <td>{{ bug.reporter.get_full_name|default:bug.reporter.username }}</td>
+                        {% if can_manage %}
+                        <td>{{ bug.assignee.get_full_name|default:"Unassigned" }}</td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="{% if can_manage %}7{% else %}6{% endif %}" class="text-center text-muted py-4">No closed bug reports.</td></tr>
                     {% endfor %}
                 </tbody>
             </table>

@@ -65,11 +65,11 @@ class Customer(models.Model):
     status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default=STATUS_NEW)
     email = models.EmailField("Email", unique=True)
     phone = models.CharField("Phone", max_length=20)
-    address = models.TextField("Address")
-    city = models.CharField("City", max_length=100)
-    state = models.CharField("State/Province", max_length=100)
+    address = models.TextField("Address", blank=True, default="")
+    city = models.CharField("City", max_length=100, blank=True, default="")
+    state = models.CharField("State/Province", max_length=100, blank=True, default="")
     zip_code = models.CharField("ZIP/Postal Code", max_length=20, blank=True, null=True)
-    country = models.CharField("Country", max_length=100)
+    country = models.CharField("Country", max_length=100, blank=True, default="")
     date_created = models.DateTimeField("Date Created", default=timezone.now)
     last_updated = models.DateTimeField("Last Updated", auto_now=True)
     is_active = models.BooleanField("Active", default=True)
@@ -93,12 +93,20 @@ class Customer(models.Model):
         return f"{self.first_name} {self.last_name}".strip()
 
     def get_full_address(self):
-        """Retorna la dirección completa del cliente."""
-        address_parts = [self.address, self.city, self.state]
-        if self.zip_code:
-            address_parts.append(self.zip_code)
-        address_parts.append(self.country)
-        return ", ".join(filter(None, address_parts))
+        """Retorna la dirección del cliente (una sola línea; fallback a city/state/zip/country)."""
+        if self.address and str(self.address).strip():
+            return str(self.address).strip()
+
+        def keep(value):
+            text = str(value or "").strip()
+            return text if text and text.lower() != "none" else ""
+
+        parts = [keep(self.city), keep(self.state)]
+        if keep(self.zip_code):
+            parts.append(keep(self.zip_code))
+        if keep(self.country):
+            parts.append(keep(self.country))
+        return ", ".join(p for p in parts if p)
 
 class BudgetEstimate(models.Model):
     FORMAT_CHOICES = [

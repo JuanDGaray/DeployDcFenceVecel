@@ -688,9 +688,8 @@ def assign_cost_by_accounting(request, project_id):
     if tipo not in ('GLOBAL COST REQUEST', 'ITEM COST REQUEST'):
         return JsonResponse({'status': 'error', 'message': 'Invalid cost request type.'}, status=400)
 
-    evidencia = request.POST.get('evidence') == 'true'
     project.accounting_cost_request = tipo
-    project.evidence_required = evidencia
+    project.evidence_required = False
     project.save(update_fields=['accounting_cost_request', 'evidence_required'])
     if project.accounting_manager:
         Notification.objects.create(
@@ -698,7 +697,7 @@ def assign_cost_by_accounting(request, project_id):
             sender=request.user,
             notification_type='project_update',
             project=project,
-            message=f"{request.user.first_name} {request.user.last_name} assigned the type of cost request: {tipo} (Evidence required: {'Yes' if evidencia else 'No'}) for the project {project.project_name}."
+            message=f"{request.user.first_name} {request.user.last_name} assigned the type of cost request: {tipo} for the project {project.project_name}."
         )
     log_project_history(request, project, 'UPDATE', f'Cost request type assigned: {tipo}')
     return JsonResponse({'status': 'ok'})

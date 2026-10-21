@@ -25,7 +25,7 @@
                 <h6 class="fw-bold text-primary">Billed To:</h6>
                 <div>{{ project.customer.company_name|default:project.customer.first_name }}
                   <div>{{ project.customer.address }}</div>
-                  <div>{{ project.customer.city }}, {{ project.customer.state }} {{ project.customer.zip_code }}</div>
+                  <div>{{ project.customer.get_full_address }}</div>
                 </div>
               </div>
               <div class="col-md-6 text-md-end mt-3 mt-md-0 d-flex flex-row">

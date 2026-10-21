@@ -79,36 +79,8 @@
       <div class="card-body">
         <div class="mb-3">
           <label for="id_address" class="form-label">Address</label>
-          <textarea class="form-control" id="id_address" name="address" rows="3">{{ form.address.value }}</textarea>
+          <input type="text" class="form-control" id="id_address" name="address" value="{{ client.get_full_address }}" placeholder="Street, city, state, zip">
           <div class="text-danger small">{{ form.address.errors }}</div>
-        </div>
-
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label for="id_city" class="form-label">City</label>
-            <input type="text" class="form-control" id="id_city" name="city" value="{{ form.city.value }}">
-            <div class="text-danger small">{{ form.city.errors }}</div>
-          </div>
-
-          <div class="col-md-6 mb-3">
-            <label for="id_state" class="form-label">State/Province</label>
-            <input type="text" class="form-control" id="id_state" name="state" value="{{ form.state.value }}">
-            <div class="text-danger small">{{ form.state.errors }}</div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col-md-6 mb-3">
-            <label for="id_zip_code" class="form-label">ZIP/Postal Code</label>
-            <input type="text" class="form-control" id="id_zip_code" name="zip_code" value="{{ form.zip_code.value }}">
-            <div class="text-danger small">{{ form.zip_code.errors }}</div>
-          </div>
-
-          <div class="col-md-6 mb-3">
-            <label for="id_country" class="form-label">Country</label>
-            <input type="text" class="form-control" id="id_country" name="country" value="{{ form.country.value }}">
-            <div class="text-danger small">{{ form.country.errors }}</div>
-          </div>
         </div>
       </div>
     </div>

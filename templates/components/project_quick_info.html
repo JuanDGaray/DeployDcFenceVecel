@@ -91,7 +91,7 @@
                   </a>
                     {{ project.customer.first_name }} {{ project.customer.last_name }}
                     {% endif %}
-                    <p class="text-capitalize p-0 m-0 d-flex flex-row gap-2"><i class="bi bi-geo-alt-fill text-primary"></i> {{ project.customer.address }} {{ project.customer.city }} {{ project.customer.state }} {{ project.customer.country }} - {{ project.customer.zip_code }} <i class="bi bi-telephone-fill text-primary"></i> {{ project.customer.phone }} <i class="bi bi-envelope-fill text-primary "></i> {{ project.customer.email }}</p>
+                    <p class="p-0 m-0 d-flex flex-row gap-2"><i class="bi bi-geo-alt-fill text-primary"></i> {{ project.customer.get_full_address }} <i class="bi bi-telephone-fill text-primary"></i> {{ project.customer.phone }} <i class="bi bi-envelope-fill text-primary "></i> {{ project.customer.email }}</p>
                   </p>
               </div>
 

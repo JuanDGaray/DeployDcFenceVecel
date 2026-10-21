@@ -11,10 +11,6 @@ class CustomerForm(ModelForm):
                   'email',
                   'phone',
                   'address',
-                  'city',
-                  'state',
-                  'zip_code',
-                  'country',
                   ]
         
         

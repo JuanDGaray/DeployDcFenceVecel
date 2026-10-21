@@ -150,6 +150,10 @@ def bug_list(request):
                 Q(title__icontains=query) | Q(description__icontains=query) | Q(page_url__icontains=query)
             )
 
+    done_statuses = [BugReport.STATUS_RESOLVED, BugReport.STATUS_CLOSED]
+    open_bugs = bugs.exclude(status__in=done_statuses)
+    closed_bugs = bugs.filter(status__in=done_statuses)
+
     stats = {}
     if can_manage:
         all_bugs = BugReport.objects.all()
@@ -157,13 +161,14 @@ def bug_list(request):
             "total": all_bugs.count(),
             "pending": all_bugs.filter(status__in=["new", "pending", "reopened"]).count(),
             "in_progress": all_bugs.filter(status__in=["in_progress", "in_review"]).count(),
-            "resolved": all_bugs.filter(status__in=["resolved", "closed"]).count(),
-            "urgent": all_bugs.filter(urgency__in=["critical", "high"]).exclude(status__in=["resolved", "closed"]).count(),
+            "resolved": all_bugs.filter(status__in=done_statuses).count(),
+            "urgent": all_bugs.filter(urgency__in=["critical", "high"]).exclude(status__in=done_statuses).count(),
         }
 
     return render(request, "bugs/list.html", {
         "view": "bugs",
-        "bugs": bugs,
+        "open_bugs": open_bugs,
+        "closed_bugs": closed_bugs,
         "can_manage": can_manage,
         "stats": stats,
         "developers": _developers() if can_manage else [],
