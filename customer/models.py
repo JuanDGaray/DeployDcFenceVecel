@@ -360,6 +360,12 @@ class Project(models.Model):
     evidence_required = models.BooleanField(default=False, null=True, blank=True)
     production_closed = models.BooleanField(default=False, null=True, blank=True)
     production_closed_date = models.DateTimeField(null=True, blank=True, verbose_name="Production Closed Date")
+    allow_post_close_real_costs = models.BooleanField(
+        default=False,
+        null=True,
+        blank=True,
+        verbose_name="Allow real costs after production close",
+    )
     collaborators = models.ManyToManyField(User, related_name='collaborating_projects', blank=True, verbose_name="Collaborators")
 
     def __str__(self):

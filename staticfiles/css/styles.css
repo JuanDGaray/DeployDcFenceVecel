@@ -305,6 +305,10 @@ span.title_budgetDown{
   background-color: var(--color-status-down);
   color: rgb(88, 0, 0);
 }
+span.title_budgetNeutral{
+  background-color: #eef1f4;
+  color: #6b7280;
+}
 span.title_contractor{
   background-color: var(--color-status-customer3-bg);
   color: black;
@@ -558,7 +562,7 @@ span.status_cancelled {
   -moz-box-shadow: -800px 127px 600px 200px rgba(0,0,0,0.2);
   box-shadow: -800px 127px 600px 200px rgba(0,0,0,0.2);
   transition: all 3s ease;
-  z-index: 50;
+  z-index: 1080;
 
 }
 
@@ -1381,6 +1385,173 @@ div.gantt_task_progress.gantt-progress-in-progress {
 .card-header input[type="checkbox"]:checked + span {
     color: #007bff;
     font-weight: 600;
+}
+
+/* Projects list — denser, quieter table */
+.projects-table-shell .card-header {
+    min-height: auto;
+}
+
+.projects-table-shell .projects-count-badge {
+    font-size: 0.8rem;
+    border-width: 1px;
+    padding: 0 6px;
+    vertical-align: middle;
+}
+
+.projects-filters {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.projects-filters .form-control,
+.projects-filters .form-select {
+    font-size: 0.85rem;
+    min-width: 0;
+}
+
+.projects-filter-id {
+    flex: 0 1 120px;
+    width: 120px;
+}
+
+.projects-filter-name {
+    flex: 2 1 220px;
+    width: auto;
+    min-width: 140px;
+}
+
+.projects-filter-status {
+    flex: 1 1 160px;
+    width: auto;
+    min-width: 130px;
+}
+
+.projects-filter-date {
+    flex: 0 1 150px;
+    width: 150px;
+}
+
+.projects-filter-actions {
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.projects-add-btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+    .projects-filters {
+        flex-wrap: wrap;
+    }
+    .projects-filter-name,
+    .projects-filter-status,
+    .projects-filter-date,
+    .projects-filter-id,
+    .projects-filter-actions,
+    .projects-add-btn {
+        width: 100%;
+        max-width: none;
+        flex: 1 1 100%;
+        margin-left: 0;
+    }
+}
+
+.projects-table {
+    font-size: 0.875rem;
+}
+
+.projects-table > :not(caption) > * > * {
+    padding: 0.4rem 0.55rem;
+}
+
+.projects-thead.sticky-top {
+    z-index: 2;
+    position: sticky;
+    top: 0;
+}
+
+.projects-thead th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #4b5563;
+    white-space: nowrap;
+    background-color: #f8f9fa;
+    z-index: 2;
+}
+
+.projects-thead .button-sort {
+    font-size: 0.7rem;
+    padding: 0.1rem 0.25rem !important;
+    line-height: 1;
+    border-width: 1px !important;
+}
+
+.projects-id-link {
+    color: #6b7280;
+    font-size: 0.8rem;
+    text-decoration: none;
+    font-variant-numeric: tabular-nums;
+}
+
+.projects-id-link:hover {
+    color: #2563eb;
+    text-decoration: underline;
+}
+
+.projects-name-link {
+    color: #1f2937;
+}
+
+.projects-name-link:hover {
+    color: #2563eb;
+}
+
+.projects-date-cell {
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.projects-customer-chip {
+    display: inline-flex;
+    align-items: center;
+    max-width: 180px;
+    font-size: 0.8rem !important;
+    font-weight: 500;
+    padding: 1px 8px;
+    border-radius: 999px;
+    opacity: 0.95;
+}
+
+.projects-customer-chip i {
+    font-size: 0.75rem;
+    opacity: 0.75;
+}
+
+.projects-real-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.projects-advisor-name {
+    font-size: 0.8rem;
+}
+
+.projects-scope-toggle .btn {
+    font-size: 0.78rem;
+    padding: 0.2rem 0.55rem;
+}
+
+.projects-row:hover {
+    background-color: #f8fafc;
 }
 
 

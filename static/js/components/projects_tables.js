@@ -1,7 +1,20 @@
 let emptyTable = '';
 for (let i = 0; i < 10; i++) {
-    emptyTable += '<tr><td class="text-center placeholder-glow" colspan="8"><span class="placeholder col-12 rounded-4"></span></td></tr>';
+    emptyTable += '<tr><td class="text-center placeholder-glow" colspan="9"><span class="placeholder col-12 rounded-2"></span></td></tr>';
 }
+
+const PROJECT_STATUS_LABELS = {
+    new: 'New',
+    sent: 'Sent',
+    pending: 'Pending',
+    approved: 'Approved',
+    rejected: 'Rejected',
+    cancelled: 'Cancelled',
+    planning_and_documentation: 'Planning & Doc.',
+    in_production: 'In production',
+    pending_payment: 'Pending payment',
+    completed: 'Completed',
+};
 
 async function fetchData(url) {
     try {
@@ -16,127 +29,253 @@ async function fetchData(url) {
     }
 }
 
+function formatStatusLabel(status) {
+    if (!status) return '—';
+    return PROJECT_STATUS_LABELS[status] || String(status).replace(/_/g, ' ');
+}
+
+function realCostTone(estimated, actual) {
+    if (!actual || actual <= 0) {
+        return { className: 'title_budgetNeutral', icon: 'bi-dash' };
+    }
+    if (!estimated || estimated <= 0 || actual >= estimated) {
+        return { className: 'title_budgetDown', icon: 'bi-graph-down-arrow' };
+    }
+    return { className: 'title_budgetUp', icon: 'bi-graph-up-arrow' };
+}
+
 function renderTable(data) {
     const projectsTableBody = document.getElementById('projectsTableBody');
     projectsTableBody.innerHTML = '';
 
     data.projects.forEach(project => {
         const row = document.createElement('tr');
+        row.className = 'projects-row';
 
-        // Asegúrate de convertir `created_at` en un objeto `Date`
         const dateVal = project.created_at ? new Date(project.created_at) : null;
         const formattedDate = dateVal && !isNaN(dateVal.getTime())
-            ? dateVal.toLocaleDateString("en-US", { day: "numeric", month: "numeric", year: "numeric" })
+            ? dateVal.toLocaleDateString('en-US', { day: 'numeric', month: 'numeric', year: 'numeric' })
             : '';
 
-        // Determinar si aplicar blur a los costos
         const blurClass = project.sales_advisor__username == data.current_user.username || data.current_user.is_admin ? '' : 'blur-costs';
         const canViewCosts = project.sales_advisor__username == data.current_user.username || data.current_user.is_admin;
 
-        // Mostrar valores reales o "$0" según permisos (evitar NaN si cost es null)
-        const num = (v) => (v != null && v !== '') ? parseInt(v, 10) : 0;
+        const num = (v) => (v != null && v !== '') ? Number(v) : 0;
+        const estimated = num(project.estimated_cost);
+        const actual = num(project.actual_cost);
         const estimatedCostDisplay = canViewCosts
-            ? (num(project.estimated_cost) || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+            ? (estimated || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
             : '$0000';
         const actualCostDisplay = canViewCosts
-            ? (num(project.actual_cost) || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+            ? (actual || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
             : '$0000';
+        const realTone = realCostTone(estimated, actual);
 
-        // Función para truncar texto a 30 caracteres
         const truncateText = (text, maxLength = 30) => {
             const s = (text == null) ? '' : String(text);
             if (s.length <= maxLength) return s;
             return s.substring(0, maxLength) + '...';
         };
 
-        // Valores seguros para nombres (evitar null/undefined al usar [0])
         const safeStr = (v) => (v != null && v !== '') ? String(v) : '';
         const first = safeStr(project.sales_advisor__first_name);
         const last = safeStr(project.sales_advisor__last_name);
         const hasAdvisor = !!(first || last || project.sales_advisor__id);
         const advisorInitials = hasAdvisor ? ((first[0] || '') + (last[0] || '') || '?') : '—';
 
-        // Obtener el nombre del cliente y truncarlo
         const customerName = project.customer__customer_type === 'individual'
             ? `${safeStr(project.customer__first_name)} ${safeStr(project.customer__last_name)}`.trim() || project.customer__company_name
             : (project.customer__company_name != null ? project.customer__company_name : '');
         const truncatedCustomerName = truncateText(customerName);
+        const customerIcon = project.customer__customer_type === 'individual' ? 'bi-person' : 'bi-buildings';
+        const projectName = safeStr(project.project_name);
+        const statusLabel = formatStatusLabel(project.status);
 
         row.innerHTML = `
-        <td class="position-relative text-center">
-            <a href="/projects/${project.id}" class="mt-2" target="_blank">${project.id}</a>
+        <td class="text-center projects-id-cell">
+            <a href="/projects/${project.id}" class="projects-id-link" target="_blank">${project.id}</a>
         </td>
-        <td class="">${formattedDate}</td>
-        <td class="text-truncate" style="max-width: 200px;" title="${project.project_name}" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="${project.project_name}">
-            <a href="/projects/${project.id}" target="_blank">
-                ${project.project_name}
+        <td class="text-muted projects-date-cell">${formattedDate}</td>
+        <td class="text-truncate projects-name-cell" style="max-width: 220px;" title="${projectName}">
+            <a href="/projects/${project.id}" target="_blank" class="projects-name-link fw-semibold text-decoration-none">
+                ${projectName}
             </a>
         </td>
-        <td class="text-truncate" style="max-width: 120px;">
-            <span class="status-empty status_${project.status} ">
-                <strong>•</strong> ${project.status === 'planning_and_documentation' ? 'Planning & Doc.' : project.status}
+        <td class="text-truncate" style="max-width: 140px;">
+            <span class="status-empty status_${project.status}">
+                ${statusLabel}
             </span>
         </td>
         <td>
-            <a href="/customers/${project.customer}">
-                <span class="status title_${project.customer__customer_type} fs-6 text-truncate" title="${customerName}">
-                    ${project.customer__customer_type === 'individual' ?
-                `${truncatedCustomerName}<i class="bi bi-person-arms-up"></i>` :
-                `${truncatedCustomerName}<i class="bi bi-buildings-fill"></i>`}
+            <a href="/customers/${project.customer}" class="text-decoration-none">
+                <span class="status title_${project.customer__customer_type} projects-customer-chip text-truncate" title="${customerName}">
+                    <i class="bi ${customerIcon} me-1"></i>${truncatedCustomerName}
                 </span>
             </a>
         </td>
-        <td class="text-center text-truncate d-flex flex-row align-items-center gap-1 flex-nowrap ${!hasAdvisor ? 'text-secondary' : ''}">
-            <span
-                class="customer-avatar text-light rounded-circle m-0 ${hasAdvisor ? 'bg-primary' : 'bg-secondary'}"
-                style="font-size: 0.8rem; font-weight: bold; width: 25px; height: 25px;">
-                ${advisorInitials}
-            </span>
-            ${hasAdvisor && project.sales_advisor__id
-                ? `<a href="/users/${project.sales_advisor__id}" target="_blank" class="text-decoration-none text-dark">${first ? first.split(' ')[0] : ''} ${last ? last.split(' ')[0] : ''}</a>`
-                : `<span class="fst-italic">${first || last ? ((first ? first.split(' ')[0] : '') + ' ' + (last ? last.split(' ')[0] : '')).trim() : '—'}</span>`}
+        <td class="text-truncate ${!hasAdvisor ? 'text-secondary' : ''}">
+            <div class="d-inline-flex align-items-center gap-1 flex-nowrap">
+                <span
+                    class="customer-avatar text-light rounded-circle m-0 ${hasAdvisor ? 'bg-primary' : 'bg-secondary'}"
+                    style="font-size: 0.7rem; font-weight: bold; width: 22px; height: 22px; display:inline-flex; align-items:center; justify-content:center;">
+                    ${advisorInitials}
+                </span>
+                ${hasAdvisor && project.sales_advisor__id
+                    ? `<a href="/users/${project.sales_advisor__id}" target="_blank" class="text-decoration-none text-dark projects-advisor-name">${first ? first.split(' ')[0] : ''} ${last ? last.split(' ')[0] : ''}</a>`
+                    : `<span class="fst-italic projects-advisor-name">${first || last ? ((first ? first.split(' ')[0] : '') + ' ' + (last ? last.split(' ')[0] : '')).trim() : '—'}</span>`}
+            </div>
         </td>
-        <td class="text-truncate ${blurClass}"> ${estimatedCostDisplay}</td>
-        ${project.estimated_cost > project.actual_cost || project.actual_cost === 0
-                ? `<td class="${blurClass}"><span class="status title_budgetUp text-truncate"><i class="bi bi-graph-up-arrow fs-6"></i> ${actualCostDisplay}</span></td>`
-                : `<td class="${blurClass}"><span class="status title_budgetDown text-truncate"><i class="bi bi-graph-down-arrow fs-6"></i> ${actualCostDisplay}</span></td>`}           
+        <td class="text-end text-truncate ${blurClass}">${estimatedCostDisplay}</td>
+        <td class="text-end ${blurClass}">
+            <span class="status ${realTone.className} text-truncate projects-real-chip">
+                <i class="bi ${realTone.icon}"></i> ${actualCostDisplay}
+            </span>
+        </td>
         <td class="text-center">
-            <button class="btn btn-primary btn-sm rounded-2 p-1 modal-open button-show_project" 
-                    id='button-show_project' 
+            <button class="btn btn-outline-secondary btn-sm rounded-1 p-1 modal-open button-show_project"
+                    type="button"
                     onclick="openModal(event, project_id='${project.id}',proposal_id='None', object='project')"
                     ${!canViewCosts ? 'disabled' : ''}
-                    ${!canViewCosts ? 'style="opacity: 0.5; cursor: not-allowed;"' : ''}>
-                <i class="bi bi-eye-fill"></i>
+                    ${!canViewCosts ? 'style="opacity: 0.45; cursor: not-allowed;"' : ''}
+                    title="Quick view">
+                <i class="bi bi-eye"></i>
             </button>
         </td>`;
         projectsTableBody.appendChild(row);
     });
 }
 
-async function loadProjects(page, filters = '', sort = '') {
+const PROJECT_FILTER_IDS = [
+    'searchInputProjectId',
+    'searchInputProjectName',
+    'searchInputStatus',
+    'searchInputDueDate',
+];
+const PROJECTS_FILTER_STORAGE_KEY = 'projectsListFilters';
+let currentProjectsSort = '';
+
+function readProjectFiltersFromDom() {
+    const filters = {};
+    PROJECT_FILTER_IDS.forEach((id) => {
+        const el = document.getElementById(id);
+        filters[id] = el ? (el.value || '').trim() : '';
+    });
+    return filters;
+}
+
+function writeProjectFiltersToDom(filters) {
+    if (!filters) return;
+    PROJECT_FILTER_IDS.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el && filters[id] != null) {
+            el.value = filters[id];
+        }
+    });
+    const allEl = document.getElementById('view-all-projects');
+    const onlyMeEl = document.getElementById('view-only-me');
+    if (allEl) allEl.checked = !!filters.all;
+    if (onlyMeEl) onlyMeEl.checked = !!filters.onlyMe;
+    if (filters.sort) currentProjectsSort = filters.sort;
+}
+
+function persistProjectFilters(page, sort) {
+    const filters = readProjectFiltersFromDom();
+    const state = {
+        ...filters,
+        all: document.getElementById('view-all-projects')?.checked || false,
+        onlyMe: document.getElementById('view-only-me')?.checked || false,
+        sort: sort || currentProjectsSort || '',
+        page: page || 1,
+    };
+    try {
+        sessionStorage.setItem(PROJECTS_FILTER_STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {}
+
+    const url = new URL(window.location.href);
+    PROJECT_FILTER_IDS.forEach((id) => {
+        if (state[id]) url.searchParams.set(id, state[id]);
+        else url.searchParams.delete(id);
+    });
+    if (state.all) url.searchParams.set('all', '1');
+    else url.searchParams.delete('all');
+    if (state.onlyMe) url.searchParams.set('only-me', '1');
+    else url.searchParams.delete('only-me');
+    if (state.sort) url.searchParams.set('sort', state.sort);
+    else url.searchParams.delete('sort');
+    if (state.page && Number(state.page) > 1) url.searchParams.set('page', String(state.page));
+    else url.searchParams.delete('page');
+    window.history.replaceState({}, '', url);
+}
+
+function restoreProjectFilters() {
+    const url = new URL(window.location.href);
+    const fromUrl = {};
+    let hasUrl = false;
+    PROJECT_FILTER_IDS.forEach((id) => {
+        if (url.searchParams.has(id)) {
+            fromUrl[id] = url.searchParams.get(id) || '';
+            hasUrl = true;
+        }
+    });
+    if (url.searchParams.get('all') === '1' || url.searchParams.get('all') === 'true') {
+        fromUrl.all = true;
+        hasUrl = true;
+    }
+    if (url.searchParams.get('only-me') === '1' || url.searchParams.get('only-me') === 'true') {
+        fromUrl.onlyMe = true;
+        hasUrl = true;
+    }
+    if (url.searchParams.get('sort')) {
+        fromUrl.sort = url.searchParams.get('sort');
+        hasUrl = true;
+    }
+    if (url.searchParams.get('page')) {
+        fromUrl.page = parseInt(url.searchParams.get('page'), 10) || 1;
+        hasUrl = true;
+    }
+    if (hasUrl) {
+        writeProjectFiltersToDom(fromUrl);
+        return fromUrl;
+    }
+
+    try {
+        const raw = sessionStorage.getItem(PROJECTS_FILTER_STORAGE_KEY);
+        if (!raw) return { page: 1 };
+        const saved = JSON.parse(raw);
+        writeProjectFiltersToDom(saved);
+        return saved;
+    } catch (e) {
+        return { page: 1 };
+    }
+}
+
+async function loadProjects(page, sort) {
     let viewQuery = document.querySelector('[data-view]');
     let view = viewQuery ? viewQuery.getAttribute('data-view') : 'view=view_project';
     document.getElementById('projectsTableBody').innerHTML = emptyTable;
     document.getElementById('projects-count').innerHTML = '0';
     document.getElementById('paginationProjects').innerHTML = '';
-    const all = document.getElementById('view-all-projects').checked
-    const onlyMe = document.getElementById('view-only-me').checked
+
+    const filters = readProjectFiltersFromDom();
+    const all = document.getElementById('view-all-projects').checked;
+    const onlyMe = document.getElementById('view-only-me').checked;
+    if (typeof sort === 'string') {
+        currentProjectsSort = sort;
+    }
+    const activeSort = currentProjectsSort || '';
+
     const params = new URLSearchParams();
     const viewVal = (view && view.includes('=')) ? view.split('=')[1] : (view || 'view_project');
     params.set('view', viewVal);
     params.set('all', all);
     params.set('only-me', onlyMe);
-    if (sort) params.set('sort', sort);
-    if (filters) {
-        filters.split('&').forEach(pair => {
-            const eq = pair.indexOf('=');
-            if (eq > 0) {
-                const k = pair.slice(0, eq);
-                const v = pair.slice(eq + 1);
-                if (v) params.set(k, decodeURIComponent(v));
-            }
-        });
-    }
+    if (activeSort) params.set('sort', activeSort);
+    PROJECT_FILTER_IDS.forEach((id) => {
+        if (filters[id]) params.set(id, filters[id]);
+    });
+
+    persistProjectFilters(page, activeSort);
+
     const url = `/get_projects/${page}/?${params.toString()}`;
     const data = await fetchData(url);
     if (data) {
@@ -155,55 +294,41 @@ document.getElementById('paginationProjects').addEventListener('click', async fu
     event.preventDefault();
     const page = target.getAttribute('data-page');
     if (page && parseInt(page, 10) >= 1) {
-        const filters = [
-            'searchInputProjectId',
-            'searchInputProjectName',
-            'searchInputStatus',
-            'searchInputDueDate',
-        ].map(id => `${id}=${encodeURIComponent(document.getElementById(id).value || '')}`).join('&');
-        await loadProjects(page, filters, '');
+        await loadProjects(page);
     }
 });
 
-
-
-
 document.getElementById('applyFiltersProject').addEventListener('click', async function () {
-    let filters = [
-        'searchInputProjectId',
-        'searchInputProjectName',
-        'searchInputStatus',
-        'searchInputDueDate',
-    ]
-        .map(id => `${id}=${document.getElementById(id).value}`).join('&');
-
-    await loadProjects(1, filters);
-});
-
-document.getElementById('view-all-projects').addEventListener('click', async function () {
     await loadProjects(1);
 });
 
-
+PROJECT_FILTER_IDS.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            loadProjects(1);
+        }
+    });
+});
 
 document.getElementById('clearFilters').addEventListener('click', async function () {
-    [
-        'searchInputProjectId',
-        'searchInputProjectName',
-        'searchInputStatus',
-        'searchInputDueDate',
-    ]
-        .forEach(id => document.getElementById(id).value = '');
-
+    PROJECT_FILTER_IDS.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    currentProjectsSort = '';
+    try {
+        sessionStorage.removeItem(PROJECTS_FILTER_STORAGE_KEY);
+    } catch (e) {}
     await loadProjects(1);
 });
 
 document.querySelectorAll('[data-sort]').forEach(element => {
     element.addEventListener('click', function () {
         const sortField = this.getAttribute('data-sort');
-        let view = document.querySelector('[data-view]');
-        let viewValue = view ? view.getAttribute('data-view') : 'view=view_project';
-        loadProjects(1, '', sortField);
+        loadProjects(1, sortField);
     });
 });
 
@@ -234,16 +359,17 @@ function updatePaginationControls(currentPage, hasMore, totalPages, type = 'prop
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    loadProjects(1);
-    
-    // Event listeners para checkboxes mutuamente excluyentes
+    const restored = restoreProjectFilters();
+    const startPage = restored && restored.page ? restored.page : 1;
+    loadProjects(startPage);
+
     document.getElementById('view-all-projects').addEventListener('change', function() {
         if (this.checked) {
             document.getElementById('view-only-me').checked = false;
         }
         loadProjects(1);
     });
-    
+
     document.getElementById('view-only-me').addEventListener('change', function() {
         if (this.checked) {
             document.getElementById('view-all-projects').checked = false;

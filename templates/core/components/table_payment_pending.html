@@ -127,15 +127,18 @@ function loadPaymentTableData() {
         function(response) {
             if (response.status === 'success') {
                 paymentProjectsData = [];
-                if (response.data.payment.projects_unpaid) {
-                    response.data.payment.projects_unpaid.forEach(project => {
-                        // Try to get pending_amount, total_invoice, total_paid if available (you may need to adjust backend for these fields)
-                        project.pending_amount = project.pending_amount || '';
-                        project.total_invoice = project.total_invoice || '';
-                        project.total_paid = project.total_paid || '';
-                        paymentProjectsData.push(project);
-                    });
-                }
+                const seen = new Set();
+                const pushPaymentProject = (project) => {
+                    if (!project || seen.has(project.id)) return;
+                    seen.add(project.id);
+                    project.pending_amount = project.pending_amount ?? 0;
+                    project.total_invoice = project.total_invoice ?? 0;
+                    project.total_paid = project.total_paid ?? 0;
+                    paymentProjectsData.push(project);
+                };
+                // Closed-production projects awaiting accounting finish (with or without invoices)
+                (response.data.payment.projects_unpaid || []).forEach(pushPaymentProject);
+                (response.data.payment.projects_no_invoices || []).forEach(pushPaymentProject);
                 const filteredData = applyPaymentFilters(paymentProjectsData);
                 document.getElementById('payment-count').textContent = filteredData.length;
                 renderPaymentTable(filteredData);

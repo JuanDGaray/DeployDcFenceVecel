@@ -30,6 +30,48 @@ def user_may_close_production(user, project):
         return True
     return user.groups.filter(name='PRODUCTION').exists()
 
+
+def user_may_unlock_post_close_costs(user, project):
+    """Only super admin or the project's accounting manager can unlock post-close costs."""
+    if user.is_superuser:
+        return True
+    return bool(project.accounting_manager_id and project.accounting_manager_id == user.pk)
+
+
+def user_may_edit_real_costs(user, project):
+    """
+    Real costs editable while production is open (PM/admin),
+    or after close only if accounting unlocked allow_post_close_real_costs.
+    """
+    if project.production_closed:
+        if not project.allow_post_close_real_costs:
+            return False
+        if user_is_admin(user):
+            return True
+        if project.accounting_manager_id and project.accounting_manager_id == user.pk:
+            return True
+        if project.project_manager_id and project.project_manager_id == user.pk:
+            return True
+        return user.groups.filter(name='PRODUCTION').exists()
+
+    return user_is_admin(user) or (
+        project.project_manager_id and project.project_manager_id == user.pk
+    )
+
+
+def _reject_if_real_costs_locked(user, project):
+    if user_may_edit_real_costs(user, project):
+        return None
+    if project.production_closed and not project.allow_post_close_real_costs:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Production is closed. Ask Accounting to enable adding expenses.',
+        }, status=403)
+    return JsonResponse({
+        'status': 'error',
+        'message': 'You are not authorized to edit real costs for this project.',
+    }, status=403)
+
 @login_required
 def production(request):
     from django.db.models import Sum, Q
@@ -146,6 +188,8 @@ def production_project(request, project_id):
                 and not project.production_closed
             ),
             'can_close_production': user_may_close_production(request.user, project) and not project.production_closed,
+            'can_edit_real_costs': user_may_edit_real_costs(request.user, project),
+            'can_unlock_post_close_costs': user_may_unlock_post_close_costs(request.user, project),
         })
     
 
@@ -159,16 +203,28 @@ def production_project(request, project_id):
             RealCostByItems = json.dumps(RealCostItems.items)
 
     proposal = project.get_approved_proposal()
-    budget = proposal.budget
-    changeOrders = BudgetEstimate.objects.filter(project_id=project_id, isChangeOrder=True, change_order_detail__status='approved').select_related('change_order_detail').prefetch_related('change_order_detail__items').order_by('-date_created')
+    changeOrders = BudgetEstimate.objects.filter(
+        project_id=project_id,
+        isChangeOrder=True,
+        change_order_detail__status='approved',
+    ).select_related('change_order_detail').prefetch_related(
+        'change_order_detail__items'
+    ).order_by('-date_created')
+
+    # Production shows the latest approved change-order full budget when one exists.
+    # Real costs stay on the project (keyed by item name), so prior spend is kept.
+    active_change_order = changeOrders.first() if changeOrders.exists() else None
+    budget = active_change_order if active_change_order else (proposal.budget if proposal else None)
+    use_change_order_budget = bool(active_change_order)
+
     costData = {}
     progress = 0
     user_allowed_to_close_production = False
     user_can_assign_cost_request = False
-    # Calcular el total del presupuesto desde dataPreview
     estimated_budget_total = 0
-    if budget.dataPreview:
-        for elemet in budget.dataPreview:
+    data_preview = budget.dataPreview if budget and budget.dataPreview else []
+    if data_preview:
+        for elemet in data_preview:
             if isinstance(elemet, list) and len(elemet) >= 2:
                 try:
                     estimated_budget_total += float(elemet[1])
@@ -177,15 +233,30 @@ def production_project(request, project_id):
     if (request.user == project.project_manager or user_is_admin(request.user)) and not project.production_closed:
         user_allowed_to_close_production = True
     can_close_production = user_may_close_production(request.user, project) and not project.production_closed
+    can_edit_real_costs = user_may_edit_real_costs(request.user, project)
+    can_unlock_post_close_costs = user_may_unlock_post_close_costs(request.user, project)
     if user_is_admin(request.user) or (project.accounting_manager and request.user == project.accounting_manager):
         user_can_assign_cost_request = True
     last_index = None
-    for elemet in budget.dataPreview:
+    for elemet in data_preview:
         if len(elemet) >= 2:
-            costData[elemet[0]] = {'total':elemet[1], 'content':[]}
-            last_index = budget.dataPreview.index(elemet)
-        else:
-            costData[budget.dataPreview[last_index][0]]['content'].append(elemet[0])
+            costData[elemet[0]] = {'total': elemet[1], 'content': []}
+            last_index = data_preview.index(elemet)
+        elif last_index is not None:
+            costData[data_preview[last_index][0]]['content'].append(elemet[0])
+
+    preview_keys = {
+        row[0] for row in data_preview
+        if isinstance(row, list) and len(row) >= 2
+    }
+    orphaned_real_cost_keys = []
+    if RealCost.exists():
+        real_items = RealCost.get().items or {}
+        if isinstance(real_items, dict):
+            orphaned_real_cost_keys = [
+                key for key in real_items.keys()
+                if key not in preview_keys
+            ]
 
     if taskGantt.exists():
         print(taskGantt.first().gantt_data)
@@ -197,8 +268,8 @@ def production_project(request, project_id):
             progress = calculate_project_progress(gantt_data)
     else:
         gantt_data = []
-    print(budget.id)
-    print(budget.dataPreview)
+    print(budget.id if budget else None)
+    print(data_preview)
     return render(request, 'detail_production_project.html', {
         'project': project,
         'today': timezone.now().date(),
@@ -206,15 +277,20 @@ def production_project(request, project_id):
         'budget': budget,
         'costData': json.dumps(costData),
         'date': timezone.now().date(),
-        'data' : json.dumps(extract_data_budget(budget)),
-        'progress': round(progress*100),
-        'taskGantt':taskGantt,
+        'data': json.dumps(extract_data_budget(budget)) if budget else '[]',
+        'progress': round(progress * 100),
+        'taskGantt': taskGantt,
         'realCostItems': RealCostByItems,
         'user_allowed_to_close_production': user_allowed_to_close_production,
         'can_close_production': can_close_production,
+        'can_edit_real_costs': can_edit_real_costs,
+        'can_unlock_post_close_costs': can_unlock_post_close_costs,
         'user_can_assign_cost_request': user_can_assign_cost_request,
         'changeOrders': changeOrders,
         'totalChangeOrders': changeOrders.count(),
+        'use_change_order_budget': use_change_order_budget,
+        'active_change_order': active_change_order,
+        'orphaned_real_cost_keys': orphaned_real_cost_keys,
     })
     
     
@@ -285,6 +361,9 @@ def save_real_cost_by_items(request, project_id):
     try:
         project = get_object_or_404(Project, pk=project_id)
         if request.method == 'POST':
+            locked = _reject_if_real_costs_locked(request.user, project)
+            if locked:
+                return locked
             costData = request.body
             costData = json.loads(costData)
             realCostData, created = RealCostProject.objects.get_or_create(project=project)
@@ -345,6 +424,9 @@ def update_real_cost_item(request, project_id):
     """Update an existing real cost sub-item (concept/description/value/evidence)."""
     try:
         project = get_object_or_404(Project, pk=project_id)
+        locked = _reject_if_real_costs_locked(request.user, project)
+        if locked:
+            return locked
         payload = json.loads(request.body)
 
         item_key = payload.get('item')
@@ -442,6 +524,9 @@ def delete_real_cost_item(request, project_id):
     """Delete an existing real cost sub-item by item/concept/description."""
     try:
         project = get_object_or_404(Project, pk=project_id)
+        locked = _reject_if_real_costs_locked(request.user, project)
+        if locked:
+            return locked
         payload = json.loads(request.body)
         item_key = payload.get('item')
         concept = payload.get('concept')
@@ -728,6 +813,7 @@ def close_production(request, project_id):
         project.status = Project.STATUS_PENDING_PAYMENT
         project.production_closed = True
         project.production_closed_date = timezone.now()
+        project.allow_post_close_real_costs = False
         project.save()
         
         # Log the production closure
@@ -745,6 +831,52 @@ def close_production(request, project_id):
             'status': 'error',
             'message': f'Error closing production: {str(e)}'
         }, status=500)
+
+
+@login_required
+@require_POST
+def toggle_post_close_real_costs(request, project_id):
+    """Accounting-only unlock to add real costs after production is closed."""
+    project = get_object_or_404(Project, pk=project_id)
+    if not user_may_unlock_post_close_costs(request.user, project):
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Only a super admin or the accounting manager can enable expenses after close.',
+        }, status=403)
+    if not project.production_closed:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Production is still open. Close production first.',
+        }, status=400)
+
+    enabled = request.POST.get('enabled')
+    if enabled is None and request.body:
+        try:
+            payload = json.loads(request.body)
+            enabled = payload.get('enabled')
+        except Exception:
+            enabled = None
+
+    if isinstance(enabled, str):
+        enabled = enabled.lower() in ('1', 'true', 'yes', 'on')
+    elif enabled is None:
+        enabled = not bool(project.allow_post_close_real_costs)
+    else:
+        enabled = bool(enabled)
+
+    project.allow_post_close_real_costs = enabled
+    project.save(update_fields=['allow_post_close_real_costs'])
+    log_project_history(
+        request,
+        project,
+        'UPDATE',
+        f'Post-close real costs {"enabled" if enabled else "disabled"} by {request.user.get_full_name() or request.user.username}',
+    )
+    return JsonResponse({
+        'status': 'ok',
+        'enabled': enabled,
+        'message': 'Adding expenses is now enabled.' if enabled else 'Adding expenses is now locked.',
+    })
 
 
 

@@ -33,23 +33,12 @@
                     <div class="card col-4 col-md-2 mx-4 mb-4">
                         <p class="fw-semibold mb-0"> Cost Estimated</p>
                         <p class="text-end text-primary bg-primary bg-opacity-25 rounded-2 p-1 px-2 fw-bold fs-4" id="estimated-budget"></p>
-                        {% if changeOrders %}
-                            {% for changeOrder in changeOrders %}
-                                <p class="text-end text-warning bg-warning bg-opacity-10 rounded-2 p-1 px-2 fw-bold fs-6 d-flex justify-content-between">
-                                    <span class="fw-bold text-dark">C.O. #{{forloop.counter}}</span>
-                                    {% if changeOrder.total_change_order < 0 %}
-                                        <span class="text-danger">
-                                            <i class="bi bi-arrow-down-short"></i>
-                                            {{ changeOrder.total_change_order | currency_usd }}
-                                        </span>
-                                    {% else %}
-                                        <span class="text-success">
-                                            <i class="bi bi-arrow-up-short"></i>
-                                            {{ changeOrder.total_change_order | currency_usd }}
-                                        </span>
-                                    {% endif %}
-                                    </p>
-                            {% endfor %}
+                        {% if use_change_order_budget and active_change_order %}
+                            <p class="text-end text-warning bg-warning bg-opacity-10 rounded-2 p-1 px-2 fw-bold fs-6 mb-0">
+                                <span class="fw-bold text-dark">
+                                    Budget from C.O. #{{ active_change_order.change_order_detail.change_order_no }}
+                                </span>
+                            </p>
                         {% endif %}
                     </div>
                     <div class="card col-4 col-md-2 mx-4 mb-4">
@@ -422,7 +411,32 @@
                                 </button>
                             {% endif %}
                         {% else %}
-                            <h6 class="text-center bg-secondary bg-opacity-25 p-2 rounded-2 text-dark">Production closed on {{ project.production_closed_date }}</h6>
+                            <h6 class="text-center bg-secondary bg-opacity-25 p-2 rounded-2 text-dark mb-2">
+                                Production closed on {{ project.production_closed_date }}
+                            </h6>
+                            {% if project.allow_post_close_real_costs %}
+                                <p class="text-center text-success fw-semibold mb-2">
+                                    <i class="bi bi-unlock-fill"></i> Adding expenses is temporarily enabled by Accounting.
+                                </p>
+                            {% else %}
+                                <p class="text-center text-muted mb-2">
+                                    <i class="bi bi-lock-fill"></i> Expenses are locked after close.
+                                </p>
+                            {% endif %}
+                            {% if can_unlock_post_close_costs %}
+                                <button type="button"
+                                        class="btn {% if project.allow_post_close_real_costs %}btn-outline-secondary{% else %}btn-warning{% endif %} fw-bold"
+                                        id="togglePostCloseCostsBtn"
+                                        data-enabled="{% if project.allow_post_close_real_costs %}true{% else %}false{% endif %}">
+                                    {% if project.allow_post_close_real_costs %}
+                                        <i class="bi bi-lock"></i> Lock expenses again
+                                    {% else %}
+                                        <i class="bi bi-unlock"></i> Allow adding expenses
+                                    {% endif %}
+                                </button>
+                            {% elif not project.allow_post_close_real_costs %}
+                                <small class="text-muted text-center">Only a Super Admin or the Accounting Manager can enable adding a missed expense.</small>
+                            {% endif %}
                         {% endif %}
             </div>
             <!-- Historial de Cambios en Producción -->
@@ -490,7 +504,7 @@
                                     <ul class="mb-0">
                                         <li>Production will be marked as closed</li>
                                         <li>Project status will change to <span class="badge bg-warning text-dark">Pending Payment</span></li>
-                                        <li>No further production changes will be allowed</li>
+                                        <li>Expenses stay locked unless Accounting enables them again</li>
                                         <li>Project will move to the payment phase</li>
                                     </ul>
                                 </div>
@@ -554,6 +568,54 @@
                         }
                         confirmBtn.disabled = false;
                         confirmBtn.innerHTML = originalText;
+                    });
+                });
+            });
+
+            document.addEventListener('DOMContentLoaded', function () {
+                const toggleBtn = document.getElementById('togglePostCloseCostsBtn');
+                if (!toggleBtn) return;
+                toggleBtn.addEventListener('click', function () {
+                    const currentlyEnabled = toggleBtn.dataset.enabled === 'true';
+                    const enable = !currentlyEnabled;
+                    const originalHtml = toggleBtn.innerHTML;
+                    toggleBtn.disabled = true;
+                    toggleBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+
+                    fetch('/production/{{ project.id }}/toggle_post_close_real_costs/', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}',
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ enabled: enable })
+                    })
+                    .then(function (response) {
+                        return response.json().then(function (data) {
+                            return { ok: response.ok, data: data };
+                        });
+                    })
+                    .then(function (result) {
+                        if (result.ok && result.data.status === 'ok') {
+                            if (typeof showAlert === 'function') {
+                                showAlert(result.data.message, 'success');
+                            }
+                            setTimeout(function () { window.location.reload(); }, 600);
+                            return;
+                        }
+                        if (typeof showAlert === 'function') {
+                            showAlert((result.data && result.data.message) || 'Could not update expense lock.', 'danger');
+                        }
+                        toggleBtn.disabled = false;
+                        toggleBtn.innerHTML = originalHtml;
+                    })
+                    .catch(function () {
+                        if (typeof showAlert === 'function') {
+                            showAlert('Could not update expense lock.', 'danger');
+                        }
+                        toggleBtn.disabled = false;
+                        toggleBtn.innerHTML = originalHtml;
                     });
                 });
             });
@@ -1026,19 +1088,19 @@
 
 {% block extra_js %}
 <script>
-    // Obtener dataPreview desde el contexto de Django
-    var dataPreview = {{ budget.dataPreview|safe }};
+    // Obtener dataPreview desde el contexto de Django (budget activo: CO aprobado o quote original)
+    var dataPreview = {{ budget.dataPreview|default:"[]"|safe }};
     function extractNumber(str) {
-        var match = str.match(/-?\d+(?:[\.,]\d+)?/g);
+        if (typeof str === 'number') return str;
+        var match = String(str).match(/-?\d+(?:[\.,]\d+)?/g);
         if (match) {
             return parseFloat(match[0].replace(/,/g, ''));
         }
         return 0;
     }
-    function calculateEstimatedBudget(dataPreview) {
+    function calculateEstimatedBudget(rows) {
         let total = 0;
-        dataPreview.forEach(function(row) {
-            console.log(row);
+        (rows || []).forEach(function(row) {
             if (Array.isArray(row) && row.length >= 2) {
                 total += extractNumber(row[1]);
             }
@@ -1046,8 +1108,10 @@
         return total;
     }
     document.addEventListener('DOMContentLoaded', function() {
+        var estimatedEl = document.getElementById('estimated-budget');
+        if (!estimatedEl) return;
         var total = calculateEstimatedBudget(dataPreview);
-        document.getElementById('estimated-budget').textContent = total.toLocaleString('en-US', {style: 'currency', currency: 'USD'});
+        estimatedEl.textContent = total.toLocaleString('en-US', {style: 'currency', currency: 'USD'});
     });
 </script>
 {% endblock %}

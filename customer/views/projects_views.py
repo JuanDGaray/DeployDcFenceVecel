@@ -1571,10 +1571,11 @@ def update_billed_proposal(sender, instance, **kwargs):
     
 
 @login_required
-@user_passes_test(lambda u: u.is_superuser or u.is_staff)
+@user_passes_test(user_is_admin)
 def change_proposal_budget(request, project_id, proposal_id):
     """
-    Admin-only view to change the budget ID of a proposal (AJAX only)
+    Admin-only view to change the budget ID of a proposal (AJAX only).
+    Allows superuser, staff, or users in the ADMIN group.
     """
     if request.method != 'POST':
         return JsonResponse({

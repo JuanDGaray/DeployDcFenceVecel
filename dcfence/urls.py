@@ -24,7 +24,7 @@ from django.conf.urls.static import static
 from django.conf.urls import handler404
 from customer import utils
 from customer.views.projects_views import project_history
-from customer.views.production_views import close_production
+from customer.views.production_views import close_production, toggle_post_close_real_costs
 
 
 handler404 = views.custom_404_view
@@ -96,6 +96,7 @@ urlpatterns = [
     path('production/<int:project_id>/update_real_cost_item/', views.update_real_cost_item, name='update_real_cost_item'),
     path('production/<int:project_id>/delete_real_cost_item/', views.delete_real_cost_item, name='delete_real_cost_item'),
     path('production/<int:project_id>/close_production/', views.close_production, name='close_production'),
+    path('production/<int:project_id>/toggle_post_close_real_costs/', toggle_post_close_real_costs, name='toggle_post_close_real_costs'),
     path('api/chat/', views.chat_with_groq, name='chat_with_groq'),
     path('settings/', settings_view, name='settings'),
     path('bugs/', views.bug_list, name='bug_list'),
