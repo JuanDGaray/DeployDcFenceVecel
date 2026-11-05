@@ -23,10 +23,32 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
 <script src="{% static 'js/components/projects_tables.js' %}"></script>
 <script>
-  $(document).ready(function() {
-    $('#id_customer').select2({
+  function initProjectCustomerSelect() {
+    var $customer = $('#id_customer');
+    if (!$customer.length) return;
+    if ($customer.hasClass('select2-hidden-accessible')) {
+      $customer.select2('destroy');
+    }
+    $customer.select2({
       placeholder: 'Select a customer',
-      allowClear: true
+      allowClear: true,
+      width: '100%',
+      dropdownParent: $(document.body)
+    });
+  }
+
+  $(document).ready(function() {
+    initProjectCustomerSelect();
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    var addButton = document.getElementById('add-customer-btn');
+    if (!addButton) return;
+    addButton.addEventListener('click', function () {
+      setTimeout(function () {
+        initProjectCustomerSelect();
+        $('#id_customer').trigger('change');
+      }, 50);
     });
   });
   

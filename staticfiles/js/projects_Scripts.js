@@ -34,7 +34,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     requiredFields.forEach(function (field) {
         field.addEventListener('input', checkFormCompletion);
+        field.addEventListener('change', checkFormCompletion);
     });
+    // Select2 updates the underlying select via change
+    if (window.jQuery) {
+        window.jQuery('#id_customer').on('change.select2 change', checkFormCompletion);
+    }
 
 
 

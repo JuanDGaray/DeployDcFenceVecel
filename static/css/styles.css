@@ -566,9 +566,19 @@ span.status_cancelled {
 
 }
 
+/* Select2 must open above the create-project panel */
+body > .select2-container,
+.select2-container--open {
+  z-index: 2000 !important;
+}
+
+#customer-form .select2-container {
+  width: 100% !important;
+  max-width: 100%;
+}
 
 #id_customer{
-  width: 400px;
+  width: 100%;
   display: block;
 }
 
