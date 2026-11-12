@@ -627,6 +627,16 @@
                         <div class="info-value">$${project.totals.actual_cost.toLocaleString()}</div>
                     </div>
                     <div class="info-item">
+                        <div class="info-label">Cost Diff.</div>
+                        <div class="info-value ${(project.totals.cost_difference || 0) >= 0 ? 'profit-positive' : 'profit-negative'}">
+                            $${(project.totals.cost_difference || 0).toLocaleString()}
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Planned Profit</div>
+                        <div class="info-value">$${(project.totals.planned_profit || 0).toLocaleString()}</div>
+                    </div>
+                    <div class="info-item">
                         <div class="info-label">Total Proposals</div>
                         <div class="info-value">$${project.totals.total_proposals.toLocaleString()}</div>
                     </div>
@@ -635,7 +645,7 @@
                         <div class="info-value">$${project.totals.total_invoiced.toLocaleString()}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label">Profit</div>
+                        <div class="info-label">Profit (Planned + Cost Diff.)</div>
                         <div class="info-value ${project.totals.profit > 0 ? 'profit-positive' : project.totals.profit < 0 ? 'profit-negative' : 'profit-neutral'}">
                             $${project.totals.profit.toLocaleString()}
                         </div>

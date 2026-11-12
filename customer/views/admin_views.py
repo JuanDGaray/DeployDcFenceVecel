@@ -1,5 +1,6 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from django.db.models import Prefetch
 from django.utils import timezone
@@ -19,7 +20,10 @@ def _completed_projects_queryset():
             Prefetch('proposals', queryset=ProposalProjects.objects.select_related('budget')),
             Prefetch(
                 'budget_categories',
-                queryset=BudgetEstimate.objects.select_related('id_related_budget'),
+                queryset=BudgetEstimate.objects.select_related(
+                    'id_related_budget',
+                    'change_order_detail',
+                ),
             ),
             'invoices',
         )
@@ -36,9 +40,10 @@ def build_completed_dashboard_context():
 
     for project in completed_projects:
         project_totals = calculate_project_totals(project)
+        # Same source as each card: Budgeted - Spent = Profit (planned + cost diff).
+        total_budgeted_cost += project_totals['budgeted_cost']
+        total_actual_cost += project_totals['actual_cost']
         total_profit += project_totals['profit']
-        total_budgeted_cost += project.estimated_cost or 0
-        total_actual_cost += project.actual_cost or 0
 
         if not project.end_date:
             continue
@@ -121,7 +126,8 @@ def get_project_details_ajax(request, project_id):
 def calculate_project_totals(project):
     """
     Calcula los totales de un proyecto completado.
-    Retorna un diccionario con costo presupuestado, costo real y utilidad.
+    Utilidad real = utilidad presupuestada + diferencia de costo
+    (si Cost Diff es positiva, ese ahorro entra como utilidad).
     """
     approved_proposal = None
     for proposal in project.proposals.all():
@@ -129,41 +135,70 @@ def calculate_project_totals(project):
             approved_proposal = proposal
             break
 
-    change_orders = [
-        co for co in project.budget_categories.all()
-        if co.isChangeOrder and co.status == 'approved'
-    ]
+    # Change orders keep BudgetEstimate.status='saved'; approval lives on change_order_detail.
+    change_orders = []
+    for co in project.budget_categories.all():
+        if not co.isChangeOrder:
+            continue
+        try:
+            detail = co.change_order_detail
+        except ObjectDoesNotExist:
+            continue
+        if detail.status == 'approved':
+            change_orders.append(co)
+    change_orders.sort(key=lambda co: co.id)
 
     invoices = project.invoices.all()
     total_invoiced = sum((invoice.total_invoice or Decimal('0')) for invoice in invoices)
 
-    approved_total_value = (approved_proposal.total_proposal if approved_proposal and approved_proposal.total_proposal else Decimal('0'))
-    approved_cost_budget = (approved_proposal.budget.projected_cost if approved_proposal and approved_proposal.budget and approved_proposal.budget.projected_cost else Decimal('0'))
+    approved_total_value = (
+        approved_proposal.total_proposal
+        if approved_proposal and approved_proposal.total_proposal
+        else Decimal('0')
+    )
+    budget = approved_proposal.budget if approved_proposal else None
+    approved_cost_budget = (
+        budget.projected_cost
+        if budget and budget.projected_cost is not None
+        else Decimal('0')
+    )
+    planned_profit = (
+        budget.profit_value
+        if budget and budget.profit_value is not None
+        else Decimal('0')
+    )
 
     if change_orders:
-        change_budget = sum((co.total_change_order or Decimal('0')) for co in change_orders)
-        budgeted_cost = approved_total_value + change_budget
-        cost_budget = approved_cost_budget + change_budget
+        # Latest approved CO is the active full budget (same rule as production).
+        active_budget = change_orders[-1]
+        budgeted_cost = (active_budget.projected_cost or Decimal('0')) + (active_budget.profit_value or Decimal('0'))
+        cost_budget = active_budget.projected_cost or Decimal('0')
+        planned_profit = active_budget.profit_value or Decimal('0')
     else:
-        budgeted_cost = approved_total_value
+        # Prefer quote total_value (cost + planned profit) when proposal total drifts.
+        if budget is not None:
+            budgeted_cost = (approved_cost_budget or Decimal('0')) + (planned_profit or Decimal('0'))
+        else:
+            budgeted_cost = approved_total_value
         cost_budget = approved_cost_budget
 
-    
-
     actual_cost = project.actual_cost or Decimal('0')
-    profit = budgeted_cost - actual_cost
+    cost_difference = cost_budget - actual_cost
+    # Positive cost difference (under budget) increases utility; overruns reduce it.
+    profit = planned_profit + cost_difference
 
     percentage_profit = float((profit / budgeted_cost * Decimal('100')) if budgeted_cost > 0 else Decimal('0'))
-    
+
     return {
         'budgeted_cost': float(budgeted_cost),
         'actual_cost': float(actual_cost),
         'total_cost_budget': float(cost_budget),
         'total_invoiced': float(total_invoiced),
         'total_proposals': float(approved_total_value),
+        'planned_profit': float(planned_profit),
         'profit': float(profit),
         'profit_margin': float((profit / budgeted_cost * Decimal('100')) if budgeted_cost > 0 else Decimal('0')),
-        'cost_difference': float(cost_budget - actual_cost),
+        'cost_difference': float(cost_difference),
         'percentage_profit': float(percentage_profit)
     }
 

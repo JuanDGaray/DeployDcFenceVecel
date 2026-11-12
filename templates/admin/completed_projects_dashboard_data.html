@@ -116,6 +116,10 @@
                                                 <span class="metric-value {% if pt.cost_difference >= 0 %}is-up{% else %}is-down{% endif %}">{{ pt.cost_difference|currency_usd }}</span>
                                             </div>
                                             <div class="metric">
+                                                <span class="metric-label">Planned</span>
+                                                <span class="metric-value">{{ pt.planned_profit|currency_usd }}</span>
+                                            </div>
+                                            <div class="metric">
                                                 <span class="metric-label">Profit</span>
                                                 <span class="metric-value {% if pt.profit >= 0 %}is-up{% else %}is-down{% endif %}">{{ pt.profit|currency_usd }}</span>
                                             </div>
