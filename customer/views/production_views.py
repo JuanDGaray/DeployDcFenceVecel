@@ -156,6 +156,19 @@ def production_project(request, project_id):
         manager_needs_reassign,
         user_is_admin,
     )
+
+    # Projects no longer require a manual cost-request assign step in production.
+    if not project.accounting_cost_request:
+        funding_type = None
+        if project.production_funding_request_id:
+            funding_type = getattr(project.production_funding_request, 'cost_request_type', None)
+        project.accounting_cost_request = (
+            funding_type
+            if funding_type in ('GLOBAL COST REQUEST', 'ITEM COST REQUEST')
+            else 'GLOBAL COST REQUEST'
+        )
+        project.save(update_fields=['accounting_cost_request'])
+
     if (
         manager_needs_reassign(project.accounting_manager)
         or manager_needs_reassign(project.sales_advisor)

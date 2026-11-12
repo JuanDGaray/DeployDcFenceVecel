@@ -47,6 +47,10 @@ def get_accounting_manager_projects(request):
         planning_awaiting_docs_count = planning_awaiting_docs.count()
 
         production_projects = projects.filter(status='in_production')
+        # Cost-request assign step was removed: backfill so old projects unlock immediately.
+        production_projects.filter(accounting_cost_request__isnull=True).update(
+            accounting_cost_request='GLOBAL COST REQUEST'
+        )
         try:
             planning_blocked = production_projects.filter(
                 Q(project_manager__isnull=True) | Q(start_date__isnull=True) | Q(end_date__isnull=True)
@@ -56,15 +60,9 @@ def get_accounting_manager_projects(request):
             planning_blocked = production_projects.none()
             planning_blocked_count = 0
 
-        # PRODUCTION
-        production_waiting = production_projects.filter(
-            accounting_cost_request__isnull=True,
-            production_funding_request__isnull=False,
-            start_date__isnull=False,
-            end_date__isnull=False,
-            accounting_manager__isnull=False,
-        )
-        production_waiting_count = production_waiting.count()
+        # PRODUCTION — waiting-type-request queue is retired (always empty now).
+        production_waiting = production_projects.none()
+        production_waiting_count = 0
 
         # After production closes, projects go to pending_payment for accounting to finish.
         payment_projects = projects.filter(

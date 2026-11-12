@@ -798,6 +798,16 @@ def send_to_production(request):
         project = Project.objects.get(id=project_id)
         if request.user.is_superuser or request.user.is_staff or request.user == project.accounting_manager  or request.user == project.sales_advisor or request.user.groups.filter(name='ADMIN').exists():
             project.status = Project.STATUS_IN_PRODUCTION
+            # Skip the assign-cost-request step: open real costs/details immediately.
+            if not project.accounting_cost_request:
+                if (
+                    project.production_funding_request
+                    and project.production_funding_request.cost_request_type
+                    in ('GLOBAL COST REQUEST', 'ITEM COST REQUEST')
+                ):
+                    project.accounting_cost_request = project.production_funding_request.cost_request_type
+                else:
+                    project.accounting_cost_request = 'GLOBAL COST REQUEST'
             project.save()
         else:
             return JsonResponse({'status': 'error', 'message': 'You are not authorized to send this project to production'}, status=403)
