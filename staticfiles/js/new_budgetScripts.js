@@ -1345,7 +1345,7 @@ function addItem(input=null) {
                 <input class="form-control-budget text-end qtyASST-manufacturingMW w-10" type="number" name="qtyASST-manufacturingMW-${idInput}" value="0" id="qtyASST-manufacturingMW-${idInput}" oninput="reloadDataManufacturingMW(this)"step="1" style="width:30px">
             </td>                            
             <td class="p-0 border text-center">
-                <input class="form-control-budget text-end days-manufacturingMW" type="number" name="days-manufacturingMW-${idInput}" value="0" id="days-manufacturingMW-${idInput}" oninput="reloadDataManufacturingMW(this); reloadRowProfitManufacturingMW()" step="1" style="width:80px">
+                <input class="form-control-budget text-end days-manufacturingMW" type="number" name="days-manufacturingMW-${idInput}" value="0" id="days-manufacturingMW-${idInput}" oninput="reloadDataManufacturingMW(this); reloadRowProfitManufacturingMW()" step="0.5" style="width:80px">
             </td>                          
         </tr>
     `
@@ -1432,7 +1432,7 @@ function activeRowProfitManufacturingMW(checkboxAdd){
             const textNode = checkbox?.parentElement;
             const text = textNode ? textNode.textContent.trim().replace(/\s+/g, '-') : "";
             if (checkbox.checked && daysInput && checkboxAdd.checked) {
-                const days = parseInt(daysInput.value) || 0; 
+                const days = parseFloat(daysInput.value) || 0; 
                 addRowProfitManufacturingMW(checkbox, days, text);
             }
         });
@@ -1446,7 +1446,8 @@ function addRowProfitManufacturingMW(checkbox, days, title){
     const tbodyProfits = $$$('profit-section');
     const rowCountProfits = tbodyProfits.querySelectorAll('tr').length; // Correct row count
     const uniqueRowId = `profit-row-manufacturingMW`
-    const profitByday =  $$$('profitByDay').value
+    const profitByday = parseFloat($$$('profitByDay').value) || 0
+    days = parseFloat(days) || 0
     // Create a new table row for Profits input
     const newRowProfits = document.createElement('tr');
     newRowProfits.id = uniqueRowId;
@@ -1487,7 +1488,7 @@ function reloadRowProfitManufacturingMW(){
         const textNode = checkbox?.parentElement;
         const text = textNode ? textNode.textContent.trim().replace(/\s+/g, '-') : "";
         if (checkbox.checked && daysInput && checkboxProfit.checked) {
-            const days = parseInt(daysInput.value) || 0; 
+            const days = parseFloat(daysInput.value) || 0; 
             addRowProfitManufacturingMW(checkbox, days, text);
         }
     });

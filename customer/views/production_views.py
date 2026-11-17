@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from ..models import Customer, Project, User, TaskProject, RealCostProject, Notification, ProductionChangeLog
@@ -17,6 +19,99 @@ from ..models import ProductionFundingRequest, ChangeOrderDetail, BudgetEstimate
 from django.contrib.auth import get_user_model
 import copy
 User = get_user_model()
+
+def _change_order_groups(change_order):
+    """Quoted lines that belong to the change order, split by materials and installation."""
+    related = change_order.id_related_budget
+    original_items = set()
+    if related is not None:
+        original_items.update(v for v in related.materials.values_list('item_value', flat=True) if v)
+        original_items.update(v for v in related.labors.values_list('item_value', flat=True) if v)
+        original_items.update(v for v in related.contractors.values_list('item_value', flat=True) if v)
+        original_items.update(v for v in related.misc_data.values_list('item_value', flat=True) if v)
+
+    grouped = {}
+
+    def add(item, kind, description, amount):
+        if not item or item in original_items:
+            return
+        try:
+            amount = Decimal(amount or 0)
+        except Exception:
+            return
+        if amount == 0:
+            return
+        grouped.setdefault(item, []).append({
+            'kind': kind,
+            'description': (description or kind).strip(),
+            'amount': f"${amount:,.2f}",
+        })
+
+    for material in change_order.materials.all():
+        add(material.item_value, 'Materials', material.material_description, material.cost)
+    for labor in change_order.labors.all():
+        description = labor.labor_description or ''
+        kind = 'Installation' if 'install' in description.lower() else 'Labor'
+        add(labor.item_value, kind, description, labor.labor_cost)
+    for contractor in change_order.contractors.all():
+        add(contractor.item_value, 'Contractors', contractor.contractor_description, contractor.contractor_cost)
+    for misc in change_order.misc_data.all():
+        add(misc.item_value, 'Other', misc.misc_description, misc.misc_value)
+
+    try:
+        detail = change_order.change_order_detail
+    except Exception:
+        detail = None
+    number = detail.change_order_no if detail else change_order.id
+    status = detail.get_status_display() if detail else ''
+    return [
+        {'item': item, 'number': number, 'status': status, 'lines': lines}
+        for item, lines in grouped.items()
+    ]
+
+
+def _production_budget_rows(data_preview, change_orders):
+    """Budget rows for production. New change-order items are listed line by line."""
+    groups_by_item = {}
+    ordered_groups = []
+    for change_order in change_orders:
+        for group in _change_order_groups(change_order):
+            groups_by_item.setdefault(group['item'], group)
+            ordered_groups.append(group)
+
+    rows = []
+    used = set()
+    skipping_children = False
+    for row in data_preview or []:
+        if isinstance(row, list) and len(row) >= 2:
+            name = row[0]
+            group = groups_by_item.get(name)
+            if group:
+                # Keep the original quote order. Change-order lines are appended at the end.
+                skipping_children = True
+            else:
+                skipping_children = False
+                rows.append({'kind': 'total', 'name': name, 'amount': row[1]})
+        elif isinstance(row, list) and row and not skipping_children:
+            rows.append({'kind': 'detail', 'name': row[0], 'amount': ''})
+
+    for group in ordered_groups:
+        if group['item'] in used:
+            continue
+        used.add(group['item'])
+        rows.append({
+            'kind': 'header',
+            'name': f"C.O. #{group['number']} ({group['status']}) {group['item']}",
+            'amount': '',
+        })
+        for line in group['lines']:
+            rows.append({
+                'kind': 'line',
+                'name': f"{line['kind']}: {line['description']}",
+                'amount': line['amount'],
+            })
+    return rows
+
 
 def user_may_close_production(user, project):
     """Project manager, accounting, admin/staff, or production can close a job."""
@@ -216,13 +311,21 @@ def production_project(request, project_id):
             RealCostByItems = json.dumps(RealCostItems.items)
 
     proposal = project.get_approved_proposal()
-    changeOrders = BudgetEstimate.objects.filter(
+    change_order_qs = BudgetEstimate.objects.filter(
         project_id=project_id,
         isChangeOrder=True,
-        change_order_detail__status='approved',
-    ).select_related('change_order_detail').prefetch_related(
-        'change_order_detail__items'
+    ).select_related('change_order_detail', 'id_related_budget').prefetch_related(
+        'change_order_detail__items',
+        'materials',
+        'labors',
+        'contractors',
+        'misc_data',
+        'id_related_budget__materials',
+        'id_related_budget__labors',
+        'id_related_budget__contractors',
+        'id_related_budget__misc_data',
     ).order_by('-date_created')
+    changeOrders = change_order_qs.filter(change_order_detail__status='approved')
 
     # Production shows the latest approved change-order full budget when one exists.
     # Real costs stay on the project (keyed by item name), so prior spend is kept.
@@ -301,6 +404,7 @@ def production_project(request, project_id):
         'user_can_assign_cost_request': user_can_assign_cost_request,
         'changeOrders': changeOrders,
         'totalChangeOrders': changeOrders.count(),
+        'production_budget_rows': _production_budget_rows(data_preview, changeOrders),
         'use_change_order_budget': use_change_order_budget,
         'active_change_order': active_change_order,
         'orphaned_real_cost_keys': orphaned_real_cost_keys,
@@ -394,23 +498,29 @@ def save_real_cost_by_items(request, project_id):
             costValue = costData['costValue']
             item = costData['item']
             url_evidence = costData.get('evidence_url', None)
-            if item not in dictItems:
-                dictItems[item] = {'subItems':{}, 'total':0}
+            if item not in dictItems or not isinstance(dictItems.get(item), dict):
+                dictItems[item] = {'subItems': {}, 'total': 0}
+            if 'subItems' not in dictItems[item] or not isinstance(dictItems[item]['subItems'], dict):
+                dictItems[item]['subItems'] = {}
+            if concept not in dictItems[item]['subItems'] or not isinstance(dictItems[item]['subItems'].get(concept), dict):
                 dictItems[item]['subItems'][concept] = {}
-                dictItems[item]['subItems'][concept][description] = {'costValue':float(costValue)}
-            elif concept not in dictItems[item]['subItems']:
-                dictItems[item]['subItems'][concept] = {}
-                dictItems[item]['subItems'][concept][description] = {'costValue':float(costValue)}
-            else:
-                dictItems[item]['subItems'][concept][description] = {'costValue':float(costValue)}
 
+            bucket = dictItems[item]['subItems'][concept]
+            # A new invoice is always added. Reusing the same description must not erase the previous one.
+            stored_description = description
+            if stored_description in bucket:
+                suffix = 2
+                while f"{description} ({suffix})" in bucket:
+                    suffix += 1
+                stored_description = f"{description} ({suffix})"
+            bucket[stored_description] = {'costValue': float(costValue)}
             if url_evidence:
-                dictItems[item]['subItems'][concept][description]['evidence_url'] = url_evidence
+                bucket[stored_description]['evidence_url'] = url_evidence
             else:
-                dictItems[item]['subItems'][concept][description]['evidence_url'] = None
+                bucket[stored_description]['evidence_url'] = None
 
             dictItems[item]['total'] = sum_all_cost_values(dictItems[item]['subItems'])
-            realCostData.items = dictItems
+            realCostData.items = copy.deepcopy(dictItems)
             realCostData.save()
 
             # Sumar correctamente todos los costos reales de los items principales

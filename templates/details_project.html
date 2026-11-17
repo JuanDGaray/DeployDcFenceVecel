@@ -608,7 +608,7 @@
                   <td>{{ budget.total_value | currency_usd}}</td>
                  <td>
                    {% if budget.change_order_detail %}
-                     {% if budget.change_order_detail.status == 'approved' and not forloop.last %}
+                     {% if budget.change_order_detail.status == 'approved' and not forloop.last and not user.is_superuser %}
                        <!-- Si este Change Order está aprobado y no es el último, mostrar solo el status sin poder cambiar -->
                        <span class="status-empty status-{{ budget.change_order_detail.status }}">
                          {% if budget.change_order_detail.status == 'draft' %}Draft
@@ -645,6 +645,12 @@
                       href="{% url 'view_changeOrder' project.id budget.id %}" 
                       role="button" title="View Budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="View">
                       <i class="bi bi-eye-fill" style="font-size: 15px;"></i>
+                      </a>
+                      <a class="btn bg-light border border-2 btn-sm rounded-2 p-1"
+                      href="{% url 'view_budget' project.id budget.id %}"
+                      target="_blank"
+                      role="button" title="View as budget" data-bs-toggle="tooltip" data-bs-placement="bottom" data-bs-custom-class="custom-tooltip" data-bs-title="View as budget">
+                      <i class="bi bi-journal-text" style="font-size: 15px;"></i>
                       </a>
                       <a class="btn bg-light border border-2 btn-sm rounded-2 p-1 d-none" 
                       href="{% url 'edit_budget' project.id budget.id %}" 
